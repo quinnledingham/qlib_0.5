@@ -43,7 +43,7 @@ global_variable GLuint gVertexArrayObject = 0;
 
 global_variable bool32 GlobalRunning;
 
-#include "application.cpp"
+#include "../application.cpp"
 
 internal void
 Win32ProcessKeyboardMessage(button_state *NewState, bool32 IsDown)
