@@ -8,11 +8,6 @@
 #define Assert(Expression)
 #endif
 
-#include "String.h"
-#include "types.h"
-#include "renderer.h"
-
-
 struct button_state
 {
     bool32 NewEndedDown;
@@ -97,6 +92,8 @@ Rect
     void Draw(Texture &texture, v2 position, v2 size, float rotate,v3 color);
 };
 
+void Update(platform* p);
 
+void Render(float inAspectRatio);
 
 #endif //APPLICATION_H
