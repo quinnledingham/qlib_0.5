@@ -17,6 +17,27 @@ void NewStrinq(Strinq& NewS, const char* InputChar)
     NewS.Data[NewS.Length] = 0;
 }
 
+void NewStrinq(Strinq& NewS, entire_file *File)
+{
+    NewS = {};
+    
+    int InputCharLength = File->ContentsSize;
+    int TotalSize = InputCharLength * sizeof(char) + 1;
+    
+    NewS.Data = (char*)malloc(TotalSize);
+    memset(NewS.Data, 0, TotalSize);
+    
+    const char* InputChar = (char*)File->Contents;
+    
+    for (int i = 0; i < InputCharLength; i++)
+    {
+        NewS.Data[i] = InputChar[i];
+    }
+    
+    NewS.Length = InputCharLength;
+    NewS.Data[NewS.Length] = 0;
+}
+
 Strinq NewStrinq(const char* InputChar)
 {
     Strinq NewS = {};
@@ -24,6 +45,12 @@ Strinq NewStrinq(const char* InputChar)
     return NewS;
 }
 
+Strinq NewStrinq(entire_file* File)
+{
+    Strinq NewS = {};
+    NewStrinq(NewS, File);
+    return NewS;
+}
 
 void DestroyStrinq(Strinq& ToBeDestroyed)
 {

@@ -8,13 +8,13 @@
 #define Assert(Expression)
 #endif
 
-struct button_state
+struct platform_button_state
 {
     bool32 NewEndedDown;
     bool32 EndedDown;
 };
 
-struct controller_input
+struct platform_controller_input
 {
     bool32 IsConnected;
     bool32 IsAnalog;
@@ -23,13 +23,13 @@ struct controller_input
     
     union
     {
-        button_state Buttons[12];
+        platform_button_state Buttons[12];
         struct
         {
-            button_state MoveUp;
-            button_state MoveDown;
-            button_state MoveLeft;
-            button_state MoveRight;
+            platform_button_state MoveUp;
+            platform_button_state MoveDown;
+            platform_button_state MoveLeft;
+            platform_button_state MoveRight;
         };
     };
 };
@@ -38,7 +38,7 @@ struct
 platform_input
 {
     float dt;
-    controller_input Controllers[5];
+    platform_controller_input Controllers[5];
 };
 
 struct

@@ -4,7 +4,7 @@ global_variable GLuint gVertexArrayObject = 0;
 global_variable bool32 GlobalRunning;
 
 internal void
-Win32ProcessKeyboardMessage(button_state *NewState, bool32 IsDown)
+Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
 {
     //Assert(NewState->EndedDown != IsDown);
     if (IsDown == (bool32)true && NewState->EndedDown == (bool32)false)
@@ -21,7 +21,7 @@ Win32ProcessKeyboardMessage(button_state *NewState, bool32 IsDown)
 }
 
 internal void
-Win32ProcessPendingMessages(controller_input *KeyboardController)
+Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
 {
     MSG Message;
     while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
@@ -267,7 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     p.Initialized = false;
     p.Input.dt = 0;
     
-    controller_input *KeyboardController = &p.Input.Controllers[0];
+    platform_controller_input *KeyboardController = &p.Input.Controllers[0];
     
     while (GlobalRunning) {
         

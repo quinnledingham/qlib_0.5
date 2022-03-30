@@ -1,8 +1,5 @@
 #ifndef DATA_STRUCTURES_H
 #define DATA_STRUCTURES_H
-
-#include "strinq.h"
-
 template<typename T>
 struct DynArray
 {
@@ -27,6 +24,8 @@ struct entire_file
     u32 ContentsSize;
     void *Contents;
 };
+
+#include "strinq.h"
 
 entire_file ReadEntireFile(const char* FileName);
 void DestroyEntireFile(entire_file &F);

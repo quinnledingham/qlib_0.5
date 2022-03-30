@@ -7,4 +7,4 @@ struct debug_buffer
     char* Next;
 };
 
-debug_buffer debug = {};
+global_variable debug_buffer debug = {};

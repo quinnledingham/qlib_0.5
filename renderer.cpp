@@ -19,8 +19,8 @@ Shader::Init(const char* vertex, const char* fragment)
     entire_file vertFile = ReadEntireFile(vertex);
     entire_file fragFile = ReadEntireFile(fragment);
     
-    Strinq v_source = NewStrinq((char*)vertFile.Contents);
-    Strinq f_source = NewStrinq((char*)fragFile.Contents);
+    Strinq v_source = NewStrinq(&vertFile);
+    Strinq f_source = NewStrinq(&fragFile);
     
     // Compile Vertex Shader
     u32 v_shader = glCreateShader(GL_VERTEX_SHADER);

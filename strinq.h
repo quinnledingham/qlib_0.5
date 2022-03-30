@@ -9,7 +9,9 @@ struct Strinq
 
 char* GetData(const Strinq& q);
 void NewStrinq(Strinq& NewS, const char* InputChar);
+void NewStrinq(Strinq& NewS, entire_file *File);
 Strinq NewStrinq(const char* InputChar);
+Strinq NewStrinq(entire_file* File);
 void DestroyStrinq(Strinq& ToBeDestroyed);
 bool operator==(const Strinq& L, const Strinq& R);
 void CopyBuffer(char* B1, char* B2, int Bytes);

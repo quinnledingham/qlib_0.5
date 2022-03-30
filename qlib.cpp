@@ -1,5 +1,3 @@
-#include "debug_buffer.cpp"
-
 #if defined(_WIN32)
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -43,13 +41,16 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "renderer.h"
 #include "application.h"
 #include "math.h"
-#include "strinq.h"
+
 #include "data_structures.h"
+#include "strinq.h"
 #include "application.h"
 #include "renderer.h"
 #include "cgltf/GLTFLoader.h"
 
+#include "debug_buffer.cpp"
 #include "win32_application.cpp"
 #include "data_structures.cpp"
 #include "strinq.cpp"
 #include "renderer.cpp"
+#include "socketq/socketq.cpp"
