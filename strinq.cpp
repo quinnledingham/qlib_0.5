@@ -174,12 +174,12 @@ void PrintqDebug(Strinq Output)
     int j = 0;
     while(j <= Output.Length && i < 100)
     {
-        debug.Next[i] = Output.Data[j];
+        GlobalDebugBuffer.Next[i] = Output.Data[j];
         i++;
         j++;
     }
     
-    debug.Next = debug.Next + i;
+    GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
 }
 
 void PrintqDebug(char* Output)

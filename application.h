@@ -60,6 +60,37 @@ platform
     platform_memory Memory;
 };
 
+#define OUTPUTBUFFER_SIZE 1000
+
+// PrintqDebug
+struct platform_debug_buffer
+{
+    int Size = OUTPUTBUFFER_SIZE;
+    char Data[OUTPUTBUFFER_SIZE];
+    char* Next;
+};
+global_variable platform_debug_buffer GlobalDebugBuffer = {};
+
+// Start Possible Win32
+struct platform_offscreen_buffer
+{
+    // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
+    BITMAPINFO Info;
+    void *Memory;
+    int Width;
+    int Height;
+    int Pitch;
+    int BytesPerPixel;
+};
+global_variable platform_offscreen_buffer GlobalBackbuffer;
+
+struct platform_window_dimension
+{
+    int Width;
+    int Height;
+};
+// End Win32
+
 struct
 Camera
 {
@@ -69,18 +100,20 @@ Camera
     
     float inAspectRatio;
     Shader* shader;
+    float FOV;
+    float F;
 };
 
 struct
 Rect
 {
     real32 x;
+    
     real32 y;
     real32 width;
     real32 height;
     
     Shader* shader;
-    unsigned int quadVAO;
     
     Attribute<v3> VertexPositions;
     IndexBuffer rIndexBuffer;

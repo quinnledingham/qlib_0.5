@@ -3,6 +3,19 @@ global_variable GLuint gVertexArrayObject = 0;
 
 global_variable bool32 GlobalRunning;
 
+internal platform_window_dimension
+Win32GetWindowDimension(HWND Window)
+{
+    platform_window_dimension Result;
+    
+    RECT ClientRect;
+    GetClientRect(Window, &ClientRect);
+    Result.Width = ClientRect.right - ClientRect.left;
+    Result.Height = ClientRect.bottom - ClientRect.top;
+    
+    return(Result);
+}
+
 internal void
 Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
 {
@@ -73,6 +86,75 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
                 DispatchMessageA(&Message);
             } break;
         }
+    }
+}
+
+internal void
+Win32ResizeDIBSection(platform_offscreen_buffer *Buffer, int Width, int Height)
+{
+    // TODO(casey): Bulletproof this.
+    // Maybe don't free first, free after, then free first if that fails.
+    
+    if(Buffer->Memory)
+    {
+        VirtualFree(Buffer->Memory, 0, MEM_RELEASE);
+    }
+    
+    Buffer->Width = Width;
+    Buffer->Height = Height;
+    
+    int BytesPerPixel = 4;
+    Buffer->BytesPerPixel = BytesPerPixel;
+    
+    // NOTE(casey): When the biHeight field is negative, this is the clue to
+    // Windows to treat this bitmap as top-down, not bottom-up, meaning that
+    // the first three bytes of the image are the color for the top left pixel
+    // in the bitmap, not the bottom left!
+    Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
+    Buffer->Info.bmiHeader.biWidth = Buffer->Width;
+    Buffer->Info.bmiHeader.biHeight = -Buffer->Height;
+    Buffer->Info.bmiHeader.biPlanes = 1;
+    Buffer->Info.bmiHeader.biBitCount = 32;
+    Buffer->Info.bmiHeader.biCompression = BI_RGB;
+    
+    // NOTE(casey): Thank you to Chris Hecker of Spy Party fame
+    // for clarifying the deal with StretchDIBits and BitBlt!
+    // No more DC for us.
+    int BitmapMemorySize = (Buffer->Width*Buffer->Height)*BytesPerPixel;
+    Buffer->Memory = VirtualAlloc(0, BitmapMemorySize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    Buffer->Pitch = Width*BytesPerPixel;
+    
+    // TODO(casey): Probably clear this to black
+}
+
+internal void
+Win32DisplayBufferInWindow(platform_offscreen_buffer *Buffer, HDC DeviceContext, 
+                           int WindowWidth, int WindowHeight)
+{
+    if((WindowWidth >= Buffer->Width*2) &&
+       (WindowHeight >= Buffer->Height*2))
+    {
+        StretchDIBits(DeviceContext,
+                      0, 0, 2*Buffer->Width, 2*Buffer->Height,
+                      0, 0, Buffer->Width, Buffer->Height,
+                      Buffer->Memory,
+                      &Buffer->Info,
+                      DIB_RGB_COLORS, SRCCOPY);
+    }
+    else
+    {
+        int OffsetX = 0;
+        int OffsetY = 0;
+        
+        // NOTE(casey): For prototyping purposes, we're going to always blit
+        // 1-to-1 pixels to make sure we don't introduce artifacts with
+        // stretching while we are learning to code the renderer!
+        StretchDIBits(DeviceContext,
+                      OffsetX, OffsetY, Buffer->Width, Buffer->Height,
+                      0, 0, Buffer->Width, Buffer->Height,
+                      Buffer->Memory,
+                      &Buffer->Info,
+                      DIB_RGB_COLORS, SRCCOPY);
     }
 }
 
@@ -164,6 +246,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             (ScreenHeight / 2) - (ClientHeight / 2),
             (ScreenWidth / 2) + (ClientWidth / 2),
             (ScreenHeight / 2) + (ClientHeight / 2));
+    
+    
+    Win32ResizeDIBSection(&GlobalBackbuffer, ClientWidth, ClientHeight);
     
     DWORD Style = (WS_OVERLAPPED | WS_CAPTION |
                    WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
@@ -259,63 +344,97 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
     
-    // Gameplay Loop
-    GlobalRunning = true;
-    DWORD lastTick = GetTickCount();
-    
     platform p = {};
-    p.Initialized = false;
-    p.Input.dt = 0;
     
-    platform_controller_input *KeyboardController = &p.Input.Controllers[0];
+#if QLIB_INTERNAL
+    LPVOID BaseAddress = (LPVOID)Terabytes(2);
+#else
+    LPVOID BaseAddress = 0;
+#endif
     
-    while (GlobalRunning) {
+    p.Memory.PermanentStorageSize = Megabytes(64);
+    p.Memory.TransientStorageSize = Gigabytes(1);
+    
+    // TODO(casey): Handle various memory footprints (USING SYSTEM METRICS)
+    uint64 TotalSize = p.Memory.PermanentStorageSize + p.Memory.TransientStorageSize;
+    p.Memory.PermanentStorage = VirtualAlloc(BaseAddress, (size_t)TotalSize, 
+                                             MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    p.Memory.TransientStorage = ((uint8 *)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
+    
+    if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
+    {
+        // Gameplay Loop
+        GlobalRunning = true;
+        DWORD lastTick = GetTickCount();
         
-        Win32ProcessPendingMessages(KeyboardController);
+        p.Initialized = false;
+        p.Input.dt = 0;
         
-        DWORD thisTick = GetTickCount();
-        float dt = float(thisTick - lastTick) * 0.0001f;
-        lastTick = thisTick;
+        platform_controller_input *KeyboardController = &p.Input.Controllers[0];
         
-        debug = {};
-        memset(debug.Data, 0, debug.Size);
-        debug.Next = debug.Data;
+        while (GlobalRunning) {
+            
+            Win32ProcessPendingMessages(KeyboardController);
+            
+            DWORD thisTick = GetTickCount();
+            float dt = float(thisTick - lastTick) * 0.0001f;
+            lastTick = thisTick;
+            
+            GlobalDebugBuffer= {};
+            memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+            GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+            
+            platform_offscreen_buffer Buffer = {};
+            Buffer.Memory = GlobalBackbuffer.Memory;
+            Buffer.Width = GlobalBackbuffer.Width;
+            Buffer.Height = GlobalBackbuffer.Height;
+            Buffer.Pitch = GlobalBackbuffer.Pitch;
+            Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
+            
+            p.Input.dt = dt;
+            Update(&p);
+            
+            platform_window_dimension Dimension = Win32GetWindowDimension(hwnd);
+            
+#if QLIB_OPENGL
+            glViewport(0, 0, Dimension.Width, Dimension.Height);
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_CULL_FACE);
+            glPointSize(5.0f);
+            glBindVertexArray(gVertexArrayObject);
+            glClearColor(0.5f, 0.6f, 0.7f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT |
+                    GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#endif
+            
+            float aspect = (float)Dimension.Width / (float)Dimension.Height;
+            
+            Render(aspect);
+            
+            char CharBuffer[OUTPUTBUFFER_SIZE];
+            _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+            OutputDebugStringA(CharBuffer);
+            
+#if QLIB_OPENGL
+            SwapBuffers(hdc);
+            if (vsynch != 0) {
+                glFinish();
+            }
+#else
+            Win32DisplayBufferInWindow(&GlobalBackbuffer, hdc, Dimension.Width, Dimension.Height);
+            if((GlobalBackbuffer.Width != Dimension.Width) || (GlobalBackbuffer.Height != Dimension.Height))
+            {
+                Win32ResizeDIBSection(&GlobalBackbuffer, Dimension.Width, Dimension.Height);
+            }
+#endif
+        } // End of game loop
+    }
+    else // if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
+    {
         
-        p.Input.dt = dt;
-        Update(&p);
-        
-        RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
-        ClientWidth = clientRect.right -
-            clientRect.left;
-        ClientHeight = clientRect.bottom -
-            clientRect.top;
-        
-        glViewport(0, 0, ClientWidth, ClientHeight);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glPointSize(5.0f);
-        glBindVertexArray(gVertexArrayObject);
-        glClearColor(0.5f, 0.6f, 0.7f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT |
-                GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        float aspect = (float)ClientWidth /
-        (float)ClientHeight;
-        
-        Render(aspect);
-        
-        char CharBuffer[OUTPUTBUFFER_SIZE];
-        _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", debug.Data);
-        OutputDebugStringA(CharBuffer);
-        
-        SwapBuffers(hdc);
-        if (vsynch != 0) {
-            glFinish();
-        }
-    } // End of game loop
+    }
     
     return(0);
 }
