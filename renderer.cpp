@@ -422,8 +422,6 @@ void IndexBuffer::Set(DynArray<unsigned int>& input)
 }
 
 // TEXTURE
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
 
 void
 Texture::Init()
@@ -435,16 +433,20 @@ Texture::Init()
 }
 
 void
-Texture::Init(const char* path)
+Texture::Init(Image* image)
 {
     glGenTextures(1, &mHandle);
     
     glBindTexture(GL_TEXTURE_2D, mHandle);
     int width, height, channels;
-    unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
+    //unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
+    unsigned char* data = image->data;
+    width = image->x;
+    height = image->y;
+    channels = image->n;
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
+    //stbi_image_free(data);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -458,6 +460,15 @@ Texture::Init(const char* path)
     mHeight = height;
     mChannels = channels;
 }
+
+void
+Texture::Init(const char* path)
+{
+    Image i = LoadImage(path);
+    Init(&i);
+    stbi_image_free(i.data);
+}
+
 
 void
 Texture::Destroy()
@@ -516,6 +527,7 @@ static GLenum DrawModeToGLEnum(DrawMode input) {
 }
 
 global_variable int InMode3D = 0;
+global_variable int InMode2D = 0;
 
 void 
 glDraw(unsigned int vertexCount, DrawMode mode)
@@ -526,9 +538,9 @@ glDraw(unsigned int vertexCount, DrawMode mode)
 void
 glDraw(IndexBuffer& inIndexBuffer, DrawMode mode)
 {
-    if (!InMode3D)
+    if (!InMode3D && !InMode2D)
     {
-        //PrintqDebug("Error: Trying to print while not in Mode3D\n");
+        PrintqDebug("Error: Trying to print while not in Mode3D\n");
         //return;
     }
     
@@ -558,7 +570,6 @@ glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instance
 }
 
 // Renderering Elements
-
 
 void
 Rect::Init(Shader* s)
@@ -636,21 +647,67 @@ Rect::Draw(Texture &texture, v2 position2, v2 size, float rotate, v3 color)
 mat4 projection;
 mat4 view;
 
+// Paints the screen white
+internal void
+ClearScreen()
+{
+    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
+    memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
+}
+
+void BeginOpenGL(platform_window_dimension Dimension)
+{
+    glViewport(0, 0, Dimension.Width, Dimension.Height);
+    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glPointSize(5.0f);
+    glBindVertexArray(gVertexArrayObject);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT |
+            GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void BeginMode(Camera C)
+{
+#if QLIB_OPENGL
+    BeginOpenGL(C.Dimension);
+#else
+    ClearScreen();
+#endif
+    view = LookAt(C.Position, C.Target, C.Up);
+}
+
+void
+BeginMode2D(Camera C)
+{
+    BeginMode(C);
+    float width = (float)C.Dimension.Width;
+    float height = (float)C.Dimension.Height;
+    projection = Ortho(-width/2, width/2, -height/2, height/2, 0.01f, 1000.0f);
+    InMode3D = 1;
+}
+
 void
 BeginMode3D(Camera C)
 {
-    //projection = Perspective(C.FOV, C.inAspectRatio, 1.0f, C.F);
-    float width = (float)GlobalBackbuffer.Width;
-    float height = (float)GlobalBackbuffer.Height;
-    projection = Ortho(-width/2, width/2, -height/2, height/2, 0.01f, 1000.0f);
-    view = LookAt(C.Position, C.Target, C.Up);
-    InMode3D = 1;
+    BeginMode(C);
+    C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
+    projection = Perspective(C.FOV, C.inAspectRatio, 1.0f, C.F);
+    InMode2D = 1;
 }
 
 void
 EndMode3D()
 {
     InMode3D = 0;
+}
+
+void
+EndMode2D()
+{
+    InMode2D = 0;
 }
 
 #define NOFILL 0
@@ -663,7 +720,7 @@ struct open_gl_rect
     Shader shader;
     IndexBuffer rIndexBuffer;
     Attribute<v3> VertexPositions;
-    v4 Color;
+    Attribute<v4> Color;
     
     bool32 Initialized;
 };
@@ -672,20 +729,28 @@ global_variable open_gl_rect GlobalOpenGLRect;
 
 v4 u32toV4(uint32 input)
 {
-    uint32 R = input & 0x00FF0000;
-    uint32 G = input & 0x0000FF00;
-    uint32 B = input & 0x000000FF;
-    uint32 A = input & 0xFF000000;
-    
-    return v4(real32(R / 16777216), real32(G / 16777216), real32(B / 16777216), real32(A / 16777216));
+    //uint8 *C = (uint8*)malloc(sizeof(uint32));
+    //memcpy(C, &input, sizeof(uint32));
+    uint8 *C = (uint8*)&input;
+    uint32 B = *C++;
+    uint32 G = *C++;
+    uint32 R = *C++;
+    uint32 A = *C++;
+    return v4(real32(R), real32(G), real32(B), real32(A ));
+}
+
+v3 u32toV3(uint32 input)
+{
+    v4 r = u32toV4(input);
+    return v3(r.x, r.y, r.z);
 }
 
 internal void
-DrawRect(int x, int y, int width, int height, int fill, uint32 color)
+DrawRect(int x, int y, int width, int height, uint32 color)
 {
     if (GlobalOpenGLRect.Initialized == 0)
     {
-        GlobalOpenGLRect.shader.Init("../game/shaders/basic.vert", "../game/shaders/basic.frag");
+        GlobalOpenGLRect.shader.Init("../shaders/basic.vert", "../shaders/basic.frag");
         
         GlobalOpenGLRect.VertexPositions.Init();
         DynArray<v3> position = {};
@@ -705,12 +770,15 @@ DrawRect(int x, int y, int width, int height, int fill, uint32 color)
         indices.push_back(3);
         GlobalOpenGLRect.rIndexBuffer.Set(indices);
         
-        GlobalOpenGLRect.Color = u32toV4(color);
-        
         GlobalOpenGLRect.Initialized = 1;
     }
     
-    mat4 model = TransformToMat4(Transform(v3(v2(x, y), 0.0f),
+    // Change to standard coordinate system
+    v2 NewCoords = {};
+    NewCoords.x = (real32)(-x - (width/2));
+    NewCoords.y = (real32)(-y - (width/2));
+    
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
                                            AngleAxis(90 * DEG2RAD, v3(0, 0, 1)),
                                            v3((real32)width, (real32)height, 0)));
     
@@ -719,6 +787,8 @@ DrawRect(int x, int y, int width, int height, int fill, uint32 color)
     Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("model"), model);
     Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("view"), view);
     Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("projection"), projection);
+    v4 c = u32toV4(color);
+    Uniform<v4>::Set(GlobalOpenGLRect.shader.GetUniform("my_color"), v4(c.x/255, c.y/255, c.z/255, c.w/255));
     
     GlobalOpenGLRect.VertexPositions.BindTo(GlobalOpenGLRect.shader.GetAttribute("position"));
     
@@ -740,7 +810,7 @@ DrawRect(int x, int y, int width, int height, int fill, uint32 color)
 
 // Software Rendering
 internal void
-DrawRect(int x, int y, int width, int height, int fill, uint32 color)
+DrawRect(int x, int y, int width, int height, uint32 color)
 {
     platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
     
@@ -760,10 +830,10 @@ DrawRect(int x, int y, int width, int height, int fill, uint32 color)
             if((Pixel >= Buffer->Memory) &&
                ((Pixel + 4) <= EndOfBuffer))
             {
-                if (fill == FILL)
-                {
-                    *(uint32 *)Pixel = Color;
-                }
+                
+                *(uint32 *)Pixel = Color;
+                
+                /*
                 else if (fill == NOFILL)
                 {
                     // Only draw border
@@ -775,6 +845,7 @@ DrawRect(int x, int y, int width, int height, int fill, uint32 color)
                         *(uint32 *)Pixel = Color;
                     }
                 }
+*/
             }
             
             Pixel += Buffer->Pitch;

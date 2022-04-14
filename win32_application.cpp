@@ -391,27 +391,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             Buffer.Pitch = GlobalBackbuffer.Pitch;
             Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
             
+            p.Dimension = Win32GetWindowDimension(hwnd);
+            
             p.Input.dt = dt;
-            Update(&p);
-            
-            platform_window_dimension Dimension = Win32GetWindowDimension(hwnd);
-            
-#if QLIB_OPENGL
-            glViewport(0, 0, Dimension.Width, Dimension.Height);
-            glEnable(GL_DEPTH_TEST);
-            glEnable(GL_CULL_FACE);
-            glPointSize(5.0f);
-            glBindVertexArray(gVertexArrayObject);
-            glClearColor(0.5f, 0.6f, 0.7f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT |
-                    GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-#endif
-            
-            float aspect = (float)Dimension.Width / (float)Dimension.Height;
-            
-            Render(aspect);
+            UpdateRender(&p);
             
             char CharBuffer[OUTPUTBUFFER_SIZE];
             _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
@@ -423,10 +406,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 glFinish();
             }
 #else
-            Win32DisplayBufferInWindow(&GlobalBackbuffer, hdc, Dimension.Width, Dimension.Height);
-            if((GlobalBackbuffer.Width != Dimension.Width) || (GlobalBackbuffer.Height != Dimension.Height))
+            Win32DisplayBufferInWindow(&GlobalBackbuffer, hdc, p.Dimension.Width, p.Dimension.Height);
+            
+            if((GlobalBackbuffer.Width != p.Dimension.Width) || (GlobalBackbuffer.Height != p.Dimension.Height))
             {
-                Win32ResizeDIBSection(&GlobalBackbuffer, Dimension.Width, Dimension.Height);
+                Win32ResizeDIBSection(&GlobalBackbuffer, p.Dimension.Width, p.Dimension.Height);
             }
 #endif
         } // End of game loop

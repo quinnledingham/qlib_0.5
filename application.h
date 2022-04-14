@@ -8,6 +8,26 @@
 #define Assert(Expression)
 #endif
 
+// Start Possible Win32
+struct platform_offscreen_buffer
+{
+    // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
+    BITMAPINFO Info;
+    void *Memory;
+    int Width;
+    int Height;
+    int Pitch;
+    int BytesPerPixel;
+};
+global_variable platform_offscreen_buffer GlobalBackbuffer;
+
+struct platform_window_dimension
+{
+    int Width;
+    int Height;
+};
+// End Win32
+
 struct platform_button_state
 {
     bool32 NewEndedDown;
@@ -58,6 +78,7 @@ platform
     
     platform_input Input;
     platform_memory Memory;
+    platform_window_dimension Dimension;
 };
 
 #define OUTPUTBUFFER_SIZE 1000
@@ -71,26 +92,6 @@ struct platform_debug_buffer
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
 
-// Start Possible Win32
-struct platform_offscreen_buffer
-{
-    // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
-    BITMAPINFO Info;
-    void *Memory;
-    int Width;
-    int Height;
-    int Pitch;
-    int BytesPerPixel;
-};
-global_variable platform_offscreen_buffer GlobalBackbuffer;
-
-struct platform_window_dimension
-{
-    int Width;
-    int Height;
-};
-// End Win32
-
 struct
 Camera
 {
@@ -102,6 +103,7 @@ Camera
     Shader* shader;
     float FOV;
     float F;
+    platform_window_dimension Dimension;
 };
 
 struct
@@ -125,8 +127,6 @@ Rect
     void Draw(Texture &texture, v2 position, v2 size, float rotate,v3 color);
 };
 
-void Update(platform* p);
-
-void Render(float inAspectRatio);
+void UpdateRender(platform* p);
 
 #endif //APPLICATION_H

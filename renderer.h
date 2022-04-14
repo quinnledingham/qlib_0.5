@@ -76,6 +76,7 @@ struct Texture
     unsigned int mHandle;
     
     void Init();
+    void Init(Image* image);
     void Init(const char* path);
     void Init(const Texture& other);
     Texture& operator=(const Texture& other);
@@ -102,5 +103,6 @@ void glDraw(unsigned int vertexCount, DrawMode mode);
 void glDraw(IndexBuffer& inIndexBuffer, DrawMode mode);
 void glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances);
 void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instanceCount);
+
 
 #endif //RENDERER_H

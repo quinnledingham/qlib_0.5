@@ -37,7 +37,15 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 
 #endif // _WIN32
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb/stb_image_resize.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb/stb_truetype.h"
+
 #include "types.h"
+#include "image.h"
 #include "renderer.h"
 #include "application.h"
 #include "math.h"
@@ -45,12 +53,12 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "data_structures.h"
 #include "strinq.h"
 #include "application.h"
-#include "renderer.h"
 #include "cgltf/GLTFLoader.h"
 #include "memorymanager.h"
 
 #include "win32_application.cpp"
 #include "data_structures.cpp"
 #include "strinq.cpp"
+#include "image.cpp"
 #include "renderer.cpp"
-#include "socketq/socketq.cpp"
+#include "socketq.cpp"
