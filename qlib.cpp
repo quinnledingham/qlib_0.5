@@ -11,7 +11,7 @@
 #include <iostream>
 
 // Loading opengl32 from code
-#if RENDERDER_SLOW
+#if QLIB_SLOW
 #pragma comment(linker, "/subsystem:console")
 int main(int argc, const char** argv) 
 {
