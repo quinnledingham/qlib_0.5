@@ -396,9 +396,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             p.Input.dt = dt;
             UpdateRender(&p);
             
-            char CharBuffer[OUTPUTBUFFER_SIZE];
-            _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
-            OutputDebugStringA(CharBuffer);
+            //char CharBuffer[OUTPUTBUFFER_SIZE];
+            //_snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+            //OutputDebugStringA(CharBuffer);
             
 #if QLIB_OPENGL
             SwapBuffers(hdc);

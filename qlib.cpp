@@ -49,7 +49,6 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "renderer.h"
 #include "application.h"
 #include "math.h"
-
 #include "data_structures.h"
 #include "strinq.h"
 #include "application.h"

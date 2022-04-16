@@ -658,7 +658,7 @@ ClearScreen()
 void BeginOpenGL(platform_window_dimension Dimension)
 {
     glViewport(0, 0, Dimension.Width, Dimension.Height);
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
@@ -725,7 +725,19 @@ struct open_gl_rect
     bool32 Initialized;
 };
 
+struct open_gl_texture
+{
+    Shader shader;
+    Attribute<v3> VertexPositions;
+    IndexBuffer rIndexBuffer;
+    Attribute<v3> VertexNormals = {};
+    Attribute<v2> VertexTexCoords = {};
+    
+    bool32 Initialized;
+};
+
 global_variable open_gl_rect GlobalOpenGLRect;
+global_variable open_gl_texture GlobalOpenGLTexture;
 
 v4 u32toV4(uint32 input)
 {
@@ -745,7 +757,7 @@ v3 u32toV3(uint32 input)
     return v3(r.x, r.y, r.z);
 }
 
-internal void
+void
 DrawRect(int x, int y, int width, int height, uint32 color)
 {
     if (GlobalOpenGLRect.Initialized == 0)
@@ -797,6 +809,86 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     GlobalOpenGLRect.VertexPositions.UnBindFrom(GlobalOpenGLRect.shader.GetAttribute("position"));
     
     GlobalOpenGLRect.shader.UnBind();
+    
+    GLenum err;
+    while((err = glGetError()) != GL_NO_ERROR)
+    {
+        PrintqDebug(S() + (int)err);
+    }
+    
+}
+
+void
+DrawRect(int x, int y, int width, int height, Texture texture)
+{
+    if (GlobalOpenGLTexture.Initialized == 0)
+    {
+        GlobalOpenGLTexture.shader.Init("../shaders/static.vert", "../shaders/lit.frag");
+        
+        GlobalOpenGLTexture.VertexPositions.Init();
+        DynArray<v3> position = {};
+        position.push_back(v3(-0.5, -0.5, 0));
+        position.push_back(v3(-0.5, 0.5, 0));
+        position.push_back(v3(0.5, -0.5, 0));
+        position.push_back(v3(0.5, 0.5, 0));
+        GlobalOpenGLTexture.VertexPositions.Set(position);
+        
+        GlobalOpenGLTexture.VertexNormals.Init();
+        DynArray<v3> normals = {};
+        normals.Resize(4, v3(0, 0, 1));
+        GlobalOpenGLTexture.VertexNormals.Set(normals);
+        
+        GlobalOpenGLTexture.VertexTexCoords.Init();
+        DynArray<v2> uvs = {};
+        uvs.push_back(v2(0, 0));
+        uvs.push_back(v2(0, 1));
+        uvs.push_back(v2(1, 0));
+        uvs.push_back(v2(1, 1));
+        GlobalOpenGLTexture.VertexTexCoords.Set(uvs);
+        
+        GlobalOpenGLTexture.rIndexBuffer.Init();
+        DynArray<unsigned int> indices = {};
+        indices.push_back(0);
+        indices.push_back(1);
+        indices.push_back(2);
+        indices.push_back(2);
+        indices.push_back(1);
+        indices.push_back(3);
+        GlobalOpenGLTexture.rIndexBuffer.Set(indices);
+        
+        GlobalOpenGLTexture.Initialized = 1;
+    }
+    
+    // Change to standard coordinate system
+    v2 NewCoords = {};
+    NewCoords.x = (real32)(-x - (width/2));
+    NewCoords.y = (real32)(-y - (width/2));
+    
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
+                                           AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
+                                           v3((real32)width, (real32)height, 0)));
+    
+    GlobalOpenGLTexture.shader.Bind();
+    
+    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("model"), model);
+    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("view"), view);
+    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("projection"), projection);
+    
+    GlobalOpenGLTexture.VertexPositions.BindTo(GlobalOpenGLTexture.shader.GetAttribute("position"));
+    GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
+    GlobalOpenGLTexture.VertexTexCoords.BindTo(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
+    
+    texture.Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
+    
+    glDraw(GlobalOpenGLTexture.rIndexBuffer, DrawMode::Triangles);
+    
+    texture.UnSet(0);
+    
+    GlobalOpenGLTexture.VertexPositions.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("position"));
+    GlobalOpenGLTexture.VertexNormals.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("normal"));
+    GlobalOpenGLTexture.VertexTexCoords.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
+    
+    GlobalOpenGLTexture.shader.UnBind();
     
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)

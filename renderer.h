@@ -104,5 +104,6 @@ void glDraw(IndexBuffer& inIndexBuffer, DrawMode mode);
 void glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances);
 void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instanceCount);
 
-
+void DrawRect(int x, int y, int width, int height, uint32 color);
+void DrawRect(int x, int y, int width, int height, Texture texture);
 #endif //RENDERER_H
