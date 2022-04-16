@@ -75,6 +75,8 @@ struct Texture
     unsigned int mChannels;
     unsigned int mHandle;
     
+    unsigned char* data;
+    
     void Init();
     void Init(Image* image);
     void Init(const char* path);

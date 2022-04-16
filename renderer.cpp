@@ -440,11 +440,12 @@ Texture::Init(Image* image)
     glBindTexture(GL_TEXTURE_2D, mHandle);
     int width, height, channels;
     //unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
-    unsigned char* data = image->data;
+    unsigned char* Data = image->data;
     width = image->x;
     height = image->y;
     channels = image->n;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    data = image->data;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Data);
     glGenerateMipmap(GL_TEXTURE_2D);
     //stbi_image_free(data);
     
@@ -460,38 +461,13 @@ Texture::Init(Image* image)
     mHeight = height;
     mChannels = channels;
 }
-/*
+
 void
 Texture::Init(const char* path)
 {
     Image i = LoadImage(path);
     Init(&i);
     stbi_image_free(i.data);
-}
-*/
-void
-Texture::Init(const char* path)
-{
-    glGenTextures(1, &mHandle);
-    
-    glBindTexture(GL_TEXTURE_2D, mHandle);
-    int width, height, channels;
-    unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    mWidth = width;
-    mHeight = height;
-    mChannels = channels;
 }
 
 void
@@ -888,7 +864,7 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     NewCoords.x = (real32)(-x - (width/2));
     NewCoords.y = (real32)(-y - (width/2));
     
-    mat4 model = TransformToMat4(Transform(v3(v2(x, y), 0.0f),
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
                                            AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
                                            v3((real32)width, (real32)height, (real32)width)));
     
@@ -965,6 +941,60 @@ DrawRect(int x, int y, int width, int height, uint32 color)
 */
             }
             
+            Pixel += Buffer->Pitch;
+        }
+    }
+}
+
+unsigned long createRGBA(int r, int g, int b, int a)
+{   
+    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
+}
+
+unsigned long createRGB(int r, int g, int b)
+{   
+    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
+}
+
+void
+DrawRect(int x, int y, int width, int height, Texture texture)
+{
+    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
+    
+    Image re = {};
+    re.data = texture.data;
+    re.x = texture.mWidth;
+    re.y = texture.mHeight;
+    re.n = texture.mChannels;
+    //RenderImage(Buffer, &re);
+    
+    x += Buffer->Width / 2;
+    y += Buffer->Height / 2;
+    
+    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
+    
+    for(int X = x; X < (x + width); ++X)
+    {
+        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel + y*Buffer->Pitch);
+        uint8 *Color = ((uint8 *)re.data + (X - x) * re.n);
+        
+        for(int Y = y; Y < (y + height); ++Y)
+        {
+            // Check if the pixel exists
+            if((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
+            {
+                uint32 c = *Color;
+                
+                int r = *Color++;
+                int g = *Color++;
+                int b = *Color;
+                Color--;
+                Color--;
+                
+                c = createRGB(r, g, b);
+                *(uint32 *)Pixel =c;
+                Color += (re.n * re.x);
+            }
             Pixel += Buffer->Pitch;
         }
     }
