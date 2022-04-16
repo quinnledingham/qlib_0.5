@@ -754,8 +754,8 @@ struct open_gl_texture
     Shader shader;
     Attribute<v3> VertexPositions;
     IndexBuffer rIndexBuffer;
-    Attribute<v3> VertexNormals = {};
-    Attribute<v2> VertexTexCoords = {};
+    Attribute<v3> VertexNormals;
+    Attribute<v2> VertexTexCoords;
     
     bool32 Initialized;
 };
@@ -816,7 +816,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     
     mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
                                            AngleAxis(90 * DEG2RAD, v3(0, 0, 1)),
-                                           v3((real32)width, (real32)height, 0)));
+                                           v3((real32)width, (real32)height, (real32)width)));
     
     GlobalOpenGLRect.shader.Bind();
     
@@ -888,16 +888,16 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     NewCoords.x = (real32)(-x - (width/2));
     NewCoords.y = (real32)(-y - (width/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
+    mat4 model = TransformToMat4(Transform(v3(v2(x, y), 0.0f),
                                            AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
-                                           v3((real32)width, (real32)height, 0)));
+                                           v3((real32)width, (real32)height, (real32)width)));
     
     GlobalOpenGLTexture.shader.Bind();
     
-    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("model"), model);
     Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("view"), view);
     Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("projection"), projection);
     Uniform<v3>::Set(GlobalOpenGLTexture.shader.GetUniform("light"), v3(0, 0, 1));
+    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("model"), model);
     
     GlobalOpenGLTexture.VertexPositions.BindTo(GlobalOpenGLTexture.shader.GetAttribute("position"));
     GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
