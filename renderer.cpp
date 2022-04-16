@@ -460,7 +460,7 @@ Texture::Init(Image* image)
     mHeight = height;
     mChannels = channels;
 }
-
+/*
 void
 Texture::Init(const char* path)
 {
@@ -468,7 +468,31 @@ Texture::Init(const char* path)
     Init(&i);
     stbi_image_free(i.data);
 }
-
+*/
+void
+Texture::Init(const char* path)
+{
+    glGenTextures(1, &mHandle);
+    
+    glBindTexture(GL_TEXTURE_2D, mHandle);
+    int width, height, channels;
+    unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    mWidth = width;
+    mHeight = height;
+    mChannels = channels;
+}
 
 void
 Texture::Destroy()
@@ -694,7 +718,7 @@ BeginMode3D(Camera C)
 {
     BeginMode(C);
     C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
-    projection = Perspective(C.FOV, C.inAspectRatio, 1.0f, C.F);
+    projection = Perspective(C.FOV, C.inAspectRatio, 1.0f, 1000.0f);
     InMode2D = 1;
 }
 
@@ -873,6 +897,7 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("model"), model);
     Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("view"), view);
     Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("projection"), projection);
+    Uniform<v3>::Set(GlobalOpenGLTexture.shader.GetUniform("light"), v3(0, 0, 1));
     
     GlobalOpenGLTexture.VertexPositions.BindTo(GlobalOpenGLTexture.shader.GetAttribute("position"));
     GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
@@ -901,7 +926,7 @@ DrawRect(int x, int y, int width, int height, Texture texture)
 #else // !QLIB_OPENGL
 
 // Software Rendering
-internal void
+void
 DrawRect(int x, int y, int width, int height, uint32 color)
 {
     platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
