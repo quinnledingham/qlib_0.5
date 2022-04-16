@@ -139,6 +139,14 @@ Strinq operator+(const Strinq &L, char* R)
     return (L + SR);
 }
 
+Strinq operator+(const Strinq &L, const char* R)
+{
+    Strinq SR = {};
+    NewStrinq(SR, R);
+    return (L + SR);
+}
+
+
 Strinq operator+(const Strinq &L, int R)
 {
     Strinq SR = {};
@@ -205,7 +213,7 @@ int StrinqFind(const Strinq& s, char f)
     return -1;
 }
 
-void CopyBuffer(char* B1, char* B2, int Bytes)
+void CopyBuffer(char* B1, const char* B2, int Bytes)
 {
     for (int i = 0; i < Bytes; i++)
     {
@@ -224,4 +232,14 @@ int StrinqErase(Strinq& s, int f)
     s.Data = NewData;
     
     return 0;
+}
+
+int Length(Strinq& s)
+{
+    int i = 0;
+    while (s.Data[i] != 0)
+    {
+        i++;
+    }
+    return i;
 }

@@ -129,4 +129,19 @@ Rect
 
 void UpdateRender(platform* p);
 
+#define BITMAP_BYTES_PER_PIXEL 4
+
+struct loaded_bitmap
+{
+    int32 Width;
+    int32 Height;
+    int32 Pitch;
+    void *Memory;
+    
+    void *Free;
+};
+
+internal void
+RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
+
 #endif //APPLICATION_H

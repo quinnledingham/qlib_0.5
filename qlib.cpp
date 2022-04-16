@@ -46,6 +46,8 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 
 #include "types.h"
 #include "image.h"
+#include "text.h"
+#include "gui.h"
 #include "renderer.h"
 #include "application.h"
 #include "math.h"
@@ -55,9 +57,12 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "cgltf/GLTFLoader.h"
 #include "memorymanager.h"
 
+
 #include "win32_application.cpp"
 #include "data_structures.cpp"
 #include "strinq.cpp"
 #include "image.cpp"
 #include "renderer.cpp"
 #include "socketq.cpp"
+#include "text.cpp"
+#include "gui.cpp"

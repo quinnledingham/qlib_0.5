@@ -238,8 +238,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     // Center window on screen
     int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
     int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-    int ClientWidth = 800;
-    int ClientHeight = 600;
+    int ClientWidth = 1000;
+    int ClientHeight = 1000;
     RECT WindowRect;
     SetRect(&WindowRect,
             (ScreenWidth / 2) - (ClientWidth / 2),

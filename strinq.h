@@ -14,7 +14,7 @@ Strinq NewStrinq(const char* InputChar);
 Strinq NewStrinq(entire_file* File);
 void DestroyStrinq(Strinq& ToBeDestroyed);
 bool operator==(const Strinq& L, const Strinq& R);
-void CopyBuffer(char* B1, char* B2, int Bytes);
+void CopyBuffer(char* B1, const char* B2, int Bytes);
 
 int CharGetLength(const char* c)
 {

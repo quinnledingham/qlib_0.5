@@ -3,6 +3,13 @@
 
 #include "types.h"
 
+inline int32
+RoundReal32ToInt32(real32 Real32)
+{
+    int32 Result = (int32)roundf(Real32);
+    return(Result);
+}
+
 // Takes trial and error to find right value
 // https://bitbashing.io/comparing-floats.html
 #define V3_EPSILON 0.000001f

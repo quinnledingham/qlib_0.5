@@ -788,10 +788,10 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     // Change to standard coordinate system
     v2 NewCoords = {};
     NewCoords.x = (real32)(-x - (width/2));
-    NewCoords.y = (real32)(-y - (width/2));
+    NewCoords.y = (real32)(-y - (height/2));
     
     mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
-                                           AngleAxis(90 * DEG2RAD, v3(0, 0, 1)),
+                                           AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
                                            v3((real32)width, (real32)height, (real32)width)));
     
     GlobalOpenGLRect.shader.Bind();
@@ -862,7 +862,7 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     // Change to standard coordinate system
     v2 NewCoords = {};
     NewCoords.x = (real32)(-x - (width/2));
-    NewCoords.y = (real32)(-y - (width/2));
+    NewCoords.y = (real32)(-y - (height/2));
     
     mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
                                            AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
@@ -896,6 +896,12 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     {
         PrintqDebug(S() + (int)err);
     }
+    
+}
+
+void
+PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
+{
     
 }
 
@@ -998,6 +1004,161 @@ DrawRect(int x, int y, int width, int height, Texture texture)
             Pixel += Buffer->Pitch;
         }
     }
+}
+
+internal void
+ChangeBitmapColor(loaded_bitmap Bitmap, uint32 Color)
+{
+    u8 *DestRow = (u8 *)Bitmap.Memory + (Bitmap.Height -1)*Bitmap.Pitch;
+    for(s32 Y = 0;
+        Y < Bitmap.Height;
+        ++Y)
+    {
+        u32 *Dest = (u32 *)DestRow;
+        for(s32 X = 0;
+            X < Bitmap.Width;
+            ++X)
+        {
+            u32 Gray = *Dest;
+            Color &= 0x00FFFFFF;
+            Gray &= 0xFF000000;
+            Color += Gray;
+            *Dest++ = Color;
+        }
+        
+        DestRow -= Bitmap.Pitch;
+    }
+}
+
+internal void
+RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
+{
+    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
+    
+    int32 MinX = RoundReal32ToInt32(RealX);
+    int32 MinY = RoundReal32ToInt32(RealY);
+    int32 MaxX = MinX + Bitmap->Width;
+    int32 MaxY = MinY + Bitmap->Height;
+    
+    if(MinX < 0)
+    {
+        MinX = 0;
+    }
+    
+    if(MinY < 0)
+    {
+        MinY = 0;
+    }
+    
+    if(MaxX > Buffer->Width)
+    {
+        MaxX = Buffer->Width;
+    }
+    
+    if(MaxY > Buffer->Height)
+    {
+        MaxY = Buffer->Height;
+    }
+    
+    uint32 *SourceRow = (uint32*)Bitmap->Memory + Bitmap->Width * (Bitmap->Height - 1);
+    uint8 *DestRow = ((uint8*)Buffer->Memory +
+                      MinX*Buffer->BytesPerPixel +
+                      MinY*Buffer->Pitch);
+    
+    for(int Y = MinY; Y < MaxY; ++Y)
+    {
+        uint32 *Dest = (uint32*)DestRow;
+        uint32 *Source = SourceRow;
+        
+        for(int X = MinX; X < MaxX; ++X)
+        {
+            real32 A = (real32)((*Source >> 24) & 0xFF) / 255.0f;
+            real32 SR = (real32)((*Source >> 0) & 0xFF);
+            real32 SG = (real32)((*Source >> 8) & 0xFF);
+            real32 SB = (real32)((*Source >> 16) & 0xFF);
+            
+            real32 DR = (real32)((*Dest >> 16) & 0xFF);
+            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DB = (real32)((*Dest >> 0) & 0xFF);
+            
+            real32 R = (1.0f-A)*DR + A*SR;
+            real32 G = (1.0f-A)*DG + A*SG;
+            real32 B = (1.0f-A)*DB + A*SB;
+            
+            *Dest = (((uint32)(R + 0.5f) << 16) |
+                     ((uint32)(G + 0.5f) << 8) |
+                     ((uint32)(B + 0.5f) << 0));
+            
+            ++Dest;
+            ++Source;
+        }
+        
+        DestRow += Buffer->Pitch;
+        SourceRow -= Bitmap->Width;
+    }
+}
+
+void
+PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
+{
+    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
+    
+    InputX += Buffer->Width / 2;
+    InputY += Buffer->Height / 2;
+    
+    int X = InputX;
+    int StrLength = StringLength(SrcText);
+    int BiggestY = 0;
+    
+    for (int i = 0; i < StrLength; i++)
+    {
+        int SrcChar = SrcText[i];
+        SrcFont->Memory[SrcChar].Advance = 0;
+        
+        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
+        if(BiggestY < Y)
+        {
+            BiggestY = Y;
+        }
+        
+        // advance x 
+        SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
+        
+        // add kerning
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        SrcFont->Memory[SrcChar].Advance += (int)roundf(kern * SrcFont->Scale);
+        
+        X += SrcFont->Memory[SrcChar].Advance;
+    }
+    
+    int StringWidth = (X - InputX);
+    X = InputX;
+    
+    //PrintOnScreenReturn R = {};
+    //R.Height = BiggestY;
+    //R.Width = StringWidth;;
+    
+    for (int i = 0; i < StrLength; i++)
+    {
+        int SrcChar = SrcText[i];
+        
+        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + BiggestY;
+        
+        loaded_bitmap SrcBitmap = {};
+        SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
+        SrcBitmap.Height = SrcFont->Memory[SrcChar].Height;
+        SrcBitmap.Pitch = SrcFont->Memory[SrcChar].Pitch;
+        SrcBitmap.Memory = SrcFont->Memory[SrcChar].Memory;
+        
+        ChangeBitmapColor(SrcBitmap, Color);
+        RenderBitmap(&SrcBitmap, (real32)X, (real32)Y);
+        
+        X += SrcFont->Memory[SrcChar].Advance;
+        
+    }
+    
+    //return R;
 }
 
 #endif
