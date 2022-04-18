@@ -105,6 +105,9 @@ struct GUI
     GUIComponent* Buttons;
     GUIComponent* TextBoxes;
     GUIComponent* Texts;
+    
+    int ClientWidth;
+    int ClientHeight;
 };
 
 

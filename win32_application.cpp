@@ -127,6 +127,24 @@ Win32ResizeDIBSection(platform_offscreen_buffer *Buffer, int Width, int Height)
     // TODO(casey): Probably clear this to black
 }
 
+global_variable int64 GlobalPerfCountFrequency;
+
+inline LARGE_INTEGER
+Win32GetWallClock(void)
+{    
+    LARGE_INTEGER Result;
+    QueryPerformanceCounter(&Result);
+    return(Result);
+}
+
+inline real32
+Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+    real32 Result = ((real32)(End.QuadPart - Start.QuadPart) /
+                     (real32)GlobalPerfCountFrequency);
+    return(Result);
+}
+
 internal void
 Win32DisplayBufferInWindow(platform_offscreen_buffer *Buffer, HDC DeviceContext, 
                            int WindowWidth, int WindowHeight)
@@ -220,6 +238,10 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
+    LARGE_INTEGER PerfCountFrequencyResult;
+    QueryPerformanceFrequency(&PerfCountFrequencyResult);
+    GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+    
     WNDCLASSEX WindowClass = {};
     WindowClass.cbSize = sizeof(WNDCLASSEX);
     WindowClass.style = CS_HREDRAW | CS_VREDRAW;
@@ -229,7 +251,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     WindowClass.hInstance = hInstance;
     WindowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     WindowClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-    WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    //WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     WindowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     WindowClass.lpszMenuName = 0;
     WindowClass.lpszClassName = "Win32 Game Window";
@@ -372,6 +394,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         
         platform_controller_input *KeyboardController = &p.Input.Controllers[0];
         
+        LARGE_INTEGER LastCounter =  Win32GetWallClock();
+        
         while (GlobalRunning) {
             
             Win32ProcessPendingMessages(KeyboardController);
@@ -393,12 +417,54 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             p.Dimension = Win32GetWindowDimension(hwnd);
             
+            // Mouse
+            POINT MouseP;
+            GetCursorPos(&MouseP);
+            ScreenToClient(hwnd, &MouseP);
+            p.Input.MouseX = MouseP.x - (p.Dimension.Width / 2); // Move origin to middle of screen
+            p.Input.MouseY = MouseP.y - (p.Dimension.Height / 2); 
+            p.Input.MouseZ = 0; // TODO(casey): Support mousewheel?
+            Win32ProcessKeyboardMessage(&p.Input.MouseButtons[0],
+                                        GetKeyState(VK_LBUTTON) & (1 << 15));
+            Win32ProcessKeyboardMessage(&p.Input.MouseButtons[1],
+                                        GetKeyState(VK_MBUTTON) & (1 << 15));
+            Win32ProcessKeyboardMessage(&p.Input.MouseButtons[2],
+                                        GetKeyState(VK_RBUTTON) & (1 << 15));
+            Win32ProcessKeyboardMessage(&p.Input.MouseButtons[3],
+                                        GetKeyState(VK_XBUTTON1) & (1 << 15));
+            Win32ProcessKeyboardMessage(&p.Input.MouseButtons[4],
+                                        GetKeyState(VK_XBUTTON2) & (1 << 15));
+            
             p.Input.dt = dt;
             UpdateRender(&p);
+            
+            LARGE_INTEGER WorkCounter = Win32GetWallClock();
+            p.Input.WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
+            LastCounter =  Win32GetWallClock();
+            
+            if (p.Input.NewCursor)
+            {
+                if (p.Input.Cursor == Arrow)
+                {
+                    HCURSOR curs = LoadCursor(NULL, IDC_ARROW);
+                    SetCursor(curs); 
+                }
+                else if (p.Input.Cursor == Hand)
+                {
+                    HCURSOR curs = LoadCursor(NULL, IDC_HAND);
+                    SetCursor(curs); 
+                }
+                p.Input.NewCursor = false;
+            }
             
             char CharBuffer[OUTPUTBUFFER_SIZE];
             _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
             OutputDebugStringA(CharBuffer);
+            
+            if (p.Input.Quit)
+            {
+                GlobalRunning = false;
+            }
             
 #if QLIB_OPENGL
             SwapBuffers(hdc);

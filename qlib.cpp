@@ -56,10 +56,9 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "cgltf/GLTFLoader.h"
 #include "memorymanager.h"
 
-
+#include "strinq.cpp"
 #include "win32_application.cpp"
 #include "data_structures.cpp"
-#include "strinq.cpp"
 #include "image.cpp"
 #include "text.cpp"
 #include "renderer.cpp"

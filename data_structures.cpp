@@ -123,3 +123,17 @@ Map::MapFind(const Strinq &k)
     }
     return 0;
 }
+
+unsigned int
+Map::MapFind(const char* k)
+{
+    for(int i = 0; i < Next; i++)
+    {
+        if (Equal(k, (char*)Values[i].Key))
+        {
+            unsigned int* v = (unsigned int*)Values[i].Value;
+            return *v;
+        } 
+    }
+    return 0;
+}

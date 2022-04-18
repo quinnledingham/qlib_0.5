@@ -48,11 +48,27 @@ struct platform_controller_input
     };
 };
 
+enum
+CursorMode
+{
+    Arrow,
+    Hand,
+};
+
 struct
 platform_input
 {
+    platform_button_state MouseButtons[5];
+    int32 MouseX, MouseY, MouseZ;
+    CursorMode Cursor;
+    bool32 NewCursor;
+    
     float dt;
+    real32 WorkSecondsElapsed;
+    
     platform_controller_input Controllers[5];
+    
+    int Quit;
 };
 
 struct
@@ -137,5 +153,24 @@ struct loaded_bitmap
 
 internal void
 RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
+
+struct SnakeNode
+{
+    real32 x;
+    real32 y;
+    int Direction;
+    
+    SnakeNode *Next;
+};
+
+struct Snake
+{
+    SnakeNode *Head;
+    real32 TransitionAmt = 0;
+    real32 Speed;
+    int Direction;
+    
+    bool32 Initialized = false;
+};
 
 #endif //APPLICATION_H

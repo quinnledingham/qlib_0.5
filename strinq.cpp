@@ -243,3 +243,24 @@ int Length(Strinq& s)
     }
     return i;
 }
+
+bool32 Equal(const char* r, const char* l)
+{
+    int i = 0;
+    while(r[i] != 0 && l[i] != 0)
+    {
+        if (r[i] != l[i])
+        {
+            return false;
+        }
+        i++;
+    }
+    if (r[i] == l[i])
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}

@@ -91,7 +91,7 @@ RenderLine(game_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
     }
 }
 
-internal void
+internal bool32
 CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
 {
     GUIComponent* Cursor = G->Buttons;
@@ -102,6 +102,7 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
         if (MouseInRect(Cursor->X, Cursor->Y, Cursor->Width, Cursor->Height, MouseX, MouseY))
         {
             B->Color = B->HoverColor;
+            return true;
         }
         else
         {
@@ -110,6 +111,7 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
         
         Cursor = Cursor->Next;
     }
+    return false;
 }
 
 // Returns what button was pressed if one was.

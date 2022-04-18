@@ -41,6 +41,7 @@ struct Map
     int& operator[](char* i);
     int& operator[](Strinq& i);
     unsigned int MapFind(const Strinq &k);
+    unsigned int MapFind(const char* k);
 };
 
 
