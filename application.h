@@ -1,12 +1,6 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#if RENDERER_SLOW
-// TODO(casey): Complete assertion macro - don't worry everyone!
-#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
-#else
-#define Assert(Expression)
-#endif
 
 // Start Possible Win32
 struct platform_offscreen_buffer

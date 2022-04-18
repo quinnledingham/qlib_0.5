@@ -37,6 +37,7 @@ struct Map
     MapEntry Values[MAP_SIZE] = {0};
     int Next = 0;
     
+    void Init();
     int& operator[](char* i);
     int& operator[](Strinq& i);
     unsigned int MapFind(const Strinq &k);

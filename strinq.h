@@ -18,6 +18,11 @@ void CopyBuffer(char* B1, const char* B2, int Bytes);
 
 int CharGetLength(const char* c)
 {
+    if (c == 0)
+    {
+        return 0;
+    }
+    
     int i = 0;
     while(c[i] != 0)
     {

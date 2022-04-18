@@ -64,15 +64,11 @@ LoadGlyphBitmap(Font *font, u32 Codepoint, uint32 Color)
         Result.Free = Result.Memory;
         
         u8 *Source = MonoBitmap;
-        u8 *DestRow = (u8 *)Result.Memory + (Height -1)*Result.Pitch;
-        for(s32 Y = 0;
-            Y < Height;
-            ++Y)
+        u8 *DestRow = (u8 *)Result.Memory;
+        for(s32 Y = 0; Y < Height; ++Y)
         {
             u32 *Dest = (u32 *)DestRow;
-            for(s32 X = 0;
-                X < Width;
-                ++X)
+            for(s32 X = 0; X < Width; ++X)
             {
                 u8 Gray = *Source++;
                 u32 Alpha = ((Gray << 24) |
@@ -85,7 +81,7 @@ LoadGlyphBitmap(Font *font, u32 Codepoint, uint32 Color)
                 *Dest++ = Color;
             }
             
-            DestRow -= Result.Pitch;
+            DestRow += Result.Pitch;
         }
         
         stbtt_FreeBitmap(MonoBitmap, 0);
@@ -122,12 +118,12 @@ LoadFont(char* FileName, real32 ScaleIn)
 }
 
 internal FontChar
-LoadFontChar(Font* font, int codepoint)
+LoadFontChar(Font* font, int codepoint, uint32 Color)
 {
     // If codepoint is already loaded
     for (int i = 0; i < font->Size; i++)
     {
-        if (font->Memory[i].codepoint == codepoint)
+        if (font->Memory[i].codepoint == codepoint && font->Memory[i].Color == Color)
         {
             return font->Memory[i];
         }
@@ -145,7 +141,7 @@ LoadFontChar(Font* font, int codepoint)
     stbtt_GetCodepointBitmapBox(&font->Info, codepoint, font->Scale, font->Scale, &c_x1, &c_y1, &c_x2, &c_y2);
     
     // render character
-    loaded_bitmap Temp = LoadGlyphBitmap(font, codepoint, 0xFF000000);
+    loaded_bitmap Temp = LoadGlyphBitmap(font, codepoint, Color);
     
     FontChar NewFontChar = {};
     NewFontChar.codepoint = codepoint;
@@ -158,6 +154,17 @@ LoadFontChar(Font* font, int codepoint)
     NewFontChar.C_Y1 = c_y1;
     NewFontChar.C_X2 = c_x2;
     NewFontChar.C_Y2 = c_y2;
+    NewFontChar.Color = Color;
+    
+#if QLIB_OPENGL
+    Image SrcImage = {};
+    SrcImage.x = NewFontChar.Width;
+    SrcImage.y = NewFontChar.Height;
+    SrcImage.n = NewFontChar.Pitch;
+    SrcImage.data = (unsigned char*)NewFontChar.Memory;
+    NewFontChar.Tex.Init(&SrcImage);
+    stbi_image_free(SrcImage.data);
+#endif
     
     font->Memory[font->Size] = NewFontChar;
     FontChar r = font->Memory[font->Size];
@@ -174,8 +181,7 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
     
     for (int i = 0; i < StrLength; i++)
     {
-        int SrcChar = SrcText[i];
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
+        FontChar NextChar = LoadFontChar(SrcFont,  SrcText[i], 0xFF000000);
         
         NextChar.Advance = 0;
         

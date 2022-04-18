@@ -81,7 +81,7 @@ struct Texture
     void Init(Image* image);
     void Init(const char* path);
     void Init(const Texture& other);
-    Texture& operator=(const Texture& other);
+    //Texture& operator=(const Texture& other);
     void Destroy();
     
     void Set(unsigned int uniform, unsigned int texIndex);
@@ -108,5 +108,4 @@ void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int ins
 
 void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(int x, int y, int width, int height, Texture texture);
-void PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color);
 #endif //RENDERER_H

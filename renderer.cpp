@@ -1,5 +1,4 @@
 #include "application.h"
-#include "data_structures.h"
 
 // SHADER 
 
@@ -14,6 +13,9 @@ Shader::Init(const char* vertex, const char* fragment)
 {
     // Init
     mHandle = glCreateProgram();
+    
+    mAttributes.Init();
+    mUniforms.Init();
     
     // Load
     entire_file vertFile = ReadEntireFile(vertex);
@@ -449,8 +451,12 @@ Texture::Init(Image* image)
     glGenerateMipmap(GL_TEXTURE_2D);
     //stbi_image_free(data);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // Tile
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -633,7 +639,7 @@ Rect::Draw(Texture &texture, v2 position2, v2 size, float rotate, v3 color)
     
     texture.Set(shader->GetUniform("tex0"), 0);
     
-    glDraw(rIndexBuffer, DrawMode::Triangles);
+    glDraw(rIndexBuffer, DrawMode::Triangles);\
     
     texture.UnSet(0);
     
@@ -658,11 +664,11 @@ ClearScreen()
 void BeginOpenGL(platform_window_dimension Dimension)
 {
     glViewport(0, 0, Dimension.Width, Dimension.Height);
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT |
             GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_BLEND);
@@ -840,10 +846,10 @@ DrawRect(int x, int y, int width, int height, Texture texture)
         
         GlobalOpenGLTexture.VertexTexCoords.Init();
         DynArray<v2> uvs = {};
-        uvs.push_back(v2(0, 0));
-        uvs.push_back(v2(0, 1));
-        uvs.push_back(v2(1, 0));
         uvs.push_back(v2(1, 1));
+        uvs.push_back(v2(1, 0));
+        uvs.push_back(v2(0, 1));
+        uvs.push_back(v2(0, 0));
         GlobalOpenGLTexture.VertexTexCoords.Set(uvs);
         
         GlobalOpenGLTexture.rIndexBuffer.Init();
@@ -899,10 +905,52 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     
 }
 
+/*
+ Problems:
+ z-sorting - buttons are in front of the text
+off by one - texture is off by one in some places so a line is drawn.
+fixed right now by turning off tiling. Can't tell if it still makes the font look bad.
+*/
 void
 PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
 {
     
+    int StrLength = StringLength(SrcText);
+    int BiggestY = 0;
+    
+    for (int i = 0; i < StrLength; i++)
+    {
+        int SrcChar = SrcText[i];
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
+        int Y = -1 *  NextChar.C_Y1;
+        if(BiggestY < Y)
+        {
+            BiggestY = Y;
+        }
+    }
+    
+    real32 X = (real32)InputX;
+    
+    for (int i = 0; i < StrLength; i++)
+    {
+        int SrcChar = SrcText[i];
+        
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
+        
+        int Y = InputY + NextChar.C_Y1 + BiggestY;
+        
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
+        
+        //ChangeBitmapColor(SrcBitmap, Color);
+        
+        DrawRect((int)(X + (lsb * SrcFont->Scale)), Y, NextChar.Tex.mWidth, NextChar.Tex.mHeight, NextChar.Tex);
+        
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        X += ((kern + ax) * SrcFont->Scale);
+    }
 }
 
 #else // !QLIB_OPENGL
@@ -1060,10 +1108,8 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
         MaxY = Buffer->Height;
     }
     
-    uint32 *SourceRow = (uint32*)Bitmap->Memory + Bitmap->Width * (Bitmap->Height - 1);
-    uint8 *DestRow = ((uint8*)Buffer->Memory +
-                      MinX*Buffer->BytesPerPixel +
-                      MinY*Buffer->Pitch);
+    uint32 *SourceRow = (uint32*)Bitmap->Memory;
+    uint8 *DestRow = ((uint8*)Buffer->Memory + MinX*Buffer->BytesPerPixel + MinY*Buffer->Pitch);
     
     for(int Y = MinY; Y < MaxY; ++Y)
     {
@@ -1094,7 +1140,7 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
         }
         
         DestRow += Buffer->Pitch;
-        SourceRow -= Bitmap->Width;
+        SourceRow += Bitmap->Width;
     }
 }
 
@@ -1112,7 +1158,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
     for (int i = 0; i < StrLength; i++)
     {
         int SrcChar = SrcText[i];
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
         int Y = -1 *  NextChar.C_Y1;
         if(BiggestY < Y)
         {
@@ -1126,7 +1172,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
     {
         int SrcChar = SrcText[i];
         
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
         
         int Y = InputY + NextChar.C_Y1 + BiggestY;
         
@@ -1140,7 +1186,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         int lsb;
         stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
         
-        ChangeBitmapColor(SrcBitmap, Color);
+        //ChangeBitmapColor(SrcBitmap, Color);
         RenderBitmap(&SrcBitmap, X + (lsb * SrcFont->Scale) , (real32)Y);
         
         int kern;

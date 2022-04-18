@@ -81,19 +81,24 @@ DestroyEntireFile(entire_file &F)
 
 // Map
 
+void Map::Init()
+{
+    memset(Values, 0, sizeof(MapEntry) * MAP_SIZE);
+}
+
 int& Map::operator[](char* i)
 {
     int cLength = CharGetLength(i);
-    Values[Next].Key = malloc(cLength + 1);
-    Values[Next].Value = malloc(sizeof(int));
+    Values[Next].Key = qalloc(cLength + 1);
+    Values[Next].Value = qalloc(sizeof(int));
     memcpy(Values[Next].Key, (void*)i, cLength + 1);
     return *((int*)Values[Next++].Value);
 }
 
 int& Map::operator[](Strinq& i)
 {
-    Values[Next].Key = malloc(i.Length + 1);
-    Values[Next].Value = malloc(sizeof(int));
+    Values[Next].Key = qalloc(i.Length + 1);
+    Values[Next].Value = qalloc(sizeof(int));
     memcpy(Values[Next].Key, (void*)GetData(i), i.Length + 1);
     return *((int*)Values[Next++].Value);
 }
