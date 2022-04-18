@@ -1106,38 +1106,21 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
     InputX += Buffer->Width / 2;
     InputY += Buffer->Height / 2;
     
-    int X = InputX;
     int StrLength = StringLength(SrcText);
     int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++)
     {
         int SrcChar = SrcText[i];
-        SrcFont->Memory[SrcChar].Advance = 0;
         
         int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
         if(BiggestY < Y)
         {
             BiggestY = Y;
         }
-        
-        // advance x 
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(kern * SrcFont->Scale);
-        
-        X += SrcFont->Memory[SrcChar].Advance;
     }
     
-    int StringWidth = (X - InputX);
-    X = InputX;
-    
-    //PrintOnScreenReturn R = {};
-    //R.Height = BiggestY;
-    //R.Width = StringWidth;;
+    real32 X = (real32)InputX;
     
     for (int i = 0; i < StrLength; i++)
     {
@@ -1151,14 +1134,23 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         SrcBitmap.Pitch = SrcFont->Memory[SrcChar].Pitch;
         SrcBitmap.Memory = SrcFont->Memory[SrcChar].Memory;
         
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
+        
         ChangeBitmapColor(SrcBitmap, Color);
-        RenderBitmap(&SrcBitmap, (real32)X, (real32)Y);
+        RenderBitmap(&SrcBitmap, X + (lsb * SrcFont->Scale) , (real32)Y);
         
-        X += SrcFont->Memory[SrcChar].Advance;
-        
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        X += ((kern + ax) * SrcFont->Scale);
     }
+}
+
+void
+PrintqScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
+{
     
-    //return R;
 }
 
 #endif

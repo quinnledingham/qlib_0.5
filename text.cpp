@@ -102,7 +102,7 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float Scale, uint
 internal v2
 GetStringDimensions(Font* SrcFont, char* SrcText)
 {
-    int X = 0;
+    real32 X = 0;
     int StrLength = StringLength(SrcText);
     int BiggestY = 0;
     
@@ -128,7 +128,7 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
         X += SrcFont->Memory[SrcChar].Advance;
     }
     
-    int StringWidth = X;
+    int StringWidth = (int)X;
     
     v2 Dimension = {};
     Dimension.x = (real32)StringWidth;
@@ -138,6 +138,73 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
 }
 
 #define MAXSTRINGSIZE 1000
+
+internal nFont
+LoadFont(char* FileName, real32 ScaleIn)
+{
+    entire_file File = ReadEntireFile(FileName);
+    
+    stbtt_fontinfo Info;
+    stbtt_InitFont(&Info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
+    
+    float Scale = stbtt_ScaleForPixelHeight(&Info, ScaleIn);
+    
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(&Info, &ascent, &descent, &lineGap);
+    
+    ascent = (int)roundf(ascent * Scale);
+    descent = (int)roundf(descent * Scale);
+    
+    nFont NewFont = {};
+    NewFont.Info = Info;
+    NewFont.Ascent = ascent;
+    NewFont.Scale = Scale;
+    
+    return (NewFont);
+}
+
+internal nFontChar
+LoadFontChar(nFont* font, int codepoint)
+{
+    // If codepoint is already loaded
+    for (int i = 0; i < font->Size; i++)
+    {
+        if (font->Memory[i].codepoint == codepoint)
+        {
+            return font->Memory[i];
+        }
+    }
+    
+    // If the codepoint has to be loaded
+    
+    // how wide is this character
+    int ax;
+    int lsb;
+    stbtt_GetCodepointHMetrics(&font->Info, codepoint, &ax, &lsb);
+    
+    // get bounding box for character (may be offset to account for chars that dip above or below the line
+    int c_x1, c_y1, c_x2, c_y2;
+    stbtt_GetCodepointBitmapBox(&font->Info, codepoint, font->Scale, font->Scale, &c_x1, &c_y1, &c_x2, &c_y2);
+    
+    // render character
+    loaded_bitmap Temp = LoadGlyphBitmap("Rubik-Medium.ttf", "FauneRegular", codepoint, font->scale, 0xFF000000);
+    
+    FontChar NewFontChar = {};
+    NewFontChar.Width = Temp.Width;
+    NewFontChar.Height = Temp.Height;
+    NewFontChar.Pitch = Temp.Pitch;
+    NewFontChar.Memory = Temp.Memory;
+    NewFontChar.AX = ax;
+    NewFontChar.C_X1 = c_x1;
+    NewFontChar.C_Y1 = c_y1;
+    NewFontChar.C_X2 = c_x2;
+    NewFontChar.C_Y2 = c_y2;
+    
+    font->Memory[font->Size] = NewFontChar;
+    FontChar* r = font->Memory[font->Size];
+    font->Size++;
+    return r;
+}
 
 internal Font
 LoadEntireFont(char* FileName, float ScaleIn)

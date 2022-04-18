@@ -3,6 +3,7 @@
 
 struct FontChar
 {
+    int codepoint;
     int32 Width;
     int32 Height;
     int32 Pitch;
@@ -11,7 +12,7 @@ struct FontChar
     int C_Y1;
     int C_X2;
     int C_Y2;
-    int Advance;
+    real32 Advance;
     void* Memory;
 };
 
@@ -24,6 +25,33 @@ struct Font
     int Ascent;
     float Scale;
     FontChar Memory[LOADMAXVALUE];
+};
+
+
+struct nFontChar
+{
+    int codepoint;
+    int32 Width;
+    int32 Height;
+    int32 Pitch;
+    int AX;
+    int C_X1;
+    int C_Y1;
+    int C_X2;
+    int C_Y2;
+    real32 Advance;
+    void* Memory;
+};
+
+#define FONTCACHEMAXSIZE 200 
+struct nFont
+{
+    stbtt_fontinfo Info;
+    int Size = 0;
+    int Ascent;
+    float Scale;
+    nFontChar Memory[FONTCACHEMAXSIZE];
+    entire_file TTFFile;
 };
 
 
