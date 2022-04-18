@@ -1,6 +1,6 @@
 #ifndef TEXT_H
 #define TEXT_H
-
+/*
 struct FontChar
 {
     int codepoint;
@@ -26,9 +26,9 @@ struct Font
     float Scale;
     FontChar Memory[LOADMAXVALUE];
 };
+*/
 
-
-struct nFontChar
+struct FontChar
 {
     int codepoint;
     int32 Width;
@@ -44,13 +44,13 @@ struct nFontChar
 };
 
 #define FONTCACHEMAXSIZE 200 
-struct nFont
+struct Font
 {
     stbtt_fontinfo Info;
     int Size = 0;
     int Ascent;
     float Scale;
-    nFontChar Memory[FONTCACHEMAXSIZE];
+    FontChar Memory[FONTCACHEMAXSIZE];
     entire_file TTFFile;
 };
 

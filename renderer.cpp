@@ -1112,8 +1112,8 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
     for (int i = 0; i < StrLength; i++)
     {
         int SrcChar = SrcText[i];
-        
-        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
+        int Y = -1 *  NextChar.C_Y1;
         if(BiggestY < Y)
         {
             BiggestY = Y;
@@ -1126,13 +1126,15 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
     {
         int SrcChar = SrcText[i];
         
-        int Y = InputY + SrcFont->Memory[SrcChar].C_Y1 + BiggestY;
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
+        
+        int Y = InputY + NextChar.C_Y1 + BiggestY;
         
         loaded_bitmap SrcBitmap = {};
-        SrcBitmap.Width = SrcFont->Memory[SrcChar].Width;
-        SrcBitmap.Height = SrcFont->Memory[SrcChar].Height;
-        SrcBitmap.Pitch = SrcFont->Memory[SrcChar].Pitch;
-        SrcBitmap.Memory = SrcFont->Memory[SrcChar].Memory;
+        SrcBitmap.Width = NextChar.Width;
+        SrcBitmap.Height = NextChar.Height;
+        SrcBitmap.Pitch = NextChar.Pitch;
+        SrcBitmap.Memory = NextChar.Memory;
         
         int ax;
         int lsb;

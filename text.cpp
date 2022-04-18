@@ -48,17 +48,13 @@ FilenameCapitalize(char* filename, char* result)
 }
 
 internal loaded_bitmap
-LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float Scale, uint32 Color)
+LoadGlyphBitmap(Font *font, u32 Codepoint, uint32 Color)
 {
     loaded_bitmap Result = {};
-    entire_file TTFFile = ReadEntireFile(FileName);
-    if(TTFFile.ContentsSize != 0)
+    if(font->TTFFile.ContentsSize != 0)
     {
-        stbtt_fontinfo Font;
-        stbtt_InitFont(&Font, (u8 *)TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)TTFFile.Contents, 0));
-        
         int Width, Height, XOffset, YOffset;
-        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, Scale),
+        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&font->Info, 0, font->Scale,
                                                   Codepoint, &Width, &Height, &XOffset, &YOffset);
         
         Result.Width = Width;
@@ -93,53 +89,14 @@ LoadGlyphBitmap(char *FileName, char *FontName, u32 Codepoint, float Scale, uint
         }
         
         stbtt_FreeBitmap(MonoBitmap, 0);
-        free(TTFFile.Contents);
     }
     
     return (Result);
 }
 
-internal v2
-GetStringDimensions(Font* SrcFont, char* SrcText)
-{
-    real32 X = 0;
-    int StrLength = StringLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        SrcFont->Memory[SrcChar].Advance = 0;
-        
-        int Y = -1 *  SrcFont->Memory[SrcChar].C_Y1;
-        if(BiggestY < Y)
-        {
-            BiggestY = Y;
-        }
-        
-        // advance x 
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(SrcFont->Memory[SrcChar].AX * SrcFont->Scale);
-        
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        SrcFont->Memory[SrcChar].Advance += (int)roundf(kern * SrcFont->Scale);
-        
-        X += SrcFont->Memory[SrcChar].Advance;
-    }
-    
-    int StringWidth = (int)X;
-    
-    v2 Dimension = {};
-    Dimension.x = (real32)StringWidth;
-    Dimension.y = (real32)BiggestY;
-    
-    return(Dimension);
-}
-
 #define MAXSTRINGSIZE 1000
 
-internal nFont
+internal Font
 LoadFont(char* FileName, real32 ScaleIn)
 {
     entire_file File = ReadEntireFile(FileName);
@@ -155,16 +112,17 @@ LoadFont(char* FileName, real32 ScaleIn)
     ascent = (int)roundf(ascent * Scale);
     descent = (int)roundf(descent * Scale);
     
-    nFont NewFont = {};
+    Font NewFont = {};
     NewFont.Info = Info;
     NewFont.Ascent = ascent;
     NewFont.Scale = Scale;
+    NewFont.TTFFile = File;
     
     return (NewFont);
 }
 
-internal nFontChar
-LoadFontChar(nFont* font, int codepoint)
+internal FontChar
+LoadFontChar(Font* font, int codepoint)
 {
     // If codepoint is already loaded
     for (int i = 0; i < font->Size; i++)
@@ -187,9 +145,10 @@ LoadFontChar(nFont* font, int codepoint)
     stbtt_GetCodepointBitmapBox(&font->Info, codepoint, font->Scale, font->Scale, &c_x1, &c_y1, &c_x2, &c_y2);
     
     // render character
-    loaded_bitmap Temp = LoadGlyphBitmap("Rubik-Medium.ttf", "FauneRegular", codepoint, font->scale, 0xFF000000);
+    loaded_bitmap Temp = LoadGlyphBitmap(font, codepoint, 0xFF000000);
     
     FontChar NewFontChar = {};
+    NewFontChar.codepoint = codepoint;
     NewFontChar.Width = Temp.Width;
     NewFontChar.Height = Temp.Height;
     NewFontChar.Pitch = Temp.Pitch;
@@ -201,68 +160,49 @@ LoadFontChar(nFont* font, int codepoint)
     NewFontChar.C_Y2 = c_y2;
     
     font->Memory[font->Size] = NewFontChar;
-    FontChar* r = font->Memory[font->Size];
+    FontChar r = font->Memory[font->Size];
     font->Size++;
     return r;
 }
 
-internal Font
-LoadEntireFont(char* FileName, float ScaleIn)
+internal v2
+GetStringDimensions(Font* SrcFont, char* SrcText)
 {
-    entire_file File = ReadEntireFile(FileName);
+    real32 X = 0;
+    int StrLength = StringLength(SrcText);
+    int BiggestY = 0;
     
-    stbtt_fontinfo Info;
-    stbtt_InitFont(&Info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
-    
-    float Scale = stbtt_ScaleForPixelHeight(&Info, ScaleIn);
-    
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&Info, &ascent, &descent, &lineGap);
-    
-    ascent = (int)roundf(ascent * Scale);
-    descent = (int)roundf(descent * Scale);
-    
-    Font NewFont = {};
-    NewFont.Info = Info;
-    NewFont.Ascent = ascent;
-    NewFont.Scale = Scale;
-    
-    
-    for (int i = 0; i < NewFont.Size; i++)
+    for (int i = 0; i < StrLength; i++)
     {
+        int SrcChar = SrcText[i];
+        FontChar NextChar = LoadFontChar(SrcFont, SrcChar);
         
-        // how wide is this character
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&Info, i, &ax, &lsb);
+        NextChar.Advance = 0;
         
-        // get bounding box for character (may be offset to account for chars that dip above or below the line
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&Info, i, Scale, Scale, &c_x1, &c_y1, &c_x2, &c_y2);
+        int Y = -1 *  NextChar.C_Y1;
+        if(BiggestY < Y)
+        {
+            BiggestY = Y;
+        }
         
-        // compute y (different characters have different heights)
-        //int y = ascent + c_y1 + yin;
+        // advance x 
+        NextChar.Advance += (int)roundf(NextChar.AX * SrcFont->Scale);
         
-        // render character
-        //int byteOffset = x + roundf(lsb * scale) + (y * b_w);
-        loaded_bitmap Temp = LoadGlyphBitmap(FileName, "FauneRegular", i, ScaleIn, 0xFF000000);
+        // add kerning
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        NextChar.Advance += (int)roundf(kern * SrcFont->Scale);
         
-        FontChar NewFontChar = {};
-        NewFontChar.Width = Temp.Width;
-        NewFontChar.Height = Temp.Height;
-        NewFontChar.Pitch = Temp.Pitch;
-        NewFontChar.Memory = Temp.Memory;
-        NewFontChar.AX = ax;
-        NewFontChar.C_X1 = c_x1;
-        NewFontChar.C_Y1 = c_y1;
-        NewFontChar.C_X2 = c_x2;
-        NewFontChar.C_Y2 = c_y2;
-        
-        NewFont.Memory[i] = NewFontChar;
+        X += NextChar.Advance;
     }
     
-    //free(File.Contents);
-    return(NewFont);
+    int StringWidth = (int)X;
+    
+    v2 Dimension = {};
+    Dimension.x = (real32)StringWidth;
+    Dimension.y = (real32)BiggestY;
+    
+    return(Dimension);
 }
 
 internal void
