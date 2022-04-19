@@ -330,35 +330,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     }
     
     // Enabling vsync
-    PFNWGLGETEXTENSIONSSTRINGEXTPROC
-        _wglGetExtensionsStringEXT =
-    (PFNWGLGETEXTENSIONSSTRINGEXTPROC)
-        wglGetProcAddress("wglGetExtensionsStringEXT");
-    bool swapControlSupported = strstr(_wglGetExtensionsStringEXT(),
-                                       "WGL_EXT_swap_control") != 0;
+    PFNWGLGETEXTENSIONSSTRINGEXTPROC _wglGetExtensionsStringEXT = 
+    (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
+    bool swapControlSupported = strstr(_wglGetExtensionsStringEXT(), "WGL_EXT_swap_control") != 0;
     
     int vsynch = 0;
-    
-    if (swapControlSupported) {
-        PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT =
-        (PFNWGLSWAPINTERVALEXTPROC)
-            wglGetProcAddress("wglSwapIntervalEXT");
-        PFNWGLGETSWAPINTERVALEXTPROC
-            wglGetSwapIntervalEXT =
-        (PFNWGLGETSWAPINTERVALEXTPROC)
-            wglGetProcAddress("wglGetSwapIntervalEXT");
-        if (wglSwapIntervalEXT(1)) {
-            //std::cout << "Enabled vsynch\n";
+    /*
+    if (swapControlSupported)
+    {
+        PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+        PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT = 
+        (PFNWGLGETSWAPINTERVALEXTPROC)wglGetProcAddress("wglGetSwapIntervalEXT");
+        
+        if (wglSwapIntervalEXT(1))
+        {
+            OutputDebugStringA("Enabled vsynch\n");
             vsynch = wglGetSwapIntervalEXT();
         }
-        else {
-            //std::cout << "Could not enable vsynch\n";
+        else
+        {
+            OutputDebugStringA("Could not enable vsynch\n");
         }
     }
-    else { // !swapControlSupported
-        //cout << "WGL_EXT_swap_control not supported\n";
+    else
+    { 
+        // !swapControlSupported
+        OutputDebugStringA("WGL_EXIT_swap_control not supported\n");
     }
-    
+    */
     // Getting the global VAO
     glGenVertexArrays(1, &gVertexArrayObject);
     glBindVertexArray(gVertexArrayObject);
@@ -404,6 +403,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             float dt = float(thisTick - lastTick) * 0.0001f;
             lastTick = thisTick;
             
+            // PrintqDebug - DebugBuffer
             GlobalDebugBuffer= {};
             memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
             GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
