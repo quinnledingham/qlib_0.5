@@ -65,11 +65,20 @@ platform_input
     
     float dt;
     real32 WorkSecondsElapsed;
+    real32 Seconds;
     
     platform_controller_input Controllers[5];
     
     int Quit;
 };
+
+inline platform_controller_input *GetController(platform_input *Input, int unsigned ControllerIndex)
+{
+    Assert(ControllerIndex < ArrayCount(Input->Controllers));
+    
+    platform_controller_input *Result = &Input->Controllers[ControllerIndex];
+    return(Result);
+}
 
 struct
 platform_memory
@@ -159,8 +168,16 @@ struct SnakeNode
     real32 x;
     real32 y;
     int Direction;
+    int NextDirection;
     
     SnakeNode *Next;
+    SnakeNode *Previous;
+};
+
+struct InputNode
+{
+    int Direction;
+    InputNode *Next;
 };
 
 struct Snake
@@ -169,6 +186,8 @@ struct Snake
     real32 TransitionAmt = 0;
     real32 Speed;
     int Direction;
+    
+    InputNode *InputHead;
     
     bool32 Initialized = false;
 };

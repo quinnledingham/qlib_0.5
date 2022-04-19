@@ -384,6 +384,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
     {
+        platform_input Input[2] = {};
+        platform_input *NewInput = &Input[0];
+        platform_input *OldInput = &Input[1];
+        
         // Gameplay Loop
         GlobalRunning = true;
         DWORD lastTick = GetTickCount();
@@ -391,13 +395,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         p.Initialized = false;
         p.Input.dt = 0;
         
-        platform_controller_input *KeyboardController = &p.Input.Controllers[0];
+        //platform_controller_input *KeyboardController = &p.Input.Controllers[0];
         
         LARGE_INTEGER LastCounter =  Win32GetWallClock();
         
         while (GlobalRunning) {
             
-            Win32ProcessPendingMessages(KeyboardController);
+            platform_controller_input *OldKeyboardController = GetController(OldInput, 0);
+            platform_controller_input *NewKeyboardController = GetController(NewInput, 0);
+            *NewKeyboardController = {};
+            NewKeyboardController->IsConnected = true;
+            for(int ButtonIndex = 0;
+                ButtonIndex < ArrayCount(NewKeyboardController->Buttons);
+                ++ButtonIndex)
+            {
+                NewKeyboardController->Buttons[ButtonIndex].EndedDown =
+                    OldKeyboardController->Buttons[ButtonIndex].EndedDown;
+            }
+            Win32ProcessPendingMessages(NewKeyboardController);
             
             DWORD thisTick = GetTickCount();
             float dt = float(thisTick - lastTick) * 0.0001f;
@@ -435,12 +450,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             Win32ProcessKeyboardMessage(&p.Input.MouseButtons[4],
                                         GetKeyState(VK_XBUTTON2) & (1 << 15));
             
-            p.Input.dt = dt;
-            UpdateRender(&p);
-            
+            p.Input = *NewInput;
             LARGE_INTEGER WorkCounter = Win32GetWallClock();
             p.Input.WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
             LastCounter =  Win32GetWallClock();
+            p.Input.dt = dt;
+            UpdateRender(&p);
+            
+            
             
             if (p.Input.NewCursor)
             {
@@ -479,6 +496,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 Win32ResizeDIBSection(&GlobalBackbuffer, p.Dimension.Width, p.Dimension.Height);
             }
 #endif
+            
+            platform_input *Temp = NewInput;
+            NewInput = OldInput;
+            OldInput = Temp;
         } // End of game loop
     }
     else // if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
