@@ -71,6 +71,22 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
                 }
+                else if(VKCode == VK_UP)
+                {
+                    Win32ProcessKeyboardMessage(&KeyboardController->ActionUp, IsDown);
+                }
+                else if(VKCode == VK_LEFT)
+                {
+                    Win32ProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
+                }
+                else if(VKCode == VK_DOWN)
+                {
+                    Win32ProcessKeyboardMessage(&KeyboardController->ActionDown, IsDown);
+                }
+                else if(VKCode == VK_RIGHT)
+                {
+                    Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
+                }
                 
                 // alt-f4
                 bool32 AltKeyWasDown = (Message.lParam & (1 << 29));
@@ -329,13 +345,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         //"\n";
     }
     
+    int vsynch = 0;
+#if VSYNC
     // Enabling vsync
     PFNWGLGETEXTENSIONSSTRINGEXTPROC _wglGetExtensionsStringEXT = 
     (PFNWGLGETEXTENSIONSSTRINGEXTPROC)wglGetProcAddress("wglGetExtensionsStringEXT");
     bool swapControlSupported = strstr(_wglGetExtensionsStringEXT(), "WGL_EXT_swap_control") != 0;
     
-    int vsynch = 0;
-    /*
     if (swapControlSupported)
     {
         PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
@@ -357,7 +373,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         // !swapControlSupported
         OutputDebugStringA("WGL_EXIT_swap_control not supported\n");
     }
-    */
+#endif
+    
     // Getting the global VAO
     glGenVertexArrays(1, &gVertexArrayObject);
     glBindVertexArray(gVertexArrayObject);
@@ -402,7 +419,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         while (GlobalRunning) {
             
             platform_controller_input *OldKeyboardController = GetController(OldInput, 0);
-            platform_controller_input *NewKeyboardController = GetController(NewInput, 0);
+            platform_controller_input *NewKeyboardController = GetController(&p.Input, 0);
             *NewKeyboardController = {};
             NewKeyboardController->IsConnected = true;
             for(int ButtonIndex = 0;
@@ -432,6 +449,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             p.Dimension = Win32GetWindowDimension(hwnd);
             
+            
             // Mouse
             POINT MouseP;
             GetCursorPos(&MouseP);
@@ -450,14 +468,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             Win32ProcessKeyboardMessage(&p.Input.MouseButtons[4],
                                         GetKeyState(VK_XBUTTON2) & (1 << 15));
             
-            p.Input = *NewInput;
+            
             LARGE_INTEGER WorkCounter = Win32GetWallClock();
             p.Input.WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
             LastCounter =  Win32GetWallClock();
             p.Input.dt = dt;
             UpdateRender(&p);
-            
-            
             
             if (p.Input.NewCursor)
             {
@@ -471,7 +487,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                     HCURSOR curs = LoadCursor(NULL, IDC_HAND);
                     SetCursor(curs); 
                 }
-                p.Input.NewCursor = false;
             }
             
             char CharBuffer[OUTPUTBUFFER_SIZE];
@@ -497,8 +512,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             }
 #endif
             
-            platform_input *Temp = NewInput;
-            NewInput = OldInput;
+            platform_input *Temp = &p.Input;
+            p.Input = *OldInput;
             OldInput = Temp;
         } // End of game loop
     }

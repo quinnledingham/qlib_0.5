@@ -72,7 +72,7 @@ ChangeTextBoxShowCursor(GUI* G, int ID)
 }
 
 internal void
-RenderLine(game_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
+RenderLine(platform_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
 {
     real32 Slope = (Point2.y - Point1.y) / (Point2.x - Point1.x);
     real32 B = Point1.y - (Slope * Point1.x);
@@ -94,6 +94,8 @@ RenderLine(game_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
 internal bool32
 CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
 {
+    int InRect = 0;
+    
     GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0)
     {
@@ -102,7 +104,7 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
         if (MouseInRect(Cursor->X, Cursor->Y, Cursor->Width, Cursor->Height, MouseX, MouseY))
         {
             B->Color = B->HoverColor;
-            return true;
+            InRect = 1;
         }
         else
         {
@@ -110,6 +112,11 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
         }
         
         Cursor = Cursor->Next;
+    }
+    
+    if (InRect == 1)
+    {
+        return true;
     }
     return false;
 }

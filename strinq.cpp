@@ -153,7 +153,21 @@ Strinq operator+(const Strinq &L, int R)
     IntToStrinq(SR, R);
     return (L + SR);
 }
-
+/*
+Strinq operator+(const Strinq &L, bool R)
+{
+    Strinq SR = {};
+    if (R == true)
+    {
+        NewStrinq(SR, "true");
+    }
+    else if (R == false)
+    {
+        NewStrinq(SR, "false");
+    }
+    return (L + SR);
+}
+*/
 bool operator==(const Strinq& L, const Strinq& R)
 {
     int i = 0;

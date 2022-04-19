@@ -577,79 +577,6 @@ glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instance
 
 // Renderering Elements
 
-void
-Rect::Init(Shader* s)
-{
-    VertexPositions.Init();
-    VertexNormals.Init();
-    VertexTexCoords.Init();
-    rIndexBuffer.Init();
-    
-    DynArray<v3> position = {};
-    position.push_back(v3(-0.5, -0.5, 0));
-    position.push_back(v3(-0.5, 0.5, 0));
-    position.push_back(v3(0.5, -0.5, 0));
-    position.push_back(v3(0.5, 0.5, 0));
-    VertexPositions.Set(position);
-    //position.Destroy();
-    
-    DynArray<v3> normals = {};
-    normals.Resize(4, v3(0, 0, 1));
-    VertexNormals.Set(normals);
-    
-    DynArray<v2> uvs = {};
-    uvs.push_back(v2(0, 0));
-    uvs.push_back(v2(0, 1));
-    uvs.push_back(v2(1, 0));
-    uvs.push_back(v2(1, 1));
-    VertexTexCoords.Set(uvs);
-    
-    DynArray<unsigned int> indices = {};
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
-    indices.push_back(2);
-    indices.push_back(1);
-    indices.push_back(3);
-    rIndexBuffer.Set(indices);
-    
-    shader = s;
-}
-
-void
-Rect::Destroy()
-{
-    
-}
-
-void
-Rect::Draw(Texture &texture, v2 position2, v2 size, float rotate, v3 color)
-{
-    mat4 model = TransformToMat4(Transform(v3(position2, 0.0f),
-                                           AngleAxis(rotate * DEG2RAD, v3(0, 0, 1)),
-                                           v3(size.x, size.y, size.x)));
-    
-    shader->Bind();
-    
-    VertexPositions.BindTo(shader->GetAttribute("position"));
-    VertexNormals.BindTo(shader->GetAttribute("normal"));
-    VertexTexCoords.BindTo(shader->GetAttribute("texCoord"));
-    
-    Uniform<mat4>::Set(shader->GetUniform("model"), model);
-    
-    texture.Set(shader->GetUniform("tex0"), 0);
-    
-    glDraw(rIndexBuffer, DrawMode::Triangles);\
-    
-    texture.UnSet(0);
-    
-    VertexPositions.UnBindFrom(shader->GetAttribute("position"));
-    VertexNormals.UnBindFrom(shader->GetAttribute("normal"));
-    VertexTexCoords.UnBindFrom(shader->GetAttribute("texCoord"));
-    
-    shader->UnBind();
-}
-
 mat4 projection;
 mat4 view;
 
@@ -664,7 +591,7 @@ ClearScreen()
 void BeginOpenGL(platform_window_dimension Dimension)
 {
     glViewport(0, 0, Dimension.Width, Dimension.Height);
-    //glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
@@ -700,7 +627,7 @@ BeginMode3D(Camera C)
 {
     BeginMode(C);
     C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
-    projection = Perspective(C.FOV, C.inAspectRatio, 1.0f, 1000.0f);
+    projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
     InMode2D = 1;
 }
 
@@ -796,7 +723,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     NewCoords.x = (real32)(-x - (width/2));
     NewCoords.y = (real32)(-y - (height/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, -100.0f),
                                            AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
                                            v3((real32)width, (real32)height, (real32)width)));
     
@@ -825,7 +752,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
 }
 
 void
-DrawRect(int x, int y, int width, int height, Texture texture)
+DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 Rotation)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
@@ -870,9 +797,9 @@ DrawRect(int x, int y, int width, int height, Texture texture)
     NewCoords.x = (real32)(-x - (width/2));
     NewCoords.y = (real32)(-y - (height/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, 0.0f),
-                                           AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
-                                           v3((real32)width, (real32)height, (real32)width)));
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, z),
+                                           AngleAxis(Rotation * DEG2RAD, v3(0, 1, 0)),
+                                           v3((real32)width, (real32)height, 1)));
     
     GlobalOpenGLTexture.shader.Bind();
     
@@ -945,7 +872,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         
         //ChangeBitmapColor(SrcBitmap, Color);
         
-        DrawRect((int)(X + (lsb * SrcFont->Scale)), Y, NextChar.Tex.mWidth, NextChar.Tex.mHeight, NextChar.Tex);
+        DrawRect((int)(X + (lsb * SrcFont->Scale)), Y, 0, NextChar.Tex.mWidth, NextChar.Tex.mHeight, NextChar.Tex, 0);
         
         int kern;
         kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);

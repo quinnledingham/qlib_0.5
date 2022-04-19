@@ -1,8 +1,42 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+/*
+  NOTE(casey): Services that the platform layer provides to the game
+*/
+#if SNAKE_INTERNAL
+/* IMPORTANT(casey):
+
+   These are NOT for doing anything in the shipping game - they are
+   blocking and the write doesn't protect against lost data!
+*/
+struct debug_read_file_result
+{
+    uint32 ContentsSize;
+    void *Contents;
+};
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char *Filename);
+internal void DEBUGPlatformFreeFileMemory(void *Memory);
+internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory);
+#endif
+/*
+  NOTE(casey): Services that the game provides to the platform layer.
+  (this may expand in the future - sound on separate thread, etc.)
+*/
+
+inline uint32
+SafeTruncateUInt64(uint64 Value)
+{
+    // TODO(casey): Defines for maximum values
+    Assert(Value <= 0xFFFFFFFF);
+    uint32 Result = (uint32)Value;
+    return(Result);
+}
+
+// FOUR THINGS - timing, controller/keyboard input, bitmap buffer to use, sound buffer to use
 
 // Start Possible Win32
+// TODO(casey): In the future, rendering _specifically_ will become a three-tiered abstraction!!!
 struct platform_offscreen_buffer
 {
     // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
@@ -21,6 +55,13 @@ struct platform_window_dimension
     int Height;
 };
 // End Win32
+
+struct platform_sound_output_buffer
+{
+    int SamplesPerSecond;
+    int SampleCount;
+    int16 *Samples;
+};
 
 struct platform_button_state
 {
@@ -44,6 +85,41 @@ struct platform_controller_input
             platform_button_state MoveDown;
             platform_button_state MoveLeft;
             platform_button_state MoveRight;
+            
+            platform_button_state ActionUp;
+            platform_button_state ActionDown;
+            platform_button_state ActionLeft;
+            platform_button_state ActionRight;
+            
+            platform_button_state LeftShoulder;
+            platform_button_state RightShoulder;
+            
+            platform_button_state Back;
+            platform_button_state Start;
+            
+            // NOTE(casey): All buttons must be added above this line
+            
+            platform_button_state Terminator;
+        };
+    };
+    
+    union
+    {
+        platform_button_state Numbers[12];
+        struct
+        {
+            platform_button_state Zero;
+            platform_button_state One;
+            platform_button_state Two;
+            platform_button_state Three;
+            platform_button_state Four;
+            platform_button_state Five;
+            platform_button_state Six;
+            platform_button_state Seven;
+            platform_button_state Eight;
+            platform_button_state Nine;
+            platform_button_state Period;
+            platform_button_state Backspace;
         };
     };
 };
@@ -125,27 +201,6 @@ Camera
     platform_window_dimension Dimension;
 };
 
-struct
-Rect
-{
-    real32 x;
-    
-    real32 y;
-    real32 width;
-    real32 height;
-    
-    Shader* shader;
-    
-    Attribute<v3> VertexPositions;
-    IndexBuffer rIndexBuffer;
-    Attribute<v3> VertexNormals = {};
-    Attribute<v2> VertexTexCoords = {};
-    
-    void Init(Shader* s);
-    void Destroy();
-    void Draw(Texture &texture, v2 position, v2 size, float rotate,v3 color);
-};
-
 void UpdateRender(platform* p);
 
 #define BITMAP_BYTES_PER_PIXEL 4
@@ -162,34 +217,5 @@ struct loaded_bitmap
 
 internal void
 RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
-
-struct SnakeNode
-{
-    real32 x;
-    real32 y;
-    int Direction;
-    int NextDirection;
-    
-    SnakeNode *Next;
-    SnakeNode *Previous;
-};
-
-struct InputNode
-{
-    int Direction;
-    InputNode *Next;
-};
-
-struct Snake
-{
-    SnakeNode *Head;
-    real32 TransitionAmt = 0;
-    real32 Speed;
-    int Direction;
-    
-    InputNode *InputHead;
-    
-    bool32 Initialized = false;
-};
 
 #endif //APPLICATION_H
