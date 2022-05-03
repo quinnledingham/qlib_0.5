@@ -593,6 +593,7 @@ void BeginOpenGL(platform_window_dimension Dimension)
     glViewport(0, 0, Dimension.Width, Dimension.Height);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    glDepthFunc(GL_ALWAYS); 
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
