@@ -76,6 +76,8 @@ struct platform_controller_input
     real32 StickAverageX;
     real32 StickAverageY;
     
+    platform_button_state Escape;
+    
     union
     {
         platform_button_state Buttons[12];

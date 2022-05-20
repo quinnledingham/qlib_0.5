@@ -1,14 +1,6 @@
 #ifndef GUI_H
 #define GUI_H
 
-
-#if !defined(RAYLIB_H)
-struct Texture2D
-{
-    
-};
-#endif
-
 internal int
 StringLength(char* String);
 
@@ -26,7 +18,8 @@ enum ComponentIDs
     Restart,
     JOIN,
     GameStart,
-    Quit
+    Quit,
+    Menu
 };
 
 struct Button
@@ -34,7 +27,7 @@ struct Button
     int TextX;
     int TextY;
     char* Text;
-    Font* FontType;
+    Font FontType;
     int ID;
     uint32 Color;
     uint32 RegularColor;
@@ -46,7 +39,7 @@ struct Text
 {
     char* Text;
     int ID;
-    Font* FontType;
+    Font FontType;
     uint32 TextColor;
 };
 
@@ -76,6 +69,9 @@ struct GUIComponent
     int WidthP;
     int HeightP;
     
+    int DefaultWidth;
+    int DefaultHeight;
+    
     GUIComponent* Next;
     GUIComponent* All;
     void* Data;
@@ -101,6 +97,7 @@ struct GUI
     int Width = 0;
     int Height = 0;
     int Padding = 0;
+    int DefaultPadding = 0;
     GUIComponent* All;
     GUIComponent* Buttons;
     GUIComponent* TextBoxes;

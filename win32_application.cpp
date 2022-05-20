@@ -87,6 +87,10 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
                 }
+                else if(VKCode == VK_ESCAPE)
+                {
+                    Win32ProcessKeyboardMessage(&KeyboardController->Escape, IsDown);
+                }
                 
                 // alt-f4
                 bool32 AltKeyWasDown = (Message.lParam & (1 << 29));
@@ -276,8 +280,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     // Center window on screen
     int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
     int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-    int ClientWidth = 500;
-    int ClientHeight = 500;
+    int ClientWidth = 1000;
+    int ClientHeight = 1000;
     RECT WindowRect;
     SetRect(&WindowRect,
             (ScreenWidth / 2) - (ClientWidth / 2),
@@ -289,12 +293,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     Win32ResizeDIBSection(&GlobalBackbuffer, ClientWidth, ClientHeight);
     
     DWORD Style = (WS_OVERLAPPED | WS_CAPTION |
-                   WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+                   WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
     // | WS_THICKFRAME to resize
     
     AdjustWindowRectEx(&WindowRect, Style, FALSE, 0);
     HWND hwnd = CreateWindowEx(0, WindowClass.lpszClassName,
-                               "Game Window", Style, WindowRect.left,
+                               "Coffee Cow", Style, WindowRect.left,
                                WindowRect.top, WindowRect.right -
                                WindowRect.left, WindowRect.bottom -
                                WindowRect.top, NULL, NULL,

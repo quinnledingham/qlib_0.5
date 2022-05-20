@@ -255,6 +255,8 @@ AddButton(GUI* G, int GridX, int GridY, int Width, int Height, Button* B)
     NewComponent->Height = Height;
     NewComponent->WidthP = Width + (G->Padding * 2);
     NewComponent->HeightP = Height + (G->Padding * 2);
+    NewComponent->DefaultWidth = Width;
+    NewComponent->DefaultHeight = Height;
     NewComponent->Data = qalloc((void*)B, sizeof(Button));
     
     *B = {}; // Resets struct used to pass this function information
@@ -286,7 +288,7 @@ AddText(GUI* G, int GridX, int GridY,  Text* T)
     GUIComponent NewTemp = {};
     GUIComponent* NewComponent = (GUIComponent*)qalloc((void*)&NewTemp, sizeof(GUIComponent));
     
-    v2 StringDimension = GetStringDimensions(T->FontType, T->Text);
+    v2 StringDimension = GetStringDimensions(&T->FontType, T->Text);
     
     NewComponent->GridX = GridX;
     NewComponent->GridY = GridY;
@@ -378,6 +380,33 @@ GetTextBoxText(GUI *G, int ID)
 }
 
 internal void
+ResizeButton(GUI* G, GUIComponent* C, Button* B, int Width, int Height)
+{
+    float Scale = stbtt_ScaleForPixelHeight(&B->FontType.Info,
+                                            (float)B->FontType.ScaleIn * ((float)Height / (float)G->ClientHeight));
+    B->FontType.Scale = Scale;
+    
+    C->Width = (int)((float)C->DefaultWidth * ((float)Width / (float)G->ClientWidth));
+    C->WidthP = C->Width  + (G->Padding * 2);
+    
+    C->Height = (int)((float)C->DefaultHeight * ((float)Height / (float)G->ClientHeight));
+    C->HeightP = C->Height  + (G->Padding * 2);
+}
+
+internal void
+ResizeText(GUI* G, GUIComponent* C, Text* T, int Height)
+{
+    float Scale = stbtt_ScaleForPixelHeight(&T->FontType.Info,
+                                            (float)T->FontType.ScaleIn * ((float)Height / (float)G->ClientHeight));
+    T->FontType.Scale = Scale;
+    
+    v2 StringDimension = GetStringDimensions(&T->FontType, T->Text);
+    
+    C->WidthP = (int)StringDimension.x + (G->Padding * 2);
+    C->HeightP = (int)StringDimension.y + (G->Padding * 2);
+}
+
+internal void
 UpdateRow(Row* R, int Width, int Height, int GridX)
 {
     R->Columns[GridX].Width = Width;
@@ -389,6 +418,12 @@ UpdateRow(Row* R, int Width, int Height, int GridX)
 internal void
 InitializeGUI(GUI* G)
 {
+    for (int i = 0; i < 10; i++)
+    {
+        G->Rows[i].Width = 0;
+        G->Rows[i].Height = 0;
+    }
+    
     GUIComponent* Cursor = G->All;
     while(Cursor != 0)
     {
@@ -396,6 +431,7 @@ InitializeGUI(GUI* G)
         Cursor = Cursor->All;
     }
     
+    G->Height = 0;
     for (int i = 0; i < 10; i++)
     {
         G->Height += G->Rows[i].Height;
@@ -406,12 +442,40 @@ InitializeGUI(GUI* G)
 internal void
 UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
 {
+    // Resize GUI if screen size changed
+    if (G->ClientWidth != BufferWidth || G->ClientHeight != BufferHeight)
+    {
+        G->Padding = (int)((float)G->DefaultPadding * ((float)BufferHeight / (float)G->ClientHeight));
+        
+        GUIComponent* Cursor = G->Buttons;
+        while(Cursor != 0)
+        {
+            ResizeButton(G, Cursor, (Button*)Cursor->Data, BufferWidth, BufferHeight);
+            Cursor = Cursor->Next;
+        }
+        Cursor = 0;
+        
+        Cursor = G->Texts;
+        while(Cursor != 0)
+        {
+            ResizeText(G, Cursor, (Text*)Cursor->Data, BufferHeight);
+            Cursor = Cursor->Next;
+        }
+        Cursor = 0;
+        
+        
+        
+        InitializeGUI(G);
+    }
+    
+    G->Width = 0;
     
     GUIComponent* Cursor = G->All;
     while(Cursor != 0)
     {
         Row* R = &G->Rows[Cursor->GridY];
         
+        // Calculate column location to center
         Cursor->X = ((-R->Width)/2);
         for (int  i = 0; i < Cursor->GridX; i++)
         {
@@ -419,6 +483,13 @@ UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
             Cursor->X += tempC->Width;
         }
         
+        // Find biggest row
+        if (G->Width < R->Width)
+        {
+            G->Width = R->Width;
+        }
+        
+        // Calculate row location to center
         Cursor->Y = ((-G->Height)/2) + ((R->Height - Cursor->Height)/2);
         for (int i = 0; i < Cursor->GridY; i++)
         {
@@ -440,14 +511,14 @@ RenderGUI(GUI* G)
     {
         Button* b = (Button*)Cursor->Data;
         
-        v2 SDim = GetStringDimensions(b->FontType, b->Text);
+        v2 SDim = GetStringDimensions(&b->FontType, b->Text);
         b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
         b->TextY = Cursor->Y + (int)((Cursor->Height - SDim.y)/2);
         //(int)(Cursor->Height / 2) + (int)(SDim.y / 2)
         
         //RenderRect(&R, FILL, b->Color);
         DrawRect(Cursor->X, Cursor->Y, Cursor->Width, Cursor->Height, b->Color);
-        PrintOnScreen(b->FontType,  b->Text, b->TextX, b->TextY, b->TextColor);
+        PrintOnScreen(&b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
         Cursor = Cursor->Next;
     }
     
@@ -481,7 +552,7 @@ RenderGUI(GUI* G)
     {
         Text* b = (Text*)Cursor->Data;
         
-        PrintOnScreen(b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
+        PrintOnScreen(&b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
         Cursor = Cursor->Next;
     }
     Cursor = 0;

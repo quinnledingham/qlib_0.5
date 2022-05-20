@@ -15,6 +15,7 @@ struct FontChar
     real32 Advance;
     Texture Tex;
     uint32 Color;
+    float Scale;
     void* Memory;
 };
 
@@ -25,6 +26,7 @@ struct Font
     int Size = 0;
     int Ascent;
     float Scale;
+    float ScaleIn;
     FontChar Memory[FONTCACHEMAXSIZE];
     entire_file TTFFile;
 };

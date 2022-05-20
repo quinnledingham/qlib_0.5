@@ -112,9 +112,16 @@ LoadFont(char* FileName, real32 ScaleIn)
     NewFont.Info = Info;
     NewFont.Ascent = ascent;
     NewFont.Scale = Scale;
+    NewFont.ScaleIn = ScaleIn;
     NewFont.TTFFile = File;
     
     return (NewFont);
+}
+
+internal void
+UnLoadFont(Font DelFont)
+{
+    
 }
 
 internal FontChar
@@ -123,7 +130,9 @@ LoadFontChar(Font* font, int codepoint, uint32 Color)
     // If codepoint is already loaded
     for (int i = 0; i < font->Size; i++)
     {
-        if (font->Memory[i].codepoint == codepoint && font->Memory[i].Color == Color)
+        if (font->Memory[i].codepoint == codepoint &&
+            font->Memory[i].Color == Color &&
+            font->Memory[i].Scale == font->Scale)
         {
             return font->Memory[i];
         }
@@ -155,6 +164,7 @@ LoadFontChar(Font* font, int codepoint, uint32 Color)
     NewFontChar.C_X2 = c_x2;
     NewFontChar.C_Y2 = c_y2;
     NewFontChar.Color = Color;
+    NewFontChar.Scale = font->Scale;
     
 #if QLIB_OPENGL
     Image SrcImage = {};

@@ -799,7 +799,7 @@ DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 
     NewCoords.y = (real32)(-y - (height/2));
     
     mat4 model = TransformToMat4(Transform(v3(NewCoords, z),
-                                           AngleAxis(Rotation * DEG2RAD, v3(0, 1, 0)),
+                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
                                            v3((real32)width, (real32)height, 1)));
     
     GlobalOpenGLTexture.shader.Bind();
