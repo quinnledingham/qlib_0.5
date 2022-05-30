@@ -452,8 +452,8 @@ Texture::Init(Image* image)
     //stbi_image_free(data);
     
     // Tile
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -619,8 +619,8 @@ BeginMode2D(Camera C)
     BeginMode(C);
     float width = (float)C.Dimension.Width;
     float height = (float)C.Dimension.Height;
-    projection = Ortho(-width/2, width/2, -height/2, height/2, 0.01f, 1000.0f);
-    InMode3D = 1;
+    projection = Ortho(-width/2, width/2, -height/2, height/2, 0.1f, 1000.0f);
+    InMode2D = 1;
 }
 
 void
@@ -629,7 +629,7 @@ BeginMode3D(Camera C)
     BeginMode(C);
     C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
     projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
-    InMode2D = 1;
+    InMode3D = 1;
 }
 
 void
@@ -753,7 +753,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
 }
 
 void
-DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 Rotation)
+DrawRect(v3 Coords, v2 Size, Texture Tex, real32 Rotation, BlendMode Mode)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
@@ -795,12 +795,17 @@ DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 
     
     // Change to standard coordinate system
     v2 NewCoords = {};
-    NewCoords.x = (real32)(-x - (width/2));
-    NewCoords.y = (real32)(-y - (height/2));
+    NewCoords.x = (real32)(-Coords.x - (Size.x/2));
+    NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, z),
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
-                                           v3((real32)width, (real32)height, 1)));
+                                           v3(Size.x, Size.y, 1)));
+    
+    if (Mode == BlendMode::gl_one)
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    else if (Mode == BlendMode::gl_src_alpha)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     GlobalOpenGLTexture.shader.Bind();
     
@@ -813,11 +818,11 @@ DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 
     GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
     GlobalOpenGLTexture.VertexTexCoords.BindTo(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
     
-    texture.Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
+    Tex.Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
     
     glDraw(GlobalOpenGLTexture.rIndexBuffer, DrawMode::Triangles);
     
-    texture.UnSet(0);
+    Tex.UnSet(0);
     
     GlobalOpenGLTexture.VertexPositions.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("position"));
     GlobalOpenGLTexture.VertexNormals.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("normal"));
@@ -842,19 +847,15 @@ fixed right now by turning off tiling. Can't tell if it still makes the font loo
 void
 PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
 {
-    
     int StrLength = StringLength(SrcText);
     int BiggestY = 0;
     
-    for (int i = 0; i < StrLength; i++)
-    {
+    for (int i = 0; i < StrLength; i++){
         int SrcChar = SrcText[i];
         FontChar NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
         int Y = -1 *  NextChar.C_Y1;
         if(BiggestY < Y)
-        {
             BiggestY = Y;
-        }
     }
     
     real32 X = (real32)InputX;
@@ -873,7 +874,9 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         
         //ChangeBitmapColor(SrcBitmap, Color);
         
-        DrawRect((int)(X + (lsb * SrcFont->Scale)), Y, 0, NextChar.Tex.mWidth, NextChar.Tex.mHeight, NextChar.Tex, 0);
+        DrawRect(v3(X + (lsb * SrcFont->Scale), (real32)Y, 0), 
+                 v2((real32)NextChar.Tex.mWidth, (real32)NextChar.Tex.mHeight),
+                 NextChar.Tex, 0, BlendMode::gl_src_alpha);
         
         int kern;
         kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
