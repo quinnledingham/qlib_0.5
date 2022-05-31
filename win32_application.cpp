@@ -280,8 +280,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     // Center window on screen
     int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
     int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-    int ClientWidth = 1000;
-    int ClientHeight = 1000;
+    int ClientWidth = 500;
+    int ClientHeight = 500;
     RECT WindowRect;
     SetRect(&WindowRect,
             (ScreenWidth / 2) - (ClientWidth / 2),
@@ -290,7 +290,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             (ScreenHeight / 2) + (ClientHeight / 2));
     
     
-    Win32ResizeDIBSection(&GlobalBackbuffer, ClientWidth, ClientHeight);
+    Win32ResizeDIBSection(&GlobalBackbuffer, 
+                          WindowRect.right - WindowRect.left,
+                          WindowRect.bottom - WindowRect.top);
     
     DWORD Style = (WS_OVERLAPPED | WS_CAPTION |
                    WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
