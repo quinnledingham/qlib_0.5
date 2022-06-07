@@ -25,6 +25,18 @@ ResizeImage(Image ToResize, int Width, int Height)
     return ResizedImage;
 }
 
+internal Texture
+LoadTexture(const char* FileName, int Width, int Height)
+{
+    Image Temp;
+    Texture Return;
+    Temp = LoadImage(FileName);
+    Temp = ResizeImage(Temp, Width, Height);
+    Return.Init(&Temp);
+    
+    return Return;
+}
+
 internal void
 SaveImage(Image* image, const char* SaveFileName)
 {

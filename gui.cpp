@@ -443,7 +443,7 @@ internal void
 UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
 {
     // Resize GUI if screen size changed
-    if (G->ClientWidth != BufferWidth || G->ClientHeight != BufferHeight)
+    //if (G->ClientWidth != BufferWidth || G->ClientHeight != BufferHeight) 
     {
         G->Padding = (int)((float)G->DefaultPadding * ((float)BufferHeight / (float)G->ClientHeight));
         
@@ -462,8 +462,6 @@ UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
             Cursor = Cursor->Next;
         }
         Cursor = 0;
-        
-        
         
         InitializeGUI(G);
     }
