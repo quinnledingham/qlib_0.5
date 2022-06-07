@@ -19,7 +19,8 @@ enum ComponentIDs
     JOIN,
     GameStart,
     Quit,
-    Menu
+    Menu,
+    Reset
 };
 
 struct Button

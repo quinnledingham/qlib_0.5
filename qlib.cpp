@@ -63,3 +63,4 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "renderer.cpp"
 #include "socketq.cpp"
 #include "gui.cpp"
+#include "random.cpp"
