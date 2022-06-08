@@ -518,8 +518,7 @@ mat4 Scale(mat4& m, float v)
 // Converts a angle from a axis into a quat.
 quat AngleAxis(float angle, const v3& axis)
 {
-    v3 norm = Normalized(
-                         axis);
+    v3 norm = Normalized(axis);
     float s = sinf(angle * 0.5f);
     
     return quat(norm.x * s,

@@ -694,6 +694,14 @@ v3 u32toV3(uint32 input)
 void
 DrawRect(int x, int y, int width, int height, uint32 color)
 {
+    v3 Coords = v3((real32)x, (real32)y, 1);
+    v2 Size = v2((real32)width, (real32)height);
+    DrawRect(Coords, Size, color, 0);
+}
+
+void
+DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
+{
     if (GlobalOpenGLRect.Initialized == 0)
     {
         GlobalOpenGLRect.shader.Init("../shaders/basic.vert", "../shaders/basic.frag");
@@ -721,12 +729,12 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     
     // Change to standard coordinate system
     v2 NewCoords = {};
-    NewCoords.x = (real32)(-x - (width/2));
-    NewCoords.y = (real32)(-y - (height/2));
+    NewCoords.x = (real32)(-Coords.x - (Size.x/2));
+    NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, -100.0f),
-                                           AngleAxis(0 * DEG2RAD, v3(0, 0, 1)),
-                                           v3((real32)width, (real32)height, (real32)width)));
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
+                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
+                                           v3(Size.x, Size.y, 1)));
     
     GlobalOpenGLRect.shader.Bind();
     
