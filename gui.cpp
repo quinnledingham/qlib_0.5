@@ -555,3 +555,34 @@ RenderGUI(GUI* G)
     }
     Cursor = 0;
 }
+
+internal void
+SetCursorMode(platform_input *Input, CursorMode CursorM)
+{
+    if (Input->Cursor != CursorM) {
+        Input->Cursor = CursorM;
+        Input->NewCursor = true;
+    }
+    else
+        Input->NewCursor = false;
+}
+
+internal GUIEvents
+HandleGUIEvents(GUI* G, platform_input *Input)
+{
+    GUIEvents Events = {};
+    Events.BtnPressID = -1;
+    Events.TbPressID = -1;
+    
+    if(Input->MouseButtons[0].EndedDown) {
+        Events.BtnPressID = CheckButtonsClick(G, Input->MouseX, Input->MouseY);
+        Events.TbPressID = CheckTextBoxes(G, Input->MouseX, Input->MouseY);
+    }
+    
+    if (CheckButtonsHover(G, Input->MouseX, Input->MouseY))
+        SetCursorMode(Input, Hand);
+    else
+        SetCursorMode(Input, Arrow);
+    
+    return Events;
+}

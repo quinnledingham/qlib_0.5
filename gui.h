@@ -108,5 +108,10 @@ struct GUI
     int ClientHeight;
 };
 
-
+struct GUIEvents
+{
+    int BtnPressID;
+    int TbPressID;
+    bool32 BtnHoverFlag;
+};
 #endif //GUI_H
