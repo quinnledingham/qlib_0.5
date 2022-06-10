@@ -71,6 +71,7 @@ struct v2
     inline v2(real32 _x, real32 _y) : x(_x), y(_y) {}
     inline v2(real32 *fv) : x(fv[0]), y(fv[1]) {}
     inline v2(int32 _x, int32 _y) : x((real32)_x), y((real32)_y) {}
+    inline v2(unsigned int _x, unsigned int _y) : x((real32)_x), y((real32)_y) {}
 };
 
 struct iv2

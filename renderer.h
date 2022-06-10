@@ -117,4 +117,57 @@ void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 //void DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, Texture Tex, real32 Rotation, BlendMode Mode);
+
+enum struct
+PieceType 
+{
+    ColorRect,
+    TextureRect,
+};
+
+struct Piece
+{
+    v3 Coords;
+    v2 Dim;
+    real32 Rotation;
+    BlendMode BMode;
+    
+    PieceType Type;
+    
+    uint32 Color;
+    Texture Tex;
+    
+    inline Piece() {}
+    inline Piece(v3 _Coords, v2 _Dim, Texture _Tex, real32 _Rotation, BlendMode _BMode) :
+    Coords(_Coords), Dim(_Dim), Tex(_Tex), Rotation(_Rotation),  
+    BMode(_BMode) {Type = PieceType::TextureRect;}
+    
+    inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) :
+    Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = PieceType::ColorRect;}
+};
+
+struct PieceGroup
+{
+    Piece Buffer[1000];
+    int Size = 0;
+    int MaxSize = 1000;
+    
+    void Push(Piece NewRect)
+    {
+        Buffer[Size] = NewRect;
+        Size++;
+    }
+    
+    void Clear()
+    {
+        memset(Buffer, 0, MaxSize * sizeof(Piece));
+        Size = 0;
+    }
+    
+    Piece* operator[](int i)
+    {
+        return &Buffer[i];
+    }
+};
+
 #endif //RENDERER_H

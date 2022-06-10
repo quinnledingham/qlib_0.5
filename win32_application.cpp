@@ -20,14 +20,10 @@ internal void
 Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
 {
     //Assert(NewState->EndedDown != IsDown);
-    if (IsDown == (bool32)true && NewState->EndedDown == (bool32)false)
-    {
+    if (IsDown && !NewState->EndedDown)
         NewState->NewEndedDown = true;
-    }
     else
-    {
         NewState->NewEndedDown = false;
-    }
     
     NewState->EndedDown = IsDown;
     //++NewState->HalfTransitionCount;
@@ -471,7 +467,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                                         GetKeyState(VK_XBUTTON1) & (1 << 15));
             Win32ProcessKeyboardMessage(&p.Input.MouseButtons[4],
                                         GetKeyState(VK_XBUTTON2) & (1 << 15));
-            
             
             LARGE_INTEGER WorkCounter = Win32GetWallClock();
             p.Input.WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);

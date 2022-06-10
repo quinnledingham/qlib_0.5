@@ -186,7 +186,7 @@ internal v2
 GetStringDimensions(Font* SrcFont, char* SrcText)
 {
     real32 X = 0;
-    int StrLength = StringLength(SrcText);
+    int StrLength = Length(SrcText);
     int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++)
@@ -250,7 +250,7 @@ SaveInsideFontMemoryToHeaderFile(FILE* File, char* FontName,  Font* SaveFont, in
 {
     fprintf(File,
             "const unsigned char %s[%d] = {",
-            StringConcat(FontName, "FontChar"),
+            Concat(FontName, "FontChar"),
             (int)(sizeof(FontChar) * SaveFont->Size)
             );
     for (int i = 0; i < SaveFont->Size; i++)
@@ -321,21 +321,21 @@ SaveFontToHeaderFile(char* FontName, char* FileName, char* FullFilePath, Font* S
     
     StartHeaderFile(File, FCapital);
     
-    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbtt"),
+    SaveMemoryToHeaderFile(File, Concat(FontName, "stbtt"),
                            (void*)&SaveFont->Info, sizeof(stbtt_fontinfo));
-    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbttuserdata"), 
+    SaveMemoryToHeaderFile(File, Concat(FontName, "stbttuserdata"), 
                            (void*)&SaveFont->Info.userdata, 100);
-    SaveMemoryToHeaderFile(File, StringConcat(FontName, "stbttdata"), (void*)SaveFont->Info.data, 100);
-    SaveIntToHeaderFile(File, StringConcat(FontName, "Size"), SaveFont->Size);
-    SaveIntToHeaderFile(File, StringConcat(FontName, "Ascent"), SaveFont->Ascent);
-    SaveFloatToHeaderFile(File, StringConcat(FontName, "Scale"), SaveFont->Scale);
+    SaveMemoryToHeaderFile(File, Concat(FontName, "stbttdata"), (void*)SaveFont->Info.data, 100);
+    SaveIntToHeaderFile(File, Concat(FontName, "Size"), SaveFont->Size);
+    SaveIntToHeaderFile(File, Concat(FontName, "Ascent"), SaveFont->Ascent);
+    SaveFloatToHeaderFile(File, Concat(FontName, "Scale"), SaveFont->Scale);
     
     int MemorySize = 0;
     
     
     fprintf(File,
             "const unsigned char %s[%d] = {",
-            StringConcat(FontName, "FontChar"),
+            Concat(FontName, "FontChar"),
             (int)(sizeof(FontChar) * SaveFont->Size)
             );
     for (int i = 0; i < SaveFont->Size; i++)
@@ -360,7 +360,7 @@ SaveFontToHeaderFile(char* FontName, char* FileName, char* FullFilePath, Font* S
     
     fprintf(File,
             "const unsigned char %s[%d] = {",
-            StringConcat(FontName, "FontCharMemory"),
+            Concat(FontName, "FontCharMemory"),
             MemorySize
             );
     for (int i = 0; i < SaveFont->Size; i++)

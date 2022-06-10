@@ -1,5 +1,56 @@
 #include "application.h"
 
+PieceGroup RenderGroup = {};
+
+internal void
+RenderPieceGroup(PieceGroup &Group)
+{
+    // Z-Sort using Insertion Sort
+    {
+        int i = 1;
+        while (i < Group.Size) {
+            int j = i;
+            while (j > 0 && Group[j-1]->Coords.z > Group[j]->Coords.z) {
+                Piece Temp = *Group[j];
+                *Group[j] = *Group[j-1];
+                *Group[j-1] = Temp;
+                j = j - 1;
+            }
+            i++;
+        }
+    }
+    
+    for (int i = 0; i < Group.Size; i++) {
+        Piece *p = Group[i];
+        if (p->Type == PieceType::TextureRect)
+            DrawRect(p->Coords, p->Dim, p->Tex, p->Rotation, p->BMode);
+        else if (p->Type == PieceType::ColorRect)
+            DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
+    }
+    
+    Group.Clear();
+}
+
+internal void
+Push(PieceGroup &Group, Piece p)
+{
+    *Group[Group.Size] = p;
+    Group.Size++;
+}
+
+internal void
+Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture Tex, 
+     real32 Rotation, BlendMode BMode)
+{
+    Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode));
+}
+
+internal void
+Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
+{
+    Push(Group, Piece(Coords, Dim , Color, Rotation));
+}
+
 // SHADER 
 
 void
@@ -855,7 +906,7 @@ fixed right now by turning off tiling. Can't tell if it still makes the font loo
 void
 PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
 {
-    int StrLength = StringLength(SrcText);
+    int StrLength = Length(SrcText);
     int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++){
@@ -882,9 +933,9 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         
         //ChangeBitmapColor(SrcBitmap, Color);
         
-        DrawRect(v3(X + (lsb * SrcFont->Scale), (real32)Y, 0), 
-                 v2((real32)NextChar.Tex.mWidth, (real32)NextChar.Tex.mHeight),
-                 NextChar.Tex, 0, BlendMode::gl_src_alpha);
+        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 0),
+             v2((real32)NextChar.Tex.mWidth, (real32)NextChar.Tex.mHeight),
+             NextChar.Tex, 0, BlendMode::gl_src_alpha);
         
         int kern;
         kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);

@@ -88,7 +88,7 @@ void Map::Init()
 
 int& Map::operator[](char* i)
 {
-    int cLength = CharGetLength(i);
+    int cLength = Length(i);
     Values[Next].Key = qalloc(cLength + 1);
     Values[Next].Value = qalloc(sizeof(int));
     memcpy(Values[Next].Key, (void*)i, cLength + 1);

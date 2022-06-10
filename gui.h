@@ -1,28 +1,6 @@
 #ifndef GUI_H
 #define GUI_H
 
-internal int
-StringLength(char* String);
-
-internal char*
-StringConcat(char* Source, char* Add);
-
-enum ComponentIDs
-{
-    Btn1,
-    Btn2,
-    Btn3,
-    Btn4,
-    PORT,
-    IP,
-    Restart,
-    JOIN,
-    GameStart,
-    Quit,
-    Menu,
-    Reset
-};
-
 struct Button
 {
     int TextX;
@@ -104,8 +82,10 @@ struct GUI
     GUIComponent* TextBoxes;
     GUIComponent* Texts;
     
-    int ClientWidth;
-    int ClientHeight;
+    int Screen;
+    
+    int DefaultWidth;
+    int DefaultHeight;
 };
 
 struct GUIEvents

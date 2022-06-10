@@ -2,7 +2,7 @@ void NewStrinq(Strinq& NewS, const char* InputChar)
 {
     NewS = {};
     
-    int InputCharLength = CharGetLength(InputChar);
+    int InputCharLength = Length(InputChar);
     int TotalSize = InputCharLength * sizeof(char) + 1;
     
     NewS.Data = (char*)malloc(TotalSize);
@@ -64,7 +64,7 @@ char* GetData(const Strinq& q)
 
 void IntToStrinq(Strinq& IntStrinq, int Value)
 {
-    int Digits = IntGetLength(Value);
+    int Digits = IntLength(Value);
     
     IntStrinq.Data = (char*)malloc(Digits + 1);
     memset(IntStrinq.Data, 0, Digits + 1);
@@ -252,29 +252,23 @@ int Length(Strinq& s)
 {
     int i = 0;
     while (s.Data[i] != 0)
-    {
         i++;
-    }
+    
     return i;
 }
 
 bool32 Equal(const char* r, const char* l)
 {
     int i = 0;
-    while(r[i] != 0 && l[i] != 0)
-    {
+    while(r[i] != 0 && l[i] != 0) {
         if (r[i] != l[i])
-        {
             return false;
-        }
+        
         i++;
     }
+    
     if (r[i] == l[i])
-    {
         return true;
-    }
     else
-    {
         return false;
-    }
 }

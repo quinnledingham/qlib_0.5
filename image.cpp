@@ -45,7 +45,7 @@ SaveImage(Image* image, const char* SaveFileName)
     
     // Change filename period to underscore
     char *f = (char*)qalloc(100);
-    CopyBuffer(f, SaveFileName, CharGetLength(SaveFileName));
+    CopyBuffer(f, SaveFileName, Length(SaveFileName));
     int i = 0;
     while(f[i] != 0)
     {
