@@ -931,14 +931,13 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         int lsb;
         stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
         
-        //ChangeBitmapColor(SrcBitmap, Color);
-        
-        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 0),
+        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 2.0f),
              v2((real32)NextChar.Tex.mWidth, (real32)NextChar.Tex.mHeight),
              NextChar.Tex, 0, BlendMode::gl_src_alpha);
         
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
+        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, 
+                                                 SrcText[i], 
+                                                 SrcText[i + 1]);
         X += ((kern + ax) * SrcFont->Scale);
     }
 }
