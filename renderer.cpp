@@ -904,7 +904,7 @@ off by one - texture is off by one in some places so a line is drawn.
 fixed right now by turning off tiling. Can't tell if it still makes the font look bad.
 */
 void
-PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
+PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
 {
     int StrLength = Length(SrcText);
     int BiggestY = 0;
@@ -917,7 +917,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
             BiggestY = Y;
     }
     
-    real32 X = (real32)InputX;
+    real32 X = Coords.x;
     
     for (int i = 0; i < StrLength; i++)
     {
@@ -925,7 +925,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         
         FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
         
-        int Y = InputY + NextChar.C_Y1 + BiggestY;
+        int Y = (int)Coords.y + NextChar.C_Y1 + BiggestY;
         
         int ax;
         int lsb;

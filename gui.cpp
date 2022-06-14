@@ -3,10 +3,10 @@
 #include "snake.h"
 
 internal int
-MouseInRect(int x, int y, int Width, int Height, int32 MouseX, int32 MouseY)
+MouseInRect(v2 Coords, v2 Dim, v2 MouseCoords)
 {
-    if (x < MouseX && MouseX < (x + Width) &&
-        y < MouseY && MouseY < (y + Height))
+    if (Coords.x < MouseCoords.x && MouseCoords.x < (Coords.x + Dim.x) &&
+        Coords.y < MouseCoords.y && MouseCoords.y < (Coords.y + Dim.y))
         return 1;
     
     return 0;
@@ -57,28 +57,8 @@ ChangeTextBoxShowCursor(GUI* G, int ID)
     }
 }
 
-internal void
-RenderLine(platform_offscreen_buffer *Buffer, v2 Point1, v2 Point2)
-{
-    real32 Slope = (Point2.y - Point1.y) / (Point2.x - Point1.x);
-    real32 B = Point1.y - (Slope * Point1.x);
-    
-    for (int X = (int)Point1.x; X <= Point2.x; X++)
-    {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel + (int)Point1.y*Buffer->Pitch);
-        
-        for (int Y = (int)Point1.y; Y <= Point2.y; Y++)
-        {
-            
-            *(uint32 *)Pixel = 0xFF000000;
-            
-            Pixel += Buffer->Pitch;
-        }
-    }
-}
-
 internal bool32
-CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
+CheckButtonsHover(GUI* G, v2 MouseCoords)
 {
     int InRect = 0;
     
@@ -86,9 +66,7 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
     while(Cursor != 0) {
         Button* B = (Button*)Cursor->Data;
         
-        if (MouseInRect(Cursor->X, Cursor->Y,
-                        Cursor->Width, Cursor->Height,
-                        MouseX, MouseY)) {
+        if (MouseInRect(Cursor->Coords, Cursor->Dim, MouseCoords)) {
             B->Color = B->HoverColor;
             InRect = 1;
         }
@@ -106,13 +84,11 @@ CheckButtonsHover(GUI* G, int32 MouseX, int32 MouseY)
 
 // Returns what button was pressed if one was.
 internal int
-CheckButtonsClick(GUI* G, int32 MouseX, int32 MouseY)
+CheckButtonsClick(GUI* G, v2 MouseCoords)
 {
     GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0) {
-        if (MouseInRect(Cursor->X, Cursor->Y,
-                        Cursor->Width, Cursor->Height,
-                        MouseX, MouseY)) {
+        if (MouseInRect(Cursor->Coords, Cursor->Dim, MouseCoords)) {
             Button* btn = (Button*)Cursor->Data;
             return btn->ID;
         }
@@ -124,22 +100,22 @@ CheckButtonsClick(GUI* G, int32 MouseX, int32 MouseY)
 }
 
 internal int
-CheckTextBoxes(GUI* G, int32 MouseX, int32 MouseY)
+CheckTextBoxes(GUI* G, v2 MouseCoords)
 {
     GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0) {
         TextBox* btn = (TextBox*)Cursor->Data;
-        btn->ShowCursor = 0;
-        if (MouseInRect(Cursor->X, Cursor->Y, 
-                        Cursor->Width, Cursor->Height,
-                        MouseX, MouseY))
-            return btn->ID;
+        if (MouseInRect(Cursor->Coords, Cursor->Dim, MouseCoords))
+            btn->ShowCursor = 1;
+        else
+            btn->ShowCursor = 0;
         
         Cursor = Cursor->Next;
     }
     
     return -1;
 }
+
 
 internal int
 AddGUIComponentAll(GUIComponent* Head, GUIComponent* NewComponent)
@@ -163,14 +139,10 @@ AddButton(GUI* G, int GridX, int GridY, int Width, int Height, Button* B)
     GUIComponent NewTemp = {};
     GUIComponent* NewComponent = (GUIComponent*)qalloc((void*)&NewTemp, sizeof(GUIComponent));
     
-    NewComponent->GridX = GridX;
-    NewComponent->GridY = GridY;
-    NewComponent->Width = Width;
-    NewComponent->Height = Height;
-    NewComponent->WidthP = Width + (G->Padding * 2);
-    NewComponent->HeightP = Height + (G->Padding * 2);
-    NewComponent->DefaultWidth = Width;
-    NewComponent->DefaultHeight = Height;
+    NewComponent->GridCoords = v2(GridX, GridY);
+    NewComponent->Dim = v2(Width, Height);
+    NewComponent->PaddingDim = v2(Width + (G->Padding * 2), Height + (G->Padding * 2));
+    NewComponent->DefaultDim = NewComponent->Dim;
     NewComponent->Data = qalloc((void*)B, sizeof(Button));
     
     *B = {}; // Resets struct used to pass this function information
@@ -198,35 +170,27 @@ AddText(GUI* G, int GridX, int GridY,  Text* T)
     
     v2 StringDimension = GetStringDimensions(&T->FontType, T->Text);
     
-    NewComponent->GridX = GridX;
-    NewComponent->GridY = GridY;
-    NewComponent->Width = (int)StringDimension.x;
-    NewComponent->Height = (int)StringDimension.y;
-    NewComponent->WidthP = (int)StringDimension.x + (G->Padding * 2);
-    NewComponent->HeightP = (int)StringDimension.y + (G->Padding * 2);
+    NewComponent->GridCoords = v2(GridX, GridY);
+    NewComponent->Dim = v2(StringDimension.x,StringDimension.y);
+    NewComponent->DefaultDim = NewComponent->Dim;
+    NewComponent->PaddingDim = v2(StringDimension.x + (G->Padding * 2), StringDimension.y + (G->Padding * 2));
     NewComponent->Data = qalloc((void*)T, sizeof(Text));
     
     *T = {}; // Resets struct used to pass this function information
     
     // Start linked list
     if(G->Texts == 0)
-    {
         G->Texts = NewComponent;
-    }
-    else 
-    {
+    else {
         GUIComponent* Cursor = G->Texts;
         while(Cursor->Next != 0)
-        {
             Cursor = Cursor->Next;
-        }
+        
         Cursor->Next = NewComponent;
     }
     
     if (!AddGUIComponentAll(G->All, NewComponent))
-    {
         G->All = NewComponent;
-    }
 }
 
 internal void
@@ -235,112 +199,85 @@ AddTextBox(GUI* G, int GridX, int GridY, int Width, int Height, TextBox* TB)
     GUIComponent NewTemp = {};
     GUIComponent* NewComponent = (GUIComponent*)qalloc((void*)&NewTemp, sizeof(GUIComponent));
     
-    
-    NewComponent->GridX = GridX;
-    NewComponent->GridY = GridY;
-    NewComponent->Width = Width;
-    NewComponent->Height = Height;
-    NewComponent->WidthP = Width + (G->Padding * 2);
-    NewComponent->HeightP = Height + (G->Padding * 2);
+    NewComponent->GridCoords = v2(GridX, GridY);
+    NewComponent->Dim = v2(Width, Height);
+    NewComponent->PaddingDim = v2(Width + (G->Padding * 2), Height + (G->Padding * 2));
+    NewComponent->DefaultDim = v2(Width, Height);
     NewComponent->Data = qalloc((void*)TB, sizeof(TextBox));
     
     *TB = {}; // Resets struct used to pass this function information
     
     // Start linked list
     if(G->TextBoxes == 0)
-    {
         G->TextBoxes = NewComponent;
-    }
-    else 
-    {
+    else {
         GUIComponent* Cursor = G->TextBoxes;
         while(Cursor->Next != 0)
-        {
             Cursor = Cursor->Next;
-        }
+        
         Cursor->Next = NewComponent;
     }
     
     if (!AddGUIComponentAll(G->All, NewComponent))
-    {
         G->All = NewComponent;
-    }
-}
-
-internal char*
-GetTextBoxText(GUI *G, int ID)
-{
-    GUIComponent* Cursor = G->TextBoxes;
-    while(Cursor != 0)
-    {
-        
-        
-        TextBox* TB = (TextBox*)Cursor->Data;
-        if (TB->ID == ID)
-        {
-            return TB->Text; 
-        }
-        
-        Cursor = Cursor->Next;
-    }
-    
-    return 0;
 }
 
 internal void
 ResizeButton(GUI* G, GUIComponent* C, Button* B, int Width, int Height)
 {
     float Scale = stbtt_ScaleForPixelHeight(&B->FontType.Info,
-                                            (float)B->FontType.ScaleIn * ((float)Height / (float)G->DefaultHeight));
+                                            (float)B->FontType.ScaleIn * ((float)Height / G->DefaultDim.y));
     B->FontType.Scale = Scale;
-    
-    C->Width = (int)((float)C->DefaultWidth * ((float)Width / (float)G->DefaultWidth));
-    C->WidthP = C->Width  + (G->Padding * 2);
-    
-    C->Height = (int)((float)C->DefaultHeight * ((float)Height / (float)G->DefaultHeight));
-    C->HeightP = C->Height  + (G->Padding * 2);
+    C->Dim = v2(C->DefaultDim.x * ((float)Width / G->DefaultDim.x),
+                C->DefaultDim.y * ((float)Height / G->DefaultDim.y));
+    C->PaddingDim = v2(C->Dim.x  + (G->Padding * 2), C->Dim.y  + (G->Padding * 2));
+}
+
+internal void
+ResizeTextBox(GUI* G,  GUIComponent* C, TextBox* Tb, int Width, int Height)
+{
+    float Scale = stbtt_ScaleForPixelHeight(&Tb->FontType.Info,
+                                            (float)Tb->FontType.ScaleIn * ((float)Height / G->DefaultDim.y));
+    Tb->FontType.Scale = Scale;
+    C->Dim = v2(C->DefaultDim.x * ((float)Width / G->DefaultDim.x),
+                C->DefaultDim.y * ((float)Height / G->DefaultDim.y));
+    C->PaddingDim = v2(C->Dim.x  + (G->Padding * 2), C->Dim.y  + (G->Padding * 2));
 }
 
 internal void
 ResizeText(GUI* G, GUIComponent* C, Text* T, int Height)
 {
     float Scale = stbtt_ScaleForPixelHeight(&T->FontType.Info,
-                                            (float)T->FontType.ScaleIn * ((float)Height / (float)G->DefaultHeight));
+                                            (float)T->FontType.ScaleIn * ((float)Height / G->DefaultDim.y));
     T->FontType.Scale = Scale;
     
     v2 StringDimension = GetStringDimensions(&T->FontType, T->Text);
-    
-    C->WidthP = (int)StringDimension.x + (G->Padding * 2);
-    C->HeightP = (int)StringDimension.y + (G->Padding * 2);
+    C->PaddingDim = v2(StringDimension.x + (G->Padding * 2), StringDimension.y + (G->Padding * 2));
 }
 
 internal void
-UpdateRow(Row* R, int Width, int Height, int GridX)
+UpdateRow(Row* R, real32 Width, real32 Height, real32 GridX)
 {
-    R->Columns[GridX].Width = Width;
-    R->Width += Width;
+    R->ColumnWidths[(int)GridX] = (int)Width;
+    R->Width += (int)Width;
     if (R->Height < Height)
-        R->Height = Height;
+        R->Height = (int)Height;
 }
 
 internal void
 InitializeGUI(GUI* G)
 {
-    for (int i = 0; i < 10; i++) {
-        G->Rows[i].Width = 0;
-        G->Rows[i].Height = 0;
-    }
+    memset(G->Rows, 0, sizeof(Row) * 10);
     
     GUIComponent* Cursor = G->All;
     while(Cursor != 0) {
-        UpdateRow(&G->Rows[Cursor->GridY],
-                  Cursor->WidthP, Cursor->HeightP, Cursor->GridX);
+        UpdateRow(&G->Rows[(int)Cursor->GridCoords.y], Cursor->PaddingDim.x, Cursor->PaddingDim.y, Cursor->GridCoords.x);
         Cursor = Cursor->All;
     }
     
-    G->Height = 0;
+    G->Dim.y = 0;
     for (int i = 0; i < 10; i++)
-        G->Height += G->Rows[i].Height;
+        G->Dim.y += G->Rows[i].Height;
 }
 
 internal void
@@ -349,19 +286,24 @@ UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
     // Resize GUI if screen size changed
     //if (G->ClientWidth != BufferWidth || G->ClientHeight != BufferHeight) 
     {
-        G->Padding = (int)((float)G->DefaultPadding * ((float)BufferHeight / (float)G->DefaultHeight));
+        G->Padding = (int)((float)G->DefaultPadding * ((float)BufferHeight / G->DefaultDim.y));
         
         GUIComponent* Cursor = G->Buttons;
-        while(Cursor != 0)
-        {
+        while(Cursor != 0) {
             ResizeButton(G, Cursor, (Button*)Cursor->Data, BufferWidth, BufferHeight);
             Cursor = Cursor->Next;
         }
         Cursor = 0;
         
+        Cursor = G->TextBoxes;
+        while(Cursor != 0) {
+            ResizeTextBox(G, Cursor, (TextBox*)Cursor->Data, BufferWidth, BufferHeight);
+            Cursor = Cursor->Next;
+        }
+        Cursor = 0;
+        
         Cursor = G->Texts;
-        while(Cursor != 0)
-        {
+        while(Cursor != 0) {
             ResizeText(G, Cursor, (Text*)Cursor->Data, BufferHeight);
             Cursor = Cursor->Next;
         }
@@ -370,29 +312,27 @@ UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
         InitializeGUI(G);
     }
     
-    G->Width = 0;
+    G->Dim.x = 0;
     
     GUIComponent* Cursor = G->All;
     while(Cursor != 0)
     {
-        Row* R = &G->Rows[Cursor->GridY];
+        Row* R = &G->Rows[(int)Cursor->GridCoords.y];
         
         // Calculate column location to center
-        Cursor->X = ((-R->Width)/2);
-        for (int  i = 0; i < Cursor->GridX; i++) {
-            Column* tempC = &G->Rows[Cursor->GridY].Columns[i];
-            Cursor->X += tempC->Width;
-        }
+        Cursor->Coords.x = (real32)((-R->Width)/2);
+        for (int  i = 0; i < Cursor->GridCoords.x; i++)
+            Cursor->Coords.x += G->Rows[(int)Cursor->GridCoords.y].ColumnWidths[i];
         
         // Find biggest row
-        if (G->Width < R->Width)
-            G->Width = R->Width;
+        if (G->Dim.x < R->Width)
+            G->Dim.x = (real32)R->Width;
         
         // Calculate row location to center
-        Cursor->Y = ((-G->Height)/2) + ((R->Height - Cursor->Height)/2);
-        for (int i = 0; i < Cursor->GridY; i++) {
+        Cursor->Coords.y = ((-G->Dim.y)/2) + ((R->Height - Cursor->Dim.y)/2);
+        for (int i = 0; i < Cursor->GridCoords.y; i++) {
             Row* tempR = &G->Rows[i];
-            Cursor->Y += tempR->Height;
+            Cursor->Coords.y += tempR->Height;
         }
         
         Cursor = Cursor->All;
@@ -402,7 +342,6 @@ UpdateGUI(GUI* G, int BufferWidth, int BufferHeight)
 internal void
 RenderGUI(GUI* G)
 {
-    
     // Render buttons
     GUIComponent* Cursor = G->Buttons;
     while(Cursor != 0)
@@ -410,12 +349,11 @@ RenderGUI(GUI* G)
         Button* b = (Button*)Cursor->Data;
         
         v2 SDim = GetStringDimensions(&b->FontType, b->Text);
-        b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
-        b->TextY = Cursor->Y + (int)((Cursor->Height - SDim.y)/2);
+        v2 TextCoords = v2(Cursor->Coords.x + (int)((Cursor->Dim.x - SDim.x)/2),
+                           Cursor->Coords.y + (int)((Cursor->Dim.y - SDim.y)/2));
         
-        Push(RenderGroup, v3(v2(Cursor->X, Cursor->Y), 0.0f),
-             v2(Cursor->Width, Cursor->Height), b->Color, 0.0f);
-        PrintOnScreen(&b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
+        Push(RenderGroup, v3(Cursor->Coords, 0.0f), Cursor->Dim, b->Color, 0.0f);
+        PrintOnScreen(&b->FontType, b->Text, TextCoords, b->TextColor);
         Cursor = Cursor->Next;
     }
     
@@ -427,19 +365,15 @@ RenderGUI(GUI* G)
     {
         TextBox* b = (TextBox*)Cursor->Data;
         
-        v2 SDim = GetStringDimensions(b->FontType, b->Text);
-        b->TextX = Cursor->X + (int)((Cursor->Width - SDim.x)/2);
-        b->TextY = Cursor->Y + (int)((Cursor->Height - SDim.y)/2);
+        v2 SDim = GetStringDimensions(&b->FontType, b->Text);
+        v2 TextCoords = v2(Cursor->Coords.x + (int)((Cursor->Dim.x - SDim.x)/2),
+                           Cursor->Coords.y + (int)((Cursor->Dim.y - SDim.y)/2));
         
-        Push(RenderGroup, v3(v2(Cursor->X, Cursor->Y), 0.0f),
-             v2(Cursor->Width, Cursor->Height), b->Color, 0.0f);
-        PrintOnScreen(b->FontType, b->Text, b->TextX, b->TextY, b->TextColor);
+        Push(RenderGroup, v3(Cursor->Coords, 0.0f), Cursor->Dim,b->Color, 0.0f);
+        PrintOnScreen(&b->FontType, b->Text, TextCoords, b->TextColor);
         if (b->ShowCursor == 1)
-        {
-            //v2 p1 = {EndOfText.Top.x, EndOfText.Top.y};
-            //v2 p2 = {EndOfText.Top.x, EndOfText.Top.y + EndOfText.Height};
-            //RenderLine(Buffer,p1, p2);
-        }
+            Push(RenderGroup, v3(TextCoords.x + SDim.x, Cursor->Coords.y, 10.0f), 
+                 v2(5.0f, Cursor->Dim.y), 0xFF000000, 0.0f);
         
         Cursor = Cursor->Next;
     }
@@ -450,7 +384,7 @@ RenderGUI(GUI* G)
     {
         Text* b = (Text*)Cursor->Data;
         
-        PrintOnScreen(&b->FontType, b->Text, Cursor->X, Cursor->Y, b->TextColor);
+        PrintOnScreen(&b->FontType, b->Text, Cursor->Coords, b->TextColor);
         Cursor = Cursor->Next;
     }
     Cursor = 0;
@@ -475,11 +409,21 @@ HandleGUIEvents(GUI* G, platform_input *Input)
     Events.TbPressID = -1;
     
     if(Input->MouseButtons[0].NewEndedDown) {
-        Events.BtnPressID = CheckButtonsClick(G, Input->MouseX, Input->MouseY);
-        Events.TbPressID = CheckTextBoxes(G, Input->MouseX, Input->MouseY);
+        Events.BtnPressID = CheckButtonsClick(G, v2(Input->MouseX, Input->MouseY));
+        Events.TbPressID = CheckTextBoxes(G, v2(Input->MouseX, Input->MouseY));
     }
     
-    if (CheckButtonsHover(G, Input->MouseX, Input->MouseY))
+    for (int i = 0; i < 10; i++) {
+        if (Input->Keyboard.Numbers[i].NewEndedDown) {
+            AddCharTextBoxText(G, IntToString(i));
+        }
+    }
+    if (Input->Keyboard.Backspace.NewEndedDown)
+        RemoveCharTextBoxText(G);
+    if (Input->Keyboard.Period.NewEndedDown)
+        AddCharTextBoxText(G, ".");
+    
+    if (CheckButtonsHover(G, v2(Input->MouseX, Input->MouseY)))
         SetCursorMode(Input, Hand);
     else
         SetCursorMode(Input, Arrow);

@@ -76,8 +76,6 @@ struct platform_controller_input
     real32 StickAverageX;
     real32 StickAverageY;
     
-    platform_button_state Escape;
-    
     union
     {
         platform_button_state Buttons[12];
@@ -105,23 +103,36 @@ struct platform_controller_input
         };
     };
     
+    
+};
+
+struct platform_keyboard_input
+{
     union
     {
-        platform_button_state Numbers[12];
+        platform_button_state Buttons[13];
         struct
         {
-            platform_button_state Zero;
-            platform_button_state One;
-            platform_button_state Two;
-            platform_button_state Three;
-            platform_button_state Four;
-            platform_button_state Five;
-            platform_button_state Six;
-            platform_button_state Seven;
-            platform_button_state Eight;
-            platform_button_state Nine;
+            platform_button_state Escape;
             platform_button_state Period;
             platform_button_state Backspace;
+            union
+            {
+                platform_button_state Numbers[10];
+                struct
+                {
+                    platform_button_state Zero;
+                    platform_button_state One;
+                    platform_button_state Two;
+                    platform_button_state Three;
+                    platform_button_state Four;
+                    platform_button_state Five;
+                    platform_button_state Six;
+                    platform_button_state Seven;
+                    platform_button_state Eight;
+                    platform_button_state Nine;
+                };
+            };
         };
     };
 };
@@ -146,6 +157,7 @@ platform_input
     real32 Seconds;
     
     platform_controller_input Controllers[5];
+    platform_keyboard_input Keyboard;
     
     int Quit;
 };
@@ -156,6 +168,12 @@ inline platform_controller_input *GetController(platform_input *Input, int unsig
     
     platform_controller_input *Result = &Input->Controllers[ControllerIndex];
     return(Result);
+}
+
+inline platform_keyboard_input *GetKeyboard(platform_input *Input, int unsigned KeyboardIndex)
+{
+    platform_keyboard_input *Result = &Input->Keyboard;
+    return Result;
 }
 
 struct

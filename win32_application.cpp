@@ -30,7 +30,7 @@ Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
 }
 
 internal void
-Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
+Win32ProcessPendingMessages(platform_controller_input *KeyboardController, platform_keyboard_input *Keyboard)
 {
     MSG Message;
     while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
@@ -85,7 +85,20 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController)
                 }
                 else if(VKCode == VK_ESCAPE)
                 {
-                    Win32ProcessKeyboardMessage(&KeyboardController->Escape, IsDown);
+                    Win32ProcessKeyboardMessage(&Keyboard->Escape, IsDown);
+                }
+                else if(VKCode >= '0' && VKCode <= '9')
+                {
+                    int index = VKCode - '0';
+                    Win32ProcessKeyboardMessage(&Keyboard->Numbers[index], IsDown);
+                }
+                else if (VKCode == VK_OEM_PERIOD)
+                {
+                    Win32ProcessKeyboardMessage(&Keyboard->Period, IsDown);
+                }
+                else if (VKCode == VK_BACK)
+                {
+                    Win32ProcessKeyboardMessage(&Keyboard->Backspace, IsDown);
                 }
                 
                 // alt-f4
@@ -429,7 +442,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 NewKeyboardController->Buttons[ButtonIndex].EndedDown =
                     OldKeyboardController->Buttons[ButtonIndex].EndedDown;
             }
-            Win32ProcessPendingMessages(NewKeyboardController);
+            
+            platform_keyboard_input *OldKeyboard = GetKeyboard(OldInput, 0);
+            platform_keyboard_input *NewKeyboard = GetKeyboard(&p.Input, 0);
+            *NewKeyboard = {};
+            //NewKeyboardController->IsConnected = true;
+            for(int ButtonIndex = 0;
+                ButtonIndex < ArrayCount(NewKeyboard->Buttons);
+                ++ButtonIndex)
+            {
+                NewKeyboard->Buttons[ButtonIndex].EndedDown =
+                    OldKeyboard->Buttons[ButtonIndex].EndedDown;
+            }
+            Win32ProcessPendingMessages(NewKeyboardController, NewKeyboard);
             
             DWORD thisTick = GetTickCount();
             float dt = float(thisTick - lastTick) * 0.0001f;

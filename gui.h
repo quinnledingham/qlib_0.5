@@ -3,8 +3,6 @@
 
 struct Button
 {
-    int TextX;
-    int TextY;
     char* Text;
     Font FontType;
     int ID;
@@ -24,10 +22,8 @@ struct Text
 
 struct TextBox
 {
-    int TextX;
-    int TextY;
     char* Text;
-    Font* FontType;
+    Font FontType;
     int ID;
     int ShowCursor;
     
@@ -37,35 +33,23 @@ struct TextBox
 
 struct GUIComponent
 {
-    int X;
-    int Y;
-    
-    int GridX;
-    int GridY;
-    int Width;
-    int Height;
-    
-    int WidthP;
-    int HeightP;
-    
-    int DefaultWidth;
-    int DefaultHeight;
+    v2 Coords;
+    v2 GridCoords;
+    v2 Dim;
+    v2 PaddingDim;
+    v2 DefaultDim;
     
     GUIComponent* Next;
     GUIComponent* All;
     void* Data;
 };
 
-struct Column
-{
-    int Width;
-};
 
 struct Row
 {
     int Width = 0;
     int Height = 0;
-    Column Columns[10];
+    int ColumnWidths[10];
 };
 
 struct GUI
@@ -73,19 +57,19 @@ struct GUI
     int Initialized;
     Row Rows[10];
     
-    int Width = 0;
-    int Height = 0;
+    v2 Dim;
     int Padding = 0;
-    int DefaultPadding = 0;
+    
     GUIComponent* All;
     GUIComponent* Buttons;
     GUIComponent* TextBoxes;
     GUIComponent* Texts;
+    Arr Components;
     
     int Screen;
     
-    int DefaultWidth;
-    int DefaultHeight;
+    v2 DefaultDim;
+    int DefaultPadding = 0;
 };
 
 struct GUIEvents
