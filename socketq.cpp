@@ -129,7 +129,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
 }
 
 void
-Server::create(char* por, int proto)
+Server::create(const char* por, int proto)
 {
     protocol = proto;
     info = addressInit(por, protocol);
@@ -165,7 +165,7 @@ Server::sendq(char* buffer, int bufferSize)
 }
 
 void
-Client::create(char* ip, char* por, int proto)
+Client::create(const char* ip, const char* por, int proto)
 {
     protocol = proto;
     info = getHost(ip, por, proto);

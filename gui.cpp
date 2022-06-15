@@ -35,6 +35,21 @@ AddCharTextBoxText(GUI* G, char* Char)
     }
 }
 
+internal const char*
+GetTextBoxText(GUI* G, int ID)
+{
+    GUIComponent* Cursor = G->TextBoxes;
+    while(Cursor != 0) {
+        TextBox* TB = (TextBox*)Cursor->Data;
+        if (TB->ID == ID) {
+            return TB->Text;
+        }
+        Cursor = Cursor->Next;
+    }
+    
+    return 0;
+}
+
 internal void
 RemoveCharTextBoxText(GUI* G)
 {

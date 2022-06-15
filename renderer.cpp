@@ -490,7 +490,7 @@ Texture::Init(unsigned char* Data)
 {
     glGenTextures(1, &mHandle);
     glBindTexture(GL_TEXTURE_2D, mHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)mWidth, (int)mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     
     // Tile
@@ -512,14 +512,14 @@ Texture::Init(Image* image)
     glGenTextures(1, &mHandle);
     
     glBindTexture(GL_TEXTURE_2D, mHandle);
-    int width, height, channels;
+    //int width, height, channels;
     //unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
     //unsigned char* Data = image->data;
-    width = image->x;
-    height = image->y;
-    channels = image->n;
-    data = image->data;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    //width = image->x;
+    //height = image->y;
+    //channels = image->n;
+    //data = image->data;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->x, image->y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->data);
     glGenerateMipmap(GL_TEXTURE_2D);
     //stbi_image_free(data);
     
@@ -535,9 +535,9 @@ Texture::Init(Image* image)
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    mWidth = width;
-    mHeight = height;
-    mChannels = channels;
+    mWidth = image->x;
+    mHeight = image->y;
+    mChannels = image->n;
 }
 
 void

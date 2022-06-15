@@ -48,9 +48,9 @@ internal Texture*
 LoadTexture(Texture *Tex, const char* FileName)
 {
     unsigned char* data = stbi_load(FileName, (int*)&Tex->mWidth, (int*)&Tex->mHeight, (int*)&Tex->mChannels, 4);
+    Tex->mChannels = 4;
     Tex->data = (unsigned char*)qalloc((void*)data, Tex->mWidth * Tex->mHeight * Tex->mChannels);
     stbi_image_free(data);
-    Tex->mChannels = 4;
     
     Tex->og.x = Tex->mWidth;
     Tex->og.y = Tex->mHeight;
@@ -76,7 +76,7 @@ SaveTextureEthan(Texture* Tex, const char* SaveFileName)
     fclose(File);
 }
 
-internal void
+internal Texture*
 LoadTextureEthan(Texture *Tex, const char* LoadFileName)
 {
     entire_file File = ReadEntireFile(LoadFileName);
@@ -86,7 +86,6 @@ LoadTextureEthan(Texture *Tex, const char* LoadFileName)
     Tex->mHeight = Header->y;
     Tex->mChannels = Header->n;
     Tex->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
-    unsigned char* data = stbi_load("rocks.png", (int*)&Tex->mWidth, (int*)&Tex->mHeight, (int*)&Tex->mChannels, 4);
     //Tex->data = (unsigned char*)malloc(Header->x * Header->y * Header->n);
     //memcpy(Tex->data, Cursor, Header->x * Header->y * Header->n);
     
@@ -96,6 +95,7 @@ LoadTextureEthan(Texture *Tex, const char* LoadFileName)
     Tex->og.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
     
     Tex->Init(Tex->data);
+    return Tex;
 }
 
 internal void

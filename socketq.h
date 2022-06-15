@@ -7,7 +7,7 @@
 #define CLIENT 0
 #define SERVER 1
 
-#define HEADER_BUFFER_SIZE 10
+#define HEADER_BUFFER_SIZE 20
 
 struct Server
 {
@@ -16,7 +16,7 @@ struct Server
     int sockClient;
     int protocol;
     
-    void create(char* port, int protocol);
+    void create(const char* port, int protocol);
     void waitForConnection();
     void recvq(char* buffer,int bufferSize);
     void sendq(char* buffer, int bufferSize);
@@ -29,7 +29,7 @@ struct Client
     int sock;
     int protocol;
     
-    void create(char* ip, char* port, int protocol);
+    void create(const char* ip, const char* port, int protocol);
     void recvq(char* buffer, int bufferSize);
     void sendq(char* buffer, int bufferSize);
 };

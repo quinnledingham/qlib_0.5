@@ -72,7 +72,7 @@ sendtoPlatform(int sock, char* buffer, int bytesToSend, int flags,
 }
 
 internal addrinfo*
-getHost(char *ip, char* port, int type)
+getHost(const char *ip, const char* port, int type)
 {
     // Initialize Winsock
     WSADATA wsaData;
@@ -97,7 +97,7 @@ getHost(char *ip, char* port, int type)
 }
 
 internal addrinfo*
-addressInit(char* port, int type)
+addressInit(const char* port, int type)
 {
     // Initialize Winsock
     WSADATA wsaData;
