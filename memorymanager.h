@@ -59,12 +59,12 @@ qalloc(int size)
 internal void
 dalloc(void* Storage)
 {
-    void* i = (char*)Storage - sizeof(int);
-    int Size = *(int*)i;
+    //void* i = (char*)Storage - sizeof(int);
+    //int Size = *(int*)i;
     
     //Manager.Next -= Size;
-    memset(i, 0, sizeof(int));
-    memset(Storage, 0, Size);
+    //memset(i, 0, sizeof(int));
+    //memset(Storage, 0, Size);
     
     /*
     Manager.Free[Manager.FreeIndex].Data = i;

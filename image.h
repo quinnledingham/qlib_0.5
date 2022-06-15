@@ -11,9 +11,9 @@ struct Image
 
 struct ImageHeader
 {
-    int x;
-    int y;
-    int n;
+    unsigned int x;
+    unsigned int y;
+    unsigned int n;
 };
 
 #endif //IMAGE_H

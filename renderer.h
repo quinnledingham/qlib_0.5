@@ -71,16 +71,17 @@ struct IndexBuffer
 struct Texture
 {
     const char* ID;
+    unsigned int mHandle;
     
     unsigned int mWidth;
     unsigned int mHeight;
     unsigned int mChannels;
-    unsigned int mHandle;
-    
-    Image ImageData;
     unsigned char* data;
     
+    Image og;
+    
     void Init();
+    void Init(unsigned char*);
     void Init(Image* image);
     void Init(const char* path);
     void Init(const Texture& other);
@@ -118,7 +119,6 @@ void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int ins
 
 void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
-//void DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
 
 enum struct

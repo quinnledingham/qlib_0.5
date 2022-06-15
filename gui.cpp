@@ -1,6 +1,5 @@
 #include "gui.h"
 #include "memorymanager.h"
-#include "snake.h"
 
 internal int
 MouseInRect(v2 RectCoords, v2 RectDim, v2 MouseCoords)

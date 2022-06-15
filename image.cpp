@@ -29,48 +29,68 @@ ResizeImage(Image *ToResize, int Width, int Height)
     return ResizedImage;
 }
 
-internal Texture
-LoadTexture(const char* FileName, int Width, int Height)
-{
-    Image Temp;
-    Texture Return;
-    Temp = LoadImage(FileName);
-    Temp = ResizeImage(&Temp, Width, Height);
-    Return.Init(&Temp);
-    
-    return Return;
-}
-
 internal void
-LoadTexture(Texture *Tex, const char* ID, const char* FileName, int Width, int Height)
+ResizeTexture(Texture *Tex, v2 Dim)
 {
-    Tex->ImageData = LoadImage(FileName);
-    Tex->ImageData = ResizeImage(&Tex->ImageData, Width, Height);
-    Tex->Init(&Tex->ImageData);
-    Tex->ID = ID;
+    unsigned char* delsize = Tex->data;
+    Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
+    stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels);
+    Tex->mWidth = (int)Dim.x;
+    Tex->mHeight = (int)Dim.y;
+    Tex->mChannels = Tex->mChannels;
+    
+    dalloc((void*)delsize);
+    
+    Tex->Init(Tex->data);
 }
 
 internal Texture*
 LoadTexture(Texture *Tex, const char* FileName)
 {
-    Tex->ImageData = LoadImage(FileName);
-    Tex->Init(&Tex->ImageData);
-    return Tex;
-}
-
-internal Texture*
-LoadTexture(Texture *Tex, Image *Img)
-{
-    Tex->ImageData = *Img;
-    Tex->Init(&Tex->ImageData);
+    Tex->data = stbi_load(FileName, (int*)&Tex->mWidth, (int*)&Tex->mHeight, (int*)&Tex->mChannels, 4);
+    Tex->mChannels = 4;
+    
+    Tex->og.x = Tex->mWidth;
+    Tex->og.y = Tex->mHeight;
+    Tex->og.n = Tex->mChannels;
+    Tex->og.data = (unsigned char*)qalloc((void*)Tex->data, Tex->mWidth * Tex->mHeight * Tex->mChannels);
+    
+    Tex->Init(Tex->data);
     return Tex;
 }
 
 internal void
-ResizeTexture(Texture *Tex, v2 Dim)
+SaveTextureEthan(Texture* Tex, const char* SaveFileName)
 {
-    Tex->ImageData = ResizeImage(&Tex->ImageData, (int)Dim.x, (int)Dim.y);
-    Tex->Init(&Tex->ImageData);
+    FILE *File = fopen(SaveFileName, "w");
+    ImageHeader Header = 
+    {
+        Tex->mWidth,
+        Tex->mHeight,
+        Tex->mChannels,
+    };
+    fwrite(&Header, sizeof(struct ImageHeader), 1, File);
+    fwrite(Tex->data, Tex->mWidth * Tex->mHeight * Tex->mChannels, 1, File);
+    fclose(File);
+}
+
+internal void
+LoadTextureEthan(Texture *Tex, const char* LoadFileName)
+{
+    entire_file File = ReadEntireFile(LoadFileName);
+    ImageHeader *Header = (ImageHeader*)File.Contents;
+    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
+    Tex->mWidth = Header->x;
+    Tex->mHeight = Header->y;
+    Tex->mChannels = Header->n;
+    Tex->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+    
+    Tex->og.x = Tex->mWidth;
+    Tex->og.y = Tex->mHeight;
+    Tex->og.n = Tex->mChannels;
+    Tex->og.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+    
+    Tex->Init(Tex->data);
 }
 
 internal void
@@ -163,42 +183,4 @@ SaveImage(Image* image, const char* SaveFileName)
             );
     
     fclose(newcppfile);
-}
-
-internal void
-SaveImageEthan(Image* image, const char* SaveFileName)
-{
-    FILE *File = fopen(SaveFileName, "w");
-    ImageHeader Header = 
-    {
-        image->x,
-        image->y,
-        image->n,
-    };
-    fwrite(&Header, sizeof(struct ImageHeader), 1, File);
-    fwrite(image->data, image->x * image->y * image->n, 1, File);
-    fclose(File);
-}
-
-internal void
-LoadImageEthan(Image* image, const char* LoadFileName)
-{
-    entire_file File = ReadEntireFile(LoadFileName);
-    ImageHeader *Header = (ImageHeader*)File.Contents;
-    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
-    image->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
-}
-
-internal Image*
-LoadImageEthan(const char* LoadFileName)
-{
-    entire_file File = ReadEntireFile(LoadFileName);
-    ImageHeader *Header = (ImageHeader*)File.Contents;
-    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
-    Image img = {};
-    img.x = Header->x;
-    img.y = Header->y;
-    img.n = Header->n;
-    img.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
-    return (Image*)qalloc((void*)&img, sizeof(Image));
 }
