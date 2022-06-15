@@ -403,7 +403,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     LPVOID BaseAddress = 0;
 #endif
     
-    p.Memory.PermanentStorageSize = Megabytes(64);
+    p.Memory.PermanentStorageSize = Megabytes(512);
     p.Memory.TransientStorageSize = Gigabytes(1);
     
     // TODO(casey): Handle various memory footprints (USING SYSTEM METRICS)
