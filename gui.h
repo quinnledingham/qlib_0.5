@@ -4,7 +4,7 @@
 struct Button
 {
     char* Text;
-    Font FontType;
+    Font *FontType;
     int ID;
     uint32 Color;
     uint32 RegularColor;
@@ -16,16 +16,16 @@ struct Text
 {
     char* Text;
     int ID;
-    Font FontType;
+    Font *FontType;
     uint32 TextColor;
 };
 
 struct TextBox
 {
     char* Text;
-    Font FontType;
+    Font *FontType;
     int ID;
-    int ShowCursor;
+    real32 Active;
     
     uint32 Color;
     uint32 TextColor;
@@ -33,11 +33,20 @@ struct TextBox
 
 struct GUIComponent
 {
+    enum struct type
+    {
+        button,
+        text,
+        textbox
+    };
+    
     v2 Coords;
     v2 GridCoords;
     v2 Dim;
     v2 PaddingDim;
     v2 DefaultDim;
+    
+    type Type;
     
     GUIComponent* Next;
     GUIComponent* All;
@@ -60,11 +69,10 @@ struct GUI
     v2 Dim;
     int Padding = 0;
     
-    GUIComponent* All;
+    Arr Components; // GUIComponent
     GUIComponent* Buttons;
     GUIComponent* TextBoxes;
     GUIComponent* Texts;
-    Arr Components;
     
     int Screen;
     

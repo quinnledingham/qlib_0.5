@@ -34,8 +34,8 @@ MemoryCopy(void* Dest, void* Source, int Size)
 internal void*
 qalloc(void* newM, int size)
 {
-    MemoryCopy(Manager.Next, &size, sizeof(int));
-    Manager.Next += sizeof(int);
+    //MemoryCopy(Manager.Next, &size, sizeof(int));
+    //Manager.Next += sizeof(int);
     
     MemoryCopy(Manager.Next, newM, size);
     void* r = (void*)Manager.Next;
@@ -47,8 +47,8 @@ qalloc(void* newM, int size)
 internal void*
 qalloc(int size)
 {
-    MemoryCopy(Manager.Next, &size, sizeof(int));
-    Manager.Next += sizeof(int);
+    //MemoryCopy(Manager.Next, &size, sizeof(int));
+    //Manager.Next += sizeof(int);
     
     void* r = Manager.Next;
     Manager.Next += size;

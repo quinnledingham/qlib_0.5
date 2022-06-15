@@ -137,3 +137,41 @@ Map::MapFind(const char* k)
     }
     return 0;
 }
+
+// Arr
+internal void
+ArrInit(Arr *A, int MaxSize, int TypeSize)
+{
+    A->MaxSize = MaxSize;
+    A->TypeSize = TypeSize;
+    A->Size = 0;
+    
+    A->Data = qalloc(A->MaxSize * A->TypeSize);
+}
+
+internal void*
+ArrPush(Arr *A, void *NewData)
+{
+    char *Cursor = (char*)A->Data;
+    Cursor += (A->Size * A->TypeSize);
+    memcpy(Cursor, NewData, A->TypeSize);
+    A->Size++;
+    return (void*)Cursor;
+}
+
+internal void*
+ArrFind(Arr *A, int i)
+{
+    char *Cursor = (char*)A->Data;
+    Cursor += (i * A->TypeSize);
+    return (void*)Cursor;
+}
+
+internal void*
+ArrNext(Arr *A)
+{
+    char *Cursor = (char*)A->Data;
+    Cursor += (A->Size * A->TypeSize);
+    A->Size++;
+    return (void*)Cursor;
+}

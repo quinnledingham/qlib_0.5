@@ -39,7 +39,7 @@ Push(PieceGroup &Group, Piece p)
 }
 
 internal void
-Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture Tex, 
+Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, 
      real32 Rotation, BlendMode BMode)
 {
     Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode));
@@ -493,12 +493,12 @@ Texture::Init(Image* image)
     glBindTexture(GL_TEXTURE_2D, mHandle);
     int width, height, channels;
     //unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
-    unsigned char* Data = image->data;
+    //unsigned char* Data = image->data;
     width = image->x;
     height = image->y;
     channels = image->n;
     data = image->data;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     //stbi_image_free(data);
     
@@ -812,7 +812,7 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 }
 
 void
-DrawRect(v3 Coords, v2 Size, Texture Tex, real32 Rotation, BlendMode Mode)
+DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
@@ -877,11 +877,11 @@ DrawRect(v3 Coords, v2 Size, Texture Tex, real32 Rotation, BlendMode Mode)
     GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
     GlobalOpenGLTexture.VertexTexCoords.BindTo(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
     
-    Tex.Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
+    Tex->Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
     
     glDraw(GlobalOpenGLTexture.rIndexBuffer, DrawMode::Triangles);
     
-    Tex.UnSet(0);
+    Tex->UnSet(0);
     
     GlobalOpenGLTexture.VertexPositions.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("position"));
     GlobalOpenGLTexture.VertexNormals.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("normal"));
@@ -911,8 +911,8 @@ PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
     
     for (int i = 0; i < StrLength; i++){
         int SrcChar = SrcText[i];
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
-        int Y = -1 *  NextChar.C_Y1;
+        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
+        int Y = -1 *  NextChar->C_Y1;
         if(BiggestY < Y)
             BiggestY = Y;
     }
@@ -923,21 +923,19 @@ PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
     {
         int SrcChar = SrcText[i];
         
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
+        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, Color);
         
-        int Y = (int)Coords.y + NextChar.C_Y1 + BiggestY;
+        int Y = (int)Coords.y + NextChar->C_Y1 + BiggestY;
         
         int ax;
         int lsb;
         stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
         
         Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 2.0f),
-             v2((real32)NextChar.Tex.mWidth, (real32)NextChar.Tex.mHeight),
-             NextChar.Tex, 0, BlendMode::gl_src_alpha);
+             v2((real32)NextChar->Tex.mWidth, (real32)NextChar->Tex.mHeight),
+             &NextChar->Tex, 0, BlendMode::gl_src_alpha);
         
-        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, 
-                                                 SrcText[i], 
-                                                 SrcText[i + 1]);
+        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
         X += ((kern + ax) * SrcFont->Scale);
     }
 }

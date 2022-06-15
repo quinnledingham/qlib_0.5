@@ -70,11 +70,14 @@ struct IndexBuffer
 
 struct Texture
 {
+    const char* ID;
+    
     unsigned int mWidth;
     unsigned int mHeight;
     unsigned int mChannels;
     unsigned int mHandle;
     
+    Image ImageData;
     unsigned char* data;
     
     void Init();
@@ -116,7 +119,7 @@ void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int ins
 void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 //void DrawRect(int x, int y, real32 z, int width, int height, Texture texture, real32 Rotation);
-void DrawRect(v3 Coords, v2 Size, Texture Tex, real32 Rotation, BlendMode Mode);
+void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
 
 enum struct
 PieceType 
@@ -135,10 +138,10 @@ struct Piece
     PieceType Type;
     
     uint32 Color;
-    Texture Tex;
+    Texture *Tex;
     
     inline Piece() {}
-    inline Piece(v3 _Coords, v2 _Dim, Texture _Tex, real32 _Rotation, BlendMode _BMode) :
+    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) :
     Coords(_Coords), Dim(_Dim), Tex(_Tex), Rotation(_Rotation),  
     BMode(_BMode) {Type = PieceType::TextureRect;}
     

@@ -10,17 +10,21 @@ LoadImage(const char* FileName)
 }
 
 internal Image
-ResizeImage(Image ToResize, int Width, int Height)
+ResizeImage(Image *ToResize, int Width, int Height)
 {
     Image ResizedImage = {};
-    ResizedImage.data = (unsigned char*)malloc(Width * Height * ToResize.n);
-    stbir_resize_uint8(ToResize.data, ToResize.x, ToResize.y, 0, ResizedImage.data, Width, Height, 0, ToResize.n);
+    ResizedImage.data = (unsigned char*)malloc(Width * Height * ToResize->n);
+    stbir_resize_uint8(ToResize->data, ToResize->x, ToResize->y, 0, ResizedImage.data, Width, Height, 0, ToResize->n);
     
     ResizedImage.x = Width;
     ResizedImage.y = Height;
-    ResizedImage.n = ToResize.n;
+    ResizedImage.n = ToResize->n;
     
-    stbi_image_free(ToResize.data);
+#if SAVE_IMAGES
+    stbi_image_free(ToResize->data);
+#else
+    
+#endif
     
     return ResizedImage;
 }
@@ -31,10 +35,42 @@ LoadTexture(const char* FileName, int Width, int Height)
     Image Temp;
     Texture Return;
     Temp = LoadImage(FileName);
-    Temp = ResizeImage(Temp, Width, Height);
+    Temp = ResizeImage(&Temp, Width, Height);
     Return.Init(&Temp);
     
     return Return;
+}
+
+internal void
+LoadTexture(Texture *Tex, const char* ID, const char* FileName, int Width, int Height)
+{
+    Tex->ImageData = LoadImage(FileName);
+    Tex->ImageData = ResizeImage(&Tex->ImageData, Width, Height);
+    Tex->Init(&Tex->ImageData);
+    Tex->ID = ID;
+}
+
+internal Texture*
+LoadTexture(Texture *Tex, const char* FileName)
+{
+    Tex->ImageData = LoadImage(FileName);
+    Tex->Init(&Tex->ImageData);
+    return Tex;
+}
+
+internal Texture*
+LoadTexture(Texture *Tex, Image *Img)
+{
+    Tex->ImageData = *Img;
+    Tex->Init(&Tex->ImageData);
+    return Tex;
+}
+
+internal void
+ResizeTexture(Texture *Tex, v2 Dim)
+{
+    Tex->ImageData = ResizeImage(&Tex->ImageData, (int)Dim.x, (int)Dim.y);
+    Tex->Init(&Tex->ImageData);
 }
 
 internal void
@@ -127,4 +163,42 @@ SaveImage(Image* image, const char* SaveFileName)
             );
     
     fclose(newcppfile);
+}
+
+internal void
+SaveImageEthan(Image* image, const char* SaveFileName)
+{
+    FILE *File = fopen(SaveFileName, "w");
+    ImageHeader Header = 
+    {
+        image->x,
+        image->y,
+        image->n,
+    };
+    fwrite(&Header, sizeof(struct ImageHeader), 1, File);
+    fwrite(image->data, image->x * image->y * image->n, 1, File);
+    fclose(File);
+}
+
+internal void
+LoadImageEthan(Image* image, const char* LoadFileName)
+{
+    entire_file File = ReadEntireFile(LoadFileName);
+    ImageHeader *Header = (ImageHeader*)File.Contents;
+    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
+    image->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+}
+
+internal Image*
+LoadImageEthan(const char* LoadFileName)
+{
+    entire_file File = ReadEntireFile(LoadFileName);
+    ImageHeader *Header = (ImageHeader*)File.Contents;
+    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
+    Image img = {};
+    img.x = Header->x;
+    img.y = Header->y;
+    img.n = Header->n;
+    img.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+    return (Image*)qalloc((void*)&img, sizeof(Image));
 }

@@ -16,6 +16,19 @@ RoundReal32ToInt32(real32 Real32)
 #define MAT4_EPSILON 0.000001f
 #define QUAT_EPSILON 0.000001f
 
+// v2 Operations
+inline v2
+operator+(const v2 &l, const v2 &r)
+{
+    return v2(l.x + r.x, l.y + r.y);
+}
+
+inline v2
+operator*(const v2 &l, const v2 &r)
+{
+    return v2(l.x * r.x, l.y * r.y);
+}
+
 // v3 Operations
 // Vector Addition
 inline v3
