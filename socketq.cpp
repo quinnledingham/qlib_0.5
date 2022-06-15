@@ -143,23 +143,23 @@ Server::create(const char* por, int proto)
 void
 Server::waitForConnection()
 {
-    sockClient = acceptq(sock, *info);
+    sockClient[nextSockClient++] = acceptq(sock, *info);
 }
 
 void
-Server::recvq(char* buffer, int bufferSize)
+Server::recvq(int i, char* buffer, int bufferSize)
 {
     if (protocol == TCP)
-        recvBuffer(sockClient, info, protocol, SERVER, buffer, bufferSize);
+        recvBuffer(sockClient[i], info, protocol, SERVER, buffer, bufferSize);
     else if (protocol == UDP)
         recvBuffer(sock, info, protocol, SERVER, buffer, bufferSize);
 }
 
 void
-Server::sendq(char* buffer, int bufferSize)
+Server::sendq(int i, char* buffer, int bufferSize)
 {
     if (protocol == TCP)
-        sendBuffer(sockClient, info, protocol, buffer, bufferSize);
+        sendBuffer(sockClient[i], info, protocol, buffer, bufferSize);
     else if (protocol == UDP)
         sendBuffer(sock, info, protocol, buffer, bufferSize);
 }

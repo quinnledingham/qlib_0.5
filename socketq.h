@@ -13,13 +13,14 @@ struct Server
 {
     struct addrinfo *info;
     int sock;
-    int sockClient;
+    int nextSockClient = 0;
+    int sockClient[5];
     int protocol;
     
     void create(const char* port, int protocol);
     void waitForConnection();
-    void recvq(char* buffer,int bufferSize);
-    void sendq(char* buffer, int bufferSize);
+    void recvq(int i, char* buffer,int bufferSize);
+    void sendq(int i, char* buffer, int bufferSize);
 };
 
 
