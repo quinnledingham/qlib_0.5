@@ -80,5 +80,6 @@ dalloc(void* Storage)
 */
 }
 
+#define new(t) ((t*) qalloc(sizeof t))
 
 #endif //MEMORYMANAGER_H

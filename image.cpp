@@ -45,20 +45,20 @@ ResizeTexture(Texture *Tex, v2 Dim)
 }
 
 internal Texture*
-LoadTexture(Texture *Tex, const char* FileName)
+LoadTexture(const char* FileName)
 {
-    unsigned char* data = stbi_load(FileName, (int*)&Tex->mWidth, (int*)&Tex->mHeight, (int*)&Tex->mChannels, 4);
-    Tex->mChannels = 4;
-    Tex->data = (unsigned char*)qalloc((void*)data, Tex->mWidth * Tex->mHeight * Tex->mChannels);
+    Texture Tex = {};
+    unsigned char* data = stbi_load(FileName, (int*)&Tex.mWidth, (int*)&Tex.mHeight, (int*)&Tex.mChannels, 0);
+    Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
     stbi_image_free(data);
     
-    Tex->og.x = Tex->mWidth;
-    Tex->og.y = Tex->mHeight;
-    Tex->og.n = Tex->mChannels;
-    Tex->og.data = (unsigned char*)qalloc((void*)Tex->data, Tex->mWidth * Tex->mHeight * Tex->mChannels);
+    Tex.og.x = Tex.mWidth;
+    Tex.og.y = Tex.mHeight;
+    Tex.og.n = Tex.mChannels;
+    // Tex.og.data = (unsigned char*)qalloc((void*)Tex.data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
     
-    Tex->Init(Tex->data);
-    return Tex;
+    Tex.Init(Tex.data);
+    return (Texture*)qalloc(&Tex, sizeof(Texture));
 }
 
 internal void

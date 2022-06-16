@@ -108,12 +108,36 @@ LoadFont(Font *F, char* FileName, real32 ScaleIn)
     ascent = (int)roundf(ascent * Scale);
     descent = (int)roundf(descent * Scale);
     
-    Font NewFont = {};
     F->Info = Info;
     F->Ascent = ascent;
     F->Scale = Scale;
     F->ScaleIn = ScaleIn;
     F->TTFFile = File;
+}
+
+internal Font*
+LoadFont(const char* FileName, real32 ScaleIn)
+{
+    entire_file File = ReadEntireFile(FileName);
+    
+    stbtt_fontinfo Info;
+    stbtt_InitFont(&Info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
+    
+    float Scale = stbtt_ScaleForPixelHeight(&Info, ScaleIn);
+    
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(&Info, &ascent, &descent, &lineGap);
+    
+    ascent = (int)roundf(ascent * Scale);
+    descent = (int)roundf(descent * Scale);
+    
+    Font F = {};
+    F.Info = Info;
+    F.Ascent = ascent;
+    F.Scale = Scale;
+    F.ScaleIn = ScaleIn;
+    F.TTFFile = File;
+    return (Font*)qalloc((void*)&F, sizeof(Font));
 }
 
 internal void

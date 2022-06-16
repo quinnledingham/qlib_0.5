@@ -490,7 +490,10 @@ Texture::Init(unsigned char* Data)
 {
     glGenTextures(1, &mHandle);
     glBindTexture(GL_TEXTURE_2D, mHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)mWidth, (int)mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    if (mChannels == 3)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)mWidth, (int)mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    else if (mChannels == 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)mWidth, (int)mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     
     // Tile

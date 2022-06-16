@@ -34,6 +34,11 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
                 fprintf(stderr, "recvBuffer(): recv() call failed!\n");
                 exit(1);
             }
+            else if (bytesRecd == 0)
+            {
+                fprintf(stderr, "%d\n", errno);
+                fprintf(stderr, "recvBuffer(): recv() no bytes\n");
+            }
             
             if (bytesRecdTotal == 0)
             {
@@ -125,6 +130,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
         bytesToSend = bytesToSend - bytesSent;
     }
     
+    free(header_buffer);
     return bytesSent;
 }
 
@@ -140,17 +146,19 @@ Server::create(const char* por, int proto)
         listenq(sock);
 }
 
-void
+int
 Server::waitForConnection()
 {
-    sockClient[nextSockClient++] = acceptq(sock, *info);
+    int NewSock = acceptq(sock, *info);
+    sockClient[nextSockClient++] = NewSock;
+    return NewSock;
 }
 
 void
 Server::recvq(int i, char* buffer, int bufferSize)
 {
     if (protocol == TCP)
-        recvBuffer(sockClient[i], info, protocol, SERVER, buffer, bufferSize);
+        recvBuffer(i, info, protocol, SERVER, buffer, bufferSize);
     else if (protocol == UDP)
         recvBuffer(sock, info, protocol, SERVER, buffer, bufferSize);
 }
@@ -159,7 +167,7 @@ void
 Server::sendq(int i, char* buffer, int bufferSize)
 {
     if (protocol == TCP)
-        sendBuffer(sockClient[i], info, protocol, buffer, bufferSize);
+        sendBuffer(i, info, protocol, buffer, bufferSize);
     else if (protocol == UDP)
         sendBuffer(sock, info, protocol, buffer, bufferSize);
 }

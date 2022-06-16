@@ -110,12 +110,13 @@ struct platform_keyboard_input
 {
     union
     {
-        platform_button_state Buttons[13];
+        platform_button_state Buttons[14];
         struct
         {
             platform_button_state Escape;
             platform_button_state Period;
             platform_button_state Backspace;
+            platform_button_state F5;
             union
             {
                 platform_button_state Numbers[10];

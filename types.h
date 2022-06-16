@@ -69,6 +69,7 @@ struct v2
     };
     inline v2() : x(0.0f), y(0.0f) {}
     inline v2(int32 _xy) : x((real32)_xy), y((real32)_xy) {}
+    inline v2(real32 _xy) : x(_xy), y(_xy) {}
     inline v2(real32 _x, real32 _y) : x(_x), y(_y) {}
     inline v2(real32 *fv) : x(fv[0]), y(fv[1]) {}
     inline v2(int32 _x, int32 _y) : x((real32)_x), y((real32)_y) {}

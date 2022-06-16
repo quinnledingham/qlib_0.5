@@ -67,6 +67,10 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController, platf
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
                 }
+                else if(VKCode == VK_F5)
+                {
+                    Win32ProcessKeyboardMessage(&Keyboard->F5, IsDown);
+                }
                 else if(VKCode == VK_UP)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->ActionUp, IsDown);

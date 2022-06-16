@@ -18,7 +18,8 @@ struct Server
     int protocol;
     
     void create(const char* port, int protocol);
-    void waitForConnection();
+    int waitForConnection();
+    void disconnect();
     void recvq(int i, char* buffer,int bufferSize);
     void sendq(int i, char* buffer, int bufferSize);
 };
