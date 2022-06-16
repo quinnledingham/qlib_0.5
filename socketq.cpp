@@ -25,12 +25,14 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
     {
         if (protocol == TCP)
         {
+#if QLIB_INTERNAL
             printf("Waiting for message (TCP).\n");
+#endif
             bytesRecd = recvPlatform(sock, cursor, bufferSize, 0);
             
             if (bytesRecd < 0)
             {
-                fprintf(stderr, "%d\n", errno);
+                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
                 fprintf(stderr, "recvBuffer(): recv() call failed!\n");
                 exit(1);
             }
@@ -38,6 +40,7 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             {
                 fprintf(stderr, "%d\n", errno);
                 fprintf(stderr, "recvBuffer(): recv() no bytes\n");
+                return 0;
             }
             
             if (bytesRecdTotal == 0)
@@ -106,7 +109,9 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
     {
         if (protocol == TCP)
         {
+#if QLIB_INTERNAL
             printf("Sending message (TCP).\n");
+#endif
             bytesSent = sendPlatform(sock, cursor, bytesToSend, 0);
             if (bytesSent < 0)
             {
@@ -150,7 +155,7 @@ int
 Server::waitForConnection()
 {
     int NewSock = acceptq(sock, *info);
-    sockClient[nextSockClient++] = NewSock;
+    //sockClient[nextSockClient++] = NewSock;
     return NewSock;
 }
 
@@ -195,4 +200,10 @@ void
 Client::sendq(char* buffer, int bufferSize)
 {
     sendBuffer(sock, info, protocol, buffer, bufferSize);
+}
+
+void
+Client::disconnect()
+{
+    closesocket(sock);
 }

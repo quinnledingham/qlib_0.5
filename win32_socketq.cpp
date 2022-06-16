@@ -124,9 +124,7 @@ addressInit(const char* port, int type)
 
 internal int socketq(struct addrinfo server_info)
 {
-    int sock = (int)socket(server_info.ai_family, 
-                           server_info.ai_socktype,
-                           server_info.ai_protocol);
+    int sock = (int)socket(server_info.ai_family, server_info.ai_socktype, server_info.ai_protocol);
     if (sock < 0)
     {
         fprintf(stderr, "socketM(): socket() called failed!\n");

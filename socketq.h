@@ -13,8 +13,8 @@ struct Server
 {
     struct addrinfo *info;
     int sock;
-    int nextSockClient = 0;
-    int sockClient[5];
+    //int nextSockClient = 0;
+    //int sockClient[5];
     int protocol;
     
     void create(const char* port, int protocol);
@@ -34,6 +34,7 @@ struct Client
     void create(const char* ip, const char* port, int protocol);
     void recvq(char* buffer, int bufferSize);
     void sendq(char* buffer, int bufferSize);
+    void disconnect();
 };
 
 #endif //SOCKETQ_H

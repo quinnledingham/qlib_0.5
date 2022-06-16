@@ -90,6 +90,7 @@ struct iv2
     inline iv2() : x(0), y(0) {}
     inline iv2(int _x, int _y) : x(_x), y(_y) {}
     inline iv2(int* fv) : x(fv[0]), y(fv[1]) {}
+    inline iv2(v2 _v) : x((int)_v.x), y((int)_v.y) {}
 };
 
 struct v3
