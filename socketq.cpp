@@ -27,10 +27,10 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
     {
         if (protocol == TCP)
         {
-            if (type == CLIENT)
-            {
-                timeout(sock);
+            if (timeout(sock) == 0) {
+                return bytesRecdTotal;
             }
+            
 #if QLIB_INTERNAL
             printf("Waiting for message (TCP).\n");
 #endif
