@@ -98,12 +98,6 @@ getHost(const char *ip, const char* port, int type)
     hints.ai_flags = AI_PASSIVE;
     getaddrinfo(ip, port, &hints, &server_info);
     
-    Addr.sin_family = AF_INET;
-    Addr.sin_port = htons(44575);
-    Addr.sin_addr.s_addr = inet_addr("192.168.1.75");
-    
-    Socket = socket(AF_INET, SOCK_DGRAM, 0);
-    
     return server_info;
 }
 
@@ -134,18 +128,6 @@ addressInit(const char* port, int type)
     hints.ai_flags = AI_PASSIVE;
     getaddrinfo(NULL, port, &hints, &server_info);
     
-    Addr.sin_family = AF_INET;
-    Addr.sin_port = htons(44575);
-    Addr.sin_addr.s_addr = inet_addr("192.168.1.75");
-    
-    Socket = socket(AF_INET, SOCK_DGRAM, 0);
-    
-    if (bind(Socket, (sockaddr *)&Addr, sizeof(Addr)) == -1)
-    {
-        fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
-        fprintf(stderr, "bindq(): bind() call failed!\n");
-    }
-    
     return server_info;
 } 
 
@@ -157,15 +139,6 @@ internal int socketq(struct addrinfo server_info)
         fprintf(stderr, "socketM(): socket() called failed!\n");
         exit(1);
     }
-    /*
-    // Enable broadcasts on the socket
-    int bAllow = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char*)&bAllow, sizeof(bAllow)) < 0) {
-        //cerr << "setsockopt() failed: " << WSAGetLastError() << endl;
-        closesocket(sock);
-        return 1;
-    }
-    */
     return sock;
 }
 
