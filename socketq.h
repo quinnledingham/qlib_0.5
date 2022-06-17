@@ -1,8 +1,9 @@
+/*
+UDP doesn't work on windows. It does not like how the ips are being worked out.
+*/
+
 #ifndef SOCKETQ_H
 #define SOCKETQ_H
-
-#define TCP 0
-#define UDP 1
 
 #define CLIENT 0
 #define SERVER 1

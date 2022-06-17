@@ -1,5 +1,5 @@
-#include "socketq.h"
-
+#define TCP 0
+#define UDP 1
 
 #if defined(_WIN32)
 
@@ -10,6 +10,8 @@
 #include "linux_socketq.cpp"
 
 #endif
+
+#include "socketq.h"
 
 internal int
 recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer, int bufferSize)
@@ -40,7 +42,7 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             {
                 fprintf(stderr, "%d\n", errno);
                 fprintf(stderr, "recvBuffer(): recv() no bytes\n");
-                return 0;
+                //return 0;
             }
             
             if (bytesRecdTotal == 0)
@@ -69,11 +71,13 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             {
                 timeout(sock);
             }
-            
+#if QLIB_INTERNAL
             printf("Waiting for message (UDP).");
+#endif
             bytesRecd = recvfromPlatform(sock, buffer, bufferSize, 0, info);
             if (bytesRecd < 0)
             {
+                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
                 fprintf(stderr, "recvBuffer(): recvfrom() call failed!\n");
                 return 0;
             }
@@ -122,10 +126,13 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
         }
         else if (protocol == UDP)
         {
-            printf("Sending message (UDP).");
+#if QLIB_INTERNAL
+            printf("Sending message (UDP).\n");
+#endif
             bytesSent = sendtoPlatform(sock, cursor, bytesToSend, 0, info);
             if (bytesSent < 0)
             {
+                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
                 fprintf(stderr, "sendBuffer(): sendto() call failed!\n");
                 exit(1);
             }
@@ -183,6 +190,7 @@ Client::create(const char* ip, const char* por, int proto)
     protocol = proto;
     info = getHost(ip, por, proto);
     sock = socketq(*info);
+    //bindq(sock, *info);
     
     if (protocol == TCP)
     {

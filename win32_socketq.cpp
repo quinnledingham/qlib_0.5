@@ -1,6 +1,6 @@
 //#include <windows.h>
 #include <winsock2.h>
-#include <ws2tcpip.h>
+#include <Ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -42,6 +42,9 @@ timeout(int sock)
     return 1;
 }
 
+global_variable sockaddr_in Addr;
+global_variable SOCKET Socket;
+
 internal int
 recvPlatform(int sock, char* buffer, int bufferSize, int flags)
 {
@@ -49,12 +52,10 @@ recvPlatform(int sock, char* buffer, int bufferSize, int flags)
 }
 
 internal int
-recvfromPlatform(int sock, char* buffer, int bufferSize,
-                 int flags, struct addrinfo *info)
+recvfromPlatform(int sock, char* buffer, int bufferSize, int flags, struct addrinfo *info)
 {
-    return recvfrom(sock, buffer, bufferSize, flags,
-                    info->ai_addr,
-                    reinterpret_cast<int*>(&info->ai_addrlen));
+    //return recvfrom(sock, buffer, bufferSize, flags, info->ai_addr, reinterpret_cast<int*>(&info->ai_addrlen));
+    return recvfrom(Socket, buffer, bufferSize, flags, (SOCKADDR *) &Addr, reinterpret_cast<int*>(sizeof(Addr)));
 }
 
 internal int
@@ -64,11 +65,10 @@ sendPlatform(int sock, char* buffer, int bytesToSend, int flags)
 }
 
 internal int
-sendtoPlatform(int sock, char* buffer, int bytesToSend, int flags,
-               struct addrinfo *info)
+sendtoPlatform(int sock, char* buffer, int bytesToSend, int flags, struct addrinfo *info)
 {
-    return sendto(sock, buffer, bytesToSend, flags,
-                  info->ai_addr, (int)info->ai_addrlen);
+    //return sendto(sock, buffer, bytesToSend, flags, info->ai_addr, static_cast<int>(info->ai_addrlen));
+    return sendto(Socket, buffer, bytesToSend, flags, (sockaddr *) &Addr, sizeof(Addr));
 }
 
 internal addrinfo*
@@ -86,12 +86,23 @@ getHost(const char *ip, const char* port, int type)
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET;
     
-    if (type == TCP)
+    if (type == TCP) {
         hints.ai_socktype = SOCK_STREAM;
-    else if (type == UDP)
+        hints.ai_protocol = IPPROTO_TCP;
+    }
+    else if (type == UDP) {
         hints.ai_socktype = SOCK_DGRAM;
+        hints.ai_protocol = IPPROTO_UDP;
+    }
     
+    hints.ai_flags = AI_PASSIVE;
     getaddrinfo(ip, port, &hints, &server_info);
+    
+    Addr.sin_family = AF_INET;
+    Addr.sin_port = htons(44575);
+    Addr.sin_addr.s_addr = inet_addr("192.168.1.75");
+    
+    Socket = socket(AF_INET, SOCK_DGRAM, 0);
     
     return server_info;
 }
@@ -111,16 +122,32 @@ addressInit(const char* port, int type)
     memset(&hints, 0, sizeof(addrinfo));
     hints.ai_family = AF_INET;
     
-    if (type == TCP)
+    if (type == TCP) {
         hints.ai_socktype = SOCK_STREAM;
-    else if (type == UDP)
+        hints.ai_protocol = IPPROTO_TCP;
+    }
+    else if (type == UDP) {
         hints.ai_socktype = SOCK_DGRAM;
+        hints.ai_protocol = IPPROTO_UDP;
+    }
     
     hints.ai_flags = AI_PASSIVE;
-    hints.ai_protocol = 0;
     getaddrinfo(NULL, port, &hints, &server_info);
+    
+    Addr.sin_family = AF_INET;
+    Addr.sin_port = htons(44575);
+    Addr.sin_addr.s_addr = inet_addr("192.168.1.75");
+    
+    Socket = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    if (bind(Socket, (sockaddr *)&Addr, sizeof(Addr)) == -1)
+    {
+        fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
+        fprintf(stderr, "bindq(): bind() call failed!\n");
+    }
+    
     return server_info;
-}
+} 
 
 internal int socketq(struct addrinfo server_info)
 {
@@ -130,7 +157,15 @@ internal int socketq(struct addrinfo server_info)
         fprintf(stderr, "socketM(): socket() called failed!\n");
         exit(1);
     }
-    
+    /*
+    // Enable broadcasts on the socket
+    int bAllow = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (char*)&bAllow, sizeof(bAllow)) < 0) {
+        //cerr << "setsockopt() failed: " << WSAGetLastError() << endl;
+        closesocket(sock);
+        return 1;
+    }
+    */
     return sock;
 }
 
@@ -148,6 +183,7 @@ bindq(int sock, struct addrinfo server_info)
 {
     if (bind(sock, server_info.ai_addr, (int)server_info.ai_addrlen) == -1)
     {
+        fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
         fprintf(stderr, "bindq(): bind() call failed!\n");
     }
 }
