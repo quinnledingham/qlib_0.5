@@ -169,13 +169,15 @@ Server::waitForConnection()
     return NewSock;
 }
 
-void
+int
 Server::recvq(int i, char* buffer, int bufferSize)
 {
     if (protocol == TCP)
-        recvBuffer(i, info, protocol, SERVER, buffer, bufferSize);
+        return recvBuffer(i, info, protocol, SERVER, buffer, bufferSize);
     else if (protocol == UDP)
-        recvBuffer(sock, info, protocol, SERVER, buffer, bufferSize);
+        return recvBuffer(sock, info, protocol, SERVER, buffer, bufferSize);
+    
+    return 0;
 }
 
 void
@@ -201,10 +203,10 @@ Client::create(const char* ip, const char* por, int proto)
     }
 }
 
-void
+int
 Client::recvq(char* buffer, int bufferSize)
 {
-    recvBuffer(sock, info, protocol, CLIENT, buffer, bufferSize);
+    return recvBuffer(sock, info, protocol, CLIENT, buffer, bufferSize);
 }
 
 void

@@ -21,7 +21,7 @@ struct Server
     void create(const char* port, int protocol);
     int waitForConnection();
     void disconnect();
-    void recvq(int i, char* buffer,int bufferSize);
+    int recvq(int i, char* buffer,int bufferSize);
     void sendq(int i, char* buffer, int bufferSize);
 };
 
@@ -33,7 +33,7 @@ struct Client
     int protocol;
     
     void create(const char* ip, const char* port, int protocol);
-    void recvq(char* buffer, int bufferSize);
+    int recvq(char* buffer, int bufferSize);
     void sendq(char* buffer, int bufferSize);
     void disconnect();
 };
