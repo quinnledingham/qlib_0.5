@@ -27,6 +27,10 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
     {
         if (protocol == TCP)
         {
+            if (type == CLIENT)
+            {
+                timeout(sock);
+            }
 #if QLIB_INTERNAL
             printf("Waiting for message (TCP).\n");
 #endif
@@ -36,13 +40,12 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             {
                 fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
                 fprintf(stderr, "recvBuffer(): recv() call failed!\n");
-                exit(1);
+                return bytesRecdTotal;
             }
             else if (bytesRecd == 0)
             {
                 fprintf(stderr, "%d\n", errno);
-                fprintf(stderr, "recvBuffer(): recv() no bytes\n");
-                //return 0;
+                return bytesRecdTotal;
             }
             
             if (bytesRecdTotal == 0)
@@ -121,7 +124,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
             {
                 fprintf(stderr, "%d\n", errno);
                 fprintf(stderr, "sendBuffer(): send() call failed\n");
-                exit(1);
+                return 0;
             }
         }
         else if (protocol == UDP)
@@ -134,7 +137,7 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
             {
                 fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
                 fprintf(stderr, "sendBuffer(): sendto() call failed!\n");
-                exit(1);
+                return 0;
             }
         }
         

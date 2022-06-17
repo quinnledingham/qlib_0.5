@@ -27,7 +27,6 @@ int Length(const char* c)
     while(c[i] != 0)
         i++;
     
-    int k = sizeof c;
     return i;
 };
 

@@ -187,6 +187,33 @@ platform_memory
     void *TransientStorage; // REQUIRED to be cleared to zero at startup
 };
 
+// Multithreading
+struct platform_work_queue;
+#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
+typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
+
+typedef void platform_add_entry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data);
+typedef void platform_complete_all_work(platform_work_queue *Queue);
+
+struct platform_work_queue_entry
+{
+    platform_work_queue_callback *Callback;
+    void *Data;
+};
+
+struct platform_work_queue
+{
+    uint32 volatile CompletionGoal;
+    uint32 volatile CompletionCount;
+    
+    uint32 volatile NextEntryToWrite;
+    uint32 volatile NextEntryToRead;
+    HANDLE SemaphoreHandle;
+    
+    platform_work_queue_entry Entries[256];
+};
+// End of Multithreading
+
 struct
 platform
 {
@@ -195,7 +222,11 @@ platform
     platform_input Input;
     platform_memory Memory;
     platform_window_dimension Dimension;
+    platform_work_queue Queue;
 };
+
+
+
 
 #define OUTPUTBUFFER_SIZE 1000
 
