@@ -30,7 +30,7 @@ timeout(int sock)
     n = select(sock, &fds, NULL, NULL, &tv);
     if (n == 0)
     {
-        fprintf(stderr, "Timeout.. (UDP)\n");
+        fprintf(stderr, "Timeout.. (TCP/UDP)\n");
         return 0;
     }
     else if (n < 0)

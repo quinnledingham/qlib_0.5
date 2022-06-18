@@ -38,13 +38,12 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             
             if (bytesRecd < 0)
             {
-                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
-                fprintf(stderr, "recvBuffer(): recv() call failed!\n");
+                fprintf(stderr, "recvBuffer(): recv() call failed! errno: %d, WSA: %d\n", errno, WSAGetLastError());
                 return bytesRecdTotal;
             }
             else if (bytesRecd == 0)
             {
-                fprintf(stderr, "%d\n", errno);
+                fprintf(stderr, "recvBuffer(): no bytes. errno: %d, WSA: %d\n", errno, WSAGetLastError());
                 return bytesRecdTotal;
             }
             
@@ -80,8 +79,7 @@ recvBuffer(int sock, struct addrinfo *info, int protocol, int type, char* buffer
             bytesRecd = recvfromPlatform(sock, buffer, bufferSize, 0, info);
             if (bytesRecd < 0)
             {
-                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
-                fprintf(stderr, "recvBuffer(): recvfrom() call failed!\n");
+                fprintf(stderr, "recvBuffer(): recvfrom() call failed! errno: %d, WSA: %d\n", errno, WSAGetLastError());
                 return 0;
             }
             
@@ -122,8 +120,8 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
             bytesSent = sendPlatform(sock, cursor, bytesToSend, 0);
             if (bytesSent < 0)
             {
-                fprintf(stderr, "%d\n", errno);
-                fprintf(stderr, "sendBuffer(): send() call failed\n");
+                fprintf(stderr, "sendBuffer(): send() call failed! errno: %d, WSA: %d\n", errno, WSAGetLastError());
+                free(header_buffer);
                 return 0;
             }
         }
@@ -135,8 +133,8 @@ sendBuffer(int sock, struct addrinfo *info, int protocol, char* buffer, int buff
             bytesSent = sendtoPlatform(sock, cursor, bytesToSend, 0, info);
             if (bytesSent < 0)
             {
-                fprintf(stderr, "%d %d\n", errno, WSAGetLastError());
-                fprintf(stderr, "sendBuffer(): sendto() call failed!\n");
+                fprintf(stderr, "sendBuffer(): sendto() call failed! errno: %d, WSA: %d\n", errno, WSAGetLastError());
+                free(header_buffer);
                 return 0;
             }
         }
