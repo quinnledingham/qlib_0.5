@@ -2,6 +2,7 @@
 #define STRINQ_H
 
 #include "memorymanager.h"
+#include "platform.h"
 
 struct Strinq
 {
