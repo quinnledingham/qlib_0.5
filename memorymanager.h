@@ -79,7 +79,19 @@ dalloc(void* Storage)
     }
 */
 }
+inline void* MallocClear(int Size)
+{
+    void* Data = malloc(Size);
+    memset(Data, 0, Size);
+    return Data;
+}
+inline void* MallocCpy(void* Data, int Size)
+{
+    void* Mem = malloc(Size);
+    memcpy(Mem, Data, Size);
+    return Mem;
+}
 
-#define new(t) ((t*) qalloc(sizeof t))
+#define MallocCopy(t, d) ((t*)MallocCpy((void*)&d, sizeof t))
 
 #endif //MEMORYMANAGER_H

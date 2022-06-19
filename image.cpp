@@ -101,12 +101,12 @@ LoadTextureEthan(Texture *Tex, const char* LoadFileName)
 internal void
 SaveImage(Image* image, const char* SaveFileName)
 {
-    Strinq FullDir = S() + "imagesaves/" + SaveFileName;
-    FILE *NewFile = fopen(GetData(FullDir), "w");
+    strinq FullDir = S() + "imagesaves/" + SaveFileName;
+    FILE *NewFile = fopen(FullDir.Data, "w");
     
     // Change filename period to underscore
     char *f = (char*)qalloc(100);
-    CopyBuffer(f, SaveFileName, Length(SaveFileName));
+    CopyBuffer(f, SaveFileName, GetLength(SaveFileName));
     int i = 0;
     while(f[i] != 0)
     {
@@ -116,7 +116,6 @@ SaveImage(Image* image, const char* SaveFileName)
         }
         i++;
     }
-    
     
     // Header File
     fprintf(NewFile,
@@ -144,7 +143,7 @@ SaveImage(Image* image, const char* SaveFileName)
     fclose(NewFile);
     
     // Cpp File
-    char* filenamecpp = (char*)qalloc(GetData(FullDir), Length(FullDir));
+    char* filenamecpp = (char*)qalloc(FullDir.Data, FullDir.Length);
     
     int j = 0;
     int extension = 0;

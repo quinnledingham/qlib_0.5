@@ -1,6 +1,9 @@
 #ifndef TEXT_H
 #define TEXT_H
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "qlib/stb/stb_truetype.h"
+
 struct FontChar
 {
     int codepoint;

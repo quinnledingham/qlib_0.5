@@ -2,6 +2,23 @@ global_variable bool32 GlobalRunning;
 
 #include "win32_thread.h"
 
+internal void 
+Win32InitThreads(win32_thread_info *ThreadInfo, int InfoArrayCount, platform_work_queue *Queue)
+{
+    uint32 InitialCount = 0;
+    uint32 ThreadCount = InfoArrayCount;
+    Queue->SemaphoreHandle = CreateSemaphoreEx(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+    for(uint32 ThreadIndex = 0; ThreadIndex < ThreadCount; ++ThreadIndex) {
+        win32_thread_info *Info = ThreadInfo + ThreadIndex;
+        Info->Queue = Queue;
+        Info->LogicalThreadIndex = ThreadIndex;
+        
+        DWORD ThreadID;
+        HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Info, 0, &ThreadID);
+        CloseHandle(ThreadHandle);
+    }
+}
+
 internal platform_window_dimension
 Win32GetWindowDimension(HWND Window)
 {
@@ -208,10 +225,7 @@ Win32DisplayBufferInWindow(platform_offscreen_buffer *Buffer, HDC DeviceContext,
     }
 }
 
-#if QLIB_WINDOW
-
-// handle to the global opengl Vertex Array Object (VAO)
-global_variable GLuint gVertexArrayObject = 0;
+#ifdef QLIB_WINDOW_APPLICATION
 
 internal LRESULT CALLBACK
 Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
@@ -434,22 +448,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         p.Initialized = false;
         p.Input.dt = 0;
         
-        // Multithreading
+        // Multitheading
         win32_thread_info ThreadInfo[7];
-        
-        uint32 InitialCount = 0;
-        uint32 ThreadCount = ArrayCount(ThreadInfo);
-        p.Queue.SemaphoreHandle = CreateSemaphoreEx(0, InitialCount, ThreadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
-        for(uint32 ThreadIndex = 0; ThreadIndex < ThreadCount; ++ThreadIndex) {
-            win32_thread_info *Info = ThreadInfo + ThreadIndex;
-            Info->Queue = &p.Queue;
-            Info->LogicalThreadIndex = ThreadIndex;
-            
-            DWORD ThreadID;
-            HANDLE ThreadHandle = CreateThread(0, 0, ThreadProc, Info, 0, &ThreadID);
-            CloseHandle(ThreadHandle);
-        }
-        // End of Multithreading
+        Win32InitThreads(ThreadInfo, ArrayCount(ThreadInfo), &p.Queue);
         
         //platform_controller_input *KeyboardController = &p.Input.Controllers[0];
         
@@ -577,17 +578,48 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     return(0);
 }
-#else
+#endif // QLIB_WINDOW_APPLICATION
+
+#ifdef QLIB_CONSOLE_APPLICATION
 #pragma comment(linker, "/subsystem:console")
 int main(int argc, const char** argv)
 {
     platform p = {};
-    while(1)
+    
+#if QLIB_INTERNAL
+    LPVOID BaseAddress = (LPVOID)Terabytes(2);
+#else
+    LPVOID BaseAddress = 0;
+#endif
+    
+    p.Memory.PermanentStorageSize = Megabytes(100);
+    p.Memory.TransientStorageSize = Megabytes(1);
+    
+    // TODO(casey): Handle various memory footprints (USING SYSTEM METRICS)
+    uint64 TotalSize = p.Memory.PermanentStorageSize + p.Memory.TransientStorageSize;
+    p.Memory.PermanentStorage = VirtualAlloc(BaseAddress, (size_t)TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    p.Memory.TransientStorage = ((uint8 *)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
+    
+    if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
     {
-        Update(&p);
-    }
+        win32_thread_info ThreadInfo[7];
+        Win32InitThreads(ThreadInfo, ArrayCount(ThreadInfo), &p.Queue);
+        
+        while(1)
+        {
+            Update(&p);
+            
+            char CharBuffer[OUTPUTBUFFER_SIZE];
+            _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+            OutputDebugStringA(CharBuffer);
+            
+            GlobalDebugBuffer = {};
+            memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+            GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+        }
+    } // p.Memory.PermanentStorage && p.Memory.TransientStorage
     return (0);
 }
-#endif
+#endif // QLIB_CONSOLE_APPLICATION
 
 

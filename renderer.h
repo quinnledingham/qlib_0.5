@@ -2,7 +2,6 @@
 #define RENDERER_H
 
 #include "data_structures.h"
-#include "strinq.h"
 
 template<typename T>
 struct Attribute

@@ -57,7 +57,7 @@ RemoveCharTextBoxText(GUI* G)
     while(Cursor != 0) {
         TextBox* TB = (TextBox*)Cursor->Data;
         if (TB->Active) {
-            int Size = Length(TB->Text);
+            int Size = GetLength(TB->Text);
             char* Result = (char*)qalloc(TB->Text, Size);
             Result[Size - 1] = 0;
             TB->Text = Result;

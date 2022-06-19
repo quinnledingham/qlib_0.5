@@ -207,7 +207,7 @@ internal v2
 GetStringDimensions(Font* SrcFont, char* SrcText)
 {
     real32 X = 0;
-    int StrLength = Length(SrcText);
+    int StrLength = GetLength(SrcText);
     int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++)

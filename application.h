@@ -1,38 +1,53 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_EXTRA_LEAN
+#include <windows.h>
+#include <stdint.h>
+#include <intrin.h>
+#include <stdio.h>
+
+#ifdef QLIB_WINDOW_APPLICATION
+#include "glad/glad.h"
+#include "glad/glad.c"
+#undef APIENTRY
 /*
-  NOTE(casey): Services that the platform layer provides to the game
-*/
-#if SNAKE_INTERNAL
-/* IMPORTANT(casey):
-
-   These are NOT for doing anything in the shipping game - they are
-   blocking and the write doesn't protect against lost data!
-*/
-struct debug_read_file_result
-{
-    uint32 ContentsSize;
-    void *Contents;
-};
-internal debug_read_file_result DEBUGPlatformReadEntireFile(char *Filename);
-internal void DEBUGPlatformFreeFileMemory(void *Memory);
-internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory);
+#if QLIB_SLOW
+#pragma comment(linker, "/subsystem:console")
+int main(int argc, const char** argv) { return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWDEFAULT); }
+#else
+#pragma comment(linker, "/subsystem:windows")
 #endif
+*/
+#pragma comment(lib, "opengl32.lib")
+// opengl declarations
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
+typedef HGLRC(WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC)
+(HDC, HGLRC, const int*);
+typedef const char* (WINAPI* PFNWGLGETEXTENSIONSSTRINGEXTPROC) (void);
+typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int);
+typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
+#endif // QLIB_WINDOW_APPLICATION
 
-inline uint32
-SafeTruncateUInt64(uint64 Value)
-{
-    // TODO(casey): Defines for maximum values
-    Assert(Value <= 0xFFFFFFFF);
-    uint32 Result = (uint32)Value;
-    return(Result);
-}
+#endif // _WIN32
 
-#define BITMAP_BYTES_PER_PIXEL 4
+#include "qlib/types.h"
+#include "qlib/platform.h"
+#include "memorymanager.h"
 
-#if QLIB_WINDOW
-
+#ifdef QLIB_WINDOW_APPLICATION
+#include "data_structures.h"
+#include "image.h"
+#include "renderer.h"
+#include "text.h"
+#include "math.h"
 struct Camera
 {
     v3 Position;
@@ -45,26 +60,18 @@ struct Camera
     float F;
     platform_window_dimension Dimension;
 };
-
-struct loaded_bitmap
-{
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
-    
-    void *Free;
-};
-
-internal void
-RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY);
-
+// handle to the global opengl Vertex Array Object (VAO)
+global_variable GLuint gVertexArrayObject = 0;
+#include "image.cpp"
+#include "text.cpp"
+#include "renderer.cpp"
 void UpdateRender(platform* p);
-
-#else
-
-void Update(platform* p);
-
 #endif
+
+#ifdef QLIB_CONSOLE_APPLICATION
+void Update(platform* p);
+#endif // QLIB_CONSOLE_APPLICATION
+
+#include "win32_application.cpp"
 
 #endif //APPLICATION_H

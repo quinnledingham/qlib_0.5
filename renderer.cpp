@@ -72,12 +72,12 @@ Shader::Init(const char* vertex, const char* fragment)
     entire_file vertFile = ReadEntireFile(vertex);
     entire_file fragFile = ReadEntireFile(fragment);
     
-    Strinq v_source = NewStrinq(&vertFile);
-    Strinq f_source = NewStrinq(&fragFile);
+    strinq v_source = NewStrinq(&vertFile);
+    strinq f_source = NewStrinq(&fragFile);
     
     // Compile Vertex Shader
     u32 v_shader = glCreateShader(GL_VERTEX_SHADER);
-    const char* v = GetData(v_source); // v_source needs to be 0 terminated
+    const char* v = v_source.Data; // v_source needs to be 0 terminated
     glShaderSource(v_shader, 1, &v, NULL);
     glCompileShader(v_shader);
     int GotVertexShader = 0;
@@ -89,7 +89,7 @@ Shader::Init(const char* vertex, const char* fragment)
         
         // Compile Fragment Shader
         u32 f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        const char* f = GetData(f_source);  // f_source needs to be 0 terminated
+        const char* f = f_source.Data;  // f_source needs to be 0 terminated
         glShaderSource(f_shader, 1, &f, NULL);
         glCompileShader(f_shader);
         
@@ -157,8 +157,7 @@ Shader::Init(const char* vertex, const char* fragment)
                         if (uniform >= 0)
                         {
                             // Is uniform valid?
-                            Strinq uniformName = {};
-                            NewStrinq(uniformName, name);
+                            strinq uniformName = NewStrinq(name);
                             // if name contains [, uniform is array
                             int found = StrinqFind(uniformName, '[');
                             
@@ -170,7 +169,7 @@ Shader::Init(const char* vertex, const char* fragment)
                                 {
                                     memset(testName, 0, sizeof(char) * 256);
                                     
-                                    Strinq n = S() + uniformName + "[" + uniformIndex++ + "]";
+                                    strinq n = S() + uniformName + "[" + uniformIndex++ + "]";
                                     CopyBuffer(testName, n.Data, n.Length);
                                     int uniformLocation = glGetUniformLocation(mHandle, testName);
                                     
@@ -184,7 +183,7 @@ Shader::Init(const char* vertex, const char* fragment)
                             }
                             
                             mUniforms[uniformName] = uniform;
-                            DestroyStrinq(uniformName);
+                            DestroyStrinq(&uniformName);
                         }
                     }
                     
@@ -222,8 +221,8 @@ Shader::Init(const char* vertex, const char* fragment)
         glDeleteShader(v_shader);
     }
     
-    DestroyStrinq(v_source);
-    DestroyStrinq(f_source);
+    DestroyStrinq(&v_source);
+    DestroyStrinq(&f_source);
     DestroyEntireFile(vertFile);
     DestroyEntireFile(fragFile);
 }
@@ -930,7 +929,7 @@ fixed right now by turning off tiling. Can't tell if it still makes the font loo
 void
 PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
 {
-    int StrLength = Length(SrcText);
+    int StrLength = GetLength(SrcText);
     int BiggestY = 0;
     
     for (int i = 0; i < StrLength; i++){

@@ -13,8 +13,6 @@ UDP doesn't work on windows. It does not like how the ips are being worked out.
 
 #define HEADER_SIZE 20
 
-#include "strinq.h"
-
 struct server
 {
     struct addrinfo *Info;

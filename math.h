@@ -74,7 +74,7 @@ LenSq(const v3 &v)
 
 // Length
 inline real32
-Length(const v3 &v)
+GetLength(const v3 &v)
 {
     real32 LengthSquared = LenSq(v);
     if (LengthSquared < V3_EPSILON)
@@ -117,8 +117,8 @@ Normalized(const v3 &v)
 inline real32
 Angle(const v3 &l, const v3 &r)
 {
-    real32 LenL = Length(l);
-    real32 LenR = Length(r);
+    real32 LenL = GetLength(l);
+    real32 LenR = GetLength(r);
     
     if (LenL < V3_EPSILON || LenR < V3_EPSILON) {
         return 0.0f;
@@ -133,7 +133,7 @@ Angle(const v3 &l, const v3 &r)
 inline v3
 Project(const v3 &a, const v3 &b)
 {
-    real32 MagBSq = Length(b);
+    real32 MagBSq = GetLength(b);
     if (MagBSq < V3_EPSILON)
     {
         return v3();
@@ -183,7 +183,7 @@ Rotate(const v3 &a, real32 angle)
 inline v3
 Reflect(const v3 &a, const v3 &b)
 {
-    real32 MagBSq = Length(b);
+    real32 MagBSq = GetLength(b);
     if (MagBSq < V3_EPSILON)
     {
         return v3();
@@ -522,7 +522,7 @@ mat4 Translate(mat4& m, v3 v)
     return (m * T);
 }
 
-mat4 Scale(mat4& m, float v)
+mat4 GetScale(mat4& m, float v)
 {
     return (m * v);
 }
@@ -642,7 +642,7 @@ real32 LenSq(const quat& q)
 }
 
 // Length
-real32 Length(const quat& q)
+real32 GetLength(const quat& q)
 {
     real32 lenSq = LenSq(q);
     if (lenSq < QUAT_EPSILON)
