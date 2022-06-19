@@ -24,9 +24,21 @@ operator+(const v2 &l, const v2 &r)
 }
 
 inline v2
+operator-(const v2 &l, float &r)
+{
+    return v2(l.x - r, l.y - r);
+}
+
+inline v2
 operator*(const v2 &l, const v2 &r)
 {
     return v2(l.x * r.x, l.y * r.y);
+}
+
+inline v2
+operator*(const v2 &l, float &r)
+{
+    return v2(l.x * r, l.y * r);
 }
 
 // v3 Operations

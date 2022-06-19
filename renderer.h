@@ -1,7 +1,15 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "data_structures.h"
+#ifndef TYPES_H
+#pragma message ("renderer.h requires types.h")
+#endif
+#ifndef DATA_STRUCTURES_H
+#pragma message ("renderer.h requires data_structures.h")
+#endif
+#ifndef IMAGE_H
+#pragma message ("renderer.h requires image.h")
+#endif
 
 template<typename T>
 struct Attribute
@@ -111,6 +119,20 @@ BlendMode
     gl_src_alpha,
 };
 
+struct Camera
+{
+    v3 Position;
+    v3 Target;
+    v3 Up;
+    
+    float inAspectRatio;
+    Shader* shader;
+    float FOV;
+    float F;
+    platform_window_dimension Dimension;
+};
+
+
 void glDraw(unsigned int vertexCount, DrawMode mode);
 void glDraw(IndexBuffer& inIndexBuffer, DrawMode mode);
 void glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances);
@@ -120,13 +142,7 @@ void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
 
-enum struct
-PieceType 
-{
-    ColorRect,
-    TextureRect,
-};
-
+//typedef int type;
 struct Piece
 {
     v3 Coords;
@@ -134,20 +150,20 @@ struct Piece
     real32 Rotation;
     BlendMode BMode;
     
-    PieceType Type;
+    enum type
+    {
+        ColorRect,
+        TextureRect,
+    };
+    type Type;
     
     uint32 Color;
     Texture *Tex;
     
     inline Piece() {}
-    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) :
-    Coords(_Coords), Dim(_Dim), Tex(_Tex), Rotation(_Rotation),  
-    BMode(_BMode) {Type = PieceType::TextureRect;}
-    
-    inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) :
-    Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = PieceType::ColorRect;}
+    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
+    inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) : Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = Piece::type::ColorRect;}
 };
-
 struct PieceGroup
 {
     Piece Buffer[1000];
@@ -171,5 +187,41 @@ struct PieceGroup
         return &Buffer[i];
     }
 };
+inline void Push(PieceGroup &Group, Piece p) { *Group[Group.Size] = p; Group.Size++; }
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) { Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode)); }
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation) { Push(Group, Piece(Coords, Dim , Color, Rotation)); }
+
+internal void
+RenderPieceGroup(PieceGroup &Group)
+{
+    // Z-Sort using Insertion Sort
+    {
+        int i = 1;
+        while (i < Group.Size) {
+            int j = i;
+            while (j > 0 && Group[j-1]->Coords.z > Group[j]->Coords.z) {
+                Piece Temp = *Group[j];
+                *Group[j] = *Group[j-1];
+                *Group[j-1] = Temp;
+                j = j - 1;
+            }
+            i++;
+        }
+    }
+    
+    for (int i = 0; i < Group.Size; i++) {
+        Piece *p = Group[i];
+        if (p->Type == Piece::type::TextureRect)
+            DrawRect(p->Coords, p->Dim, p->Tex, p->Rotation, p->BMode);
+        else if (p->Type == Piece::type::ColorRect)
+            DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
+    }
+    
+    Group.Clear();
+}
+
+// handle to the global opengl Vertex Array Object (VAO)
+global_variable GLuint gVertexArrayObject = 0;
+global_variable PieceGroup RenderGroup = {};
 
 #endif //RENDERER_H

@@ -91,6 +91,19 @@ inline void* MallocCpy(void* Data, int Size)
     memcpy(Mem, Data, Size);
     return Mem;
 }
+// Buffer Clear
+inline char* BufferC(char* Buffer, int BufferSize)
+{
+    memset(Buffer, 0, BufferSize);
+    return Buffer;
+}
+// Buffer Clear and Copy
+inline char* BufferCC(char* Buffer, int BufferSize, void* DataToCopy, int DataToCopySize)
+{
+    memset(Buffer, 0, BufferSize);
+    memcpy(Buffer, DataToCopy, DataToCopySize); 
+    return Buffer;
+}
 
 #define MallocCopy(t, d) ((t*)MallocCpy((void*)&d, sizeof t))
 

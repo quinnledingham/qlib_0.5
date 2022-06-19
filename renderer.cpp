@@ -1,56 +1,3 @@
-#include "application.h"
-
-PieceGroup RenderGroup = {};
-
-internal void
-RenderPieceGroup(PieceGroup &Group)
-{
-    // Z-Sort using Insertion Sort
-    {
-        int i = 1;
-        while (i < Group.Size) {
-            int j = i;
-            while (j > 0 && Group[j-1]->Coords.z > Group[j]->Coords.z) {
-                Piece Temp = *Group[j];
-                *Group[j] = *Group[j-1];
-                *Group[j-1] = Temp;
-                j = j - 1;
-            }
-            i++;
-        }
-    }
-    
-    for (int i = 0; i < Group.Size; i++) {
-        Piece *p = Group[i];
-        if (p->Type == PieceType::TextureRect)
-            DrawRect(p->Coords, p->Dim, p->Tex, p->Rotation, p->BMode);
-        else if (p->Type == PieceType::ColorRect)
-            DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
-    }
-    
-    Group.Clear();
-}
-
-internal void
-Push(PieceGroup &Group, Piece p)
-{
-    *Group[Group.Size] = p;
-    Group.Size++;
-}
-
-internal void
-Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, 
-     real32 Rotation, BlendMode BMode)
-{
-    Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode));
-}
-
-internal void
-Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
-{
-    Push(Group, Piece(Coords, Dim , Color, Rotation));
-}
-
 // SHADER 
 
 void
@@ -578,6 +525,76 @@ Texture::GetHandle()
     return mHandle;
 }
 
+internal void
+ResizeTexture(Texture *Tex, v2 Dim)
+{
+    unsigned char* delsize = Tex->data;
+    Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
+    stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels);
+    Tex->mWidth = (int)Dim.x;
+    Tex->mHeight = (int)Dim.y;
+    Tex->mChannels = Tex->mChannels;
+    
+    dalloc((void*)delsize);
+    
+    Tex->Init(Tex->data);
+}
+
+internal Texture*
+LoadTexture(const char* FileName)
+{
+    Texture Tex = {};
+    unsigned char* data = stbi_load(FileName, (int*)&Tex.mWidth, (int*)&Tex.mHeight, (int*)&Tex.mChannels, 0);
+    Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
+    stbi_image_free(data);
+    
+    Tex.og.x = Tex.mWidth;
+    Tex.og.y = Tex.mHeight;
+    Tex.og.n = Tex.mChannels;
+    // Tex.og.data = (unsigned char*)qalloc((void*)Tex.data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
+    
+    Tex.Init(Tex.data);
+    return (Texture*)qalloc(&Tex, sizeof(Texture));
+}
+
+internal void
+SaveTextureEthan(Texture* Tex, const char* SaveFileName)
+{
+    FILE *File = fopen(SaveFileName, "wb");
+    ImageHeader Header = 
+    {
+        Tex->mWidth,
+        Tex->mHeight,
+        Tex->mChannels,
+    };
+    fwrite(&Header, sizeof(struct ImageHeader), 1, File);
+    fwrite(Tex->data, Tex->mWidth * Tex->mHeight * Tex->mChannels, 1, File);
+    fclose(File);
+}
+
+internal Texture*
+LoadTextureEthan(Texture *Tex, const char* LoadFileName)
+{
+    entire_file File = ReadEntireFile(LoadFileName);
+    ImageHeader *Header = (ImageHeader*)File.Contents;
+    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
+    Tex->mWidth = Header->x;
+    Tex->mHeight = Header->y;
+    Tex->mChannels = Header->n;
+    Tex->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+    //Tex->data = (unsigned char*)malloc(Header->x * Header->y * Header->n);
+    //memcpy(Tex->data, Cursor, Header->x * Header->y * Header->n);
+    
+    Tex->og.x = Tex->mWidth;
+    Tex->og.y = Tex->mHeight;
+    Tex->og.n = Tex->mChannels;
+    Tex->og.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
+    
+    Tex->Init(Tex->data);
+    return Tex;
+}
+// End of Texture
+
 // Drawing Methods
 static GLenum DrawModeToGLEnum(DrawMode input) {
 	if (input == DrawMode::Points) {
@@ -671,8 +688,7 @@ void BeginOpenGL(platform_window_dimension Dimension)
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT |
-            GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
@@ -806,9 +822,7 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     NewCoords.x = (real32)(-Coords.x - (Size.x/2));
     NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
-                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
-                                           v3(Size.x, Size.y, 1)));
+    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z), AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), v3(Size.x, Size.y, 1)));
     
     GlobalOpenGLRect.shader.Bind();
     
@@ -829,9 +843,8 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
     {
-        PrintqDebug(S() + (int)err);
+        PrintqDebug(S() + (int)err + "\n");
     }
-    
 }
 
 void
@@ -915,52 +928,9 @@ DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
     {
-        PrintqDebug(S() + (int)err);
+        PrintqDebug(S() + (int)err + "\n");
     }
     
-}
-
-/*
- Problems:
- z-sorting - buttons are in front of the text
-off by one - texture is off by one in some places so a line is drawn.
-fixed right now by turning off tiling. Can't tell if it still makes the font look bad.
-*/
-void
-PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
-{
-    int StrLength = GetLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++){
-        int SrcChar = SrcText[i];
-        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
-        int Y = -1 *  NextChar->C_Y1;
-        if(BiggestY < Y)
-            BiggestY = Y;
-    }
-    
-    real32 X = Coords.x;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        
-        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, Color);
-        
-        int Y = (int)Coords.y + NextChar->C_Y1 + BiggestY;
-        
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
-        
-        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 2.0f),
-             v2((real32)NextChar->Tex.mWidth, (real32)NextChar->Tex.mHeight),
-             &NextChar->Tex, 0, BlendMode::gl_src_alpha);
-        
-        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        X += ((kern + ax) * SrcFont->Scale);
-    }
 }
 
 #else // !QLIB_OPENGL
@@ -1010,15 +980,8 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     }
 }
 
-unsigned long createRGBA(int r, int g, int b, int a)
-{   
-    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
-}
-
-unsigned long createRGB(int r, int g, int b)
-{   
-    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
-}
+inline unsigned long createRGBA(int r, int g, int b, int a) { return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));}
+inline unsigned long createRGB(int r, int g, int b) { return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); }
 
 void
 DrawRect(int x, int y, int width, int height, Texture texture)

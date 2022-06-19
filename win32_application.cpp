@@ -1,6 +1,8 @@
 global_variable bool32 GlobalRunning;
 
-#include "win32_thread.h"
+#ifndef WIN32_THREAD_H
+#pragma message ("win32_application.cpp requires win32_thread.h")
+#endif
 
 internal void 
 Win32InitThreads(win32_thread_info *ThreadInfo, int InfoArrayCount, platform_work_queue *Queue)

@@ -1,6 +1,10 @@
 #ifndef DATA_STRUCTURES_H
 #define DATA_STRUCTURES_H
 
+#ifndef MEMORYMANAGER_H
+#pragma message ("data_structures.h requires memorymanager.h")
+#endif
+
 // entire_file
 struct entire_file 
 {
@@ -49,13 +53,13 @@ inline int GetLength(const char* c)
 
 inline int GetLength(int i)
 {
-    int Count = 0;
+    int count = 0;
     int T = i;
     while((T = T / 10) != 0)
-        Count++;
+        count++;
     
-    Count++;
-    return Count;
+    count++;
+    return count;
 }
 
 inline bool Equal(const char *c1, const char* c2)
@@ -64,7 +68,6 @@ inline bool Equal(const char *c1, const char* c2)
     while(c1[i] != 0 && c2[i] != 0) {
         if (c1[i] != c2[i])
             return false;
-        
         i++;
     }
     
@@ -201,7 +204,7 @@ strinq operator+(const strinq& L, const strinq& R)
     return ReturnStrinq;
 }
 
-inline strinq operator+(const strinq &L,const  char* R) { return (L + NewStrinq(R)); }
+inline strinq operator+(const strinq &L, const char* R) { return (L + NewStrinq(R)); }
 inline strinq operator+(const strinq &L, int R) { return (L + IntToStrinq(R)); }
 
 bool operator==(const strinq& L, const strinq& R)
@@ -334,7 +337,8 @@ void DynArray<T>::push_back(const T& NewData)
     Size++;
 }
 
-template<typename T> inline void *DynArray<T>::GetData() { return Data; }
+template<typename T> 
+void *DynArray<T>::GetData() { return Data; }
 // End of DynArray
 
 // Map
@@ -358,7 +362,6 @@ struct Map
     unsigned int MapFind(const char* k);
 };
 
-
 void Map::Init()
 {
     memset(Values, 0, sizeof(MapEntry) * MAP_SIZE);
@@ -377,7 +380,7 @@ int& Map::operator[](strinq& i)
 {
     Values[Next].Key = qalloc(i.Length + 1);
     Values[Next].Value = qalloc(sizeof(int));
-    memcpy(Values[Next].Key, (void*)&i.Data, i.Length + 1);
+    memcpy(Values[Next].Key, (void*)i.Data, i.Length + 1);
     return *((int*)Values[Next++].Value);
 }
 
