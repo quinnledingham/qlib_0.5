@@ -409,7 +409,7 @@ RenderGUI(GUI* G)
             v2 SDim = GetStringDimensions(b->FontType, b->Text);
             v2 TextCoords = Component->Coords + v2((Component->Dim.x - SDim.x)/2, (Component->Dim.y - SDim.y)/2);
             
-            Push(RenderGroup, v3(Component->Coords, 0.0f), Component->Dim, b->Color, 0.0f);
+            Push(RenderGroup, v3(Component->Coords, 100.0f), Component->Dim, b->Color, 0.0f);
             PrintOnScreen(b->FontType, b->Text, TextCoords, b->TextColor);
         }
         else if (Component->Type == GUIComponent::type::textbox) {
@@ -418,10 +418,10 @@ RenderGUI(GUI* G)
             v2 SDim = GetStringDimensions(b->FontType, b->Text);
             v2 TextCoords = Component->Coords + v2((Component->Dim.x - SDim.x)/2, (Component->Dim.y - SDim.y)/2);
             
-            Push(RenderGroup, v3(Component->Coords, 0.0f), Component->Dim,b->Color, 0.0f);
+            Push(RenderGroup, v3(Component->Coords, 100.0f), Component->Dim,b->Color, 0.0f);
             PrintOnScreen(b->FontType, b->Text, TextCoords, b->TextColor);
             if (b->Active)
-                Push(RenderGroup, v3(TextCoords.x + SDim.x, Component->Coords.y, 10.0f), 
+                Push(RenderGroup, v3(TextCoords.x + SDim.x, Component->Coords.y, 100.0f), 
                      v2(5.0f, Component->Dim.y), 0xFF000000, 0.0f);
         }
         else if (Component->Type == GUIComponent::type::text) {

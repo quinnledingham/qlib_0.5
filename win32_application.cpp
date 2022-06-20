@@ -503,7 +503,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             p.Dimension = Win32GetWindowDimension(hwnd);
             
-            
             // Mouse
             POINT MouseP;
             GetCursorPos(&MouseP);
@@ -526,7 +525,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             p.Input.WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
             LastCounter =  Win32GetWallClock();
             p.Input.dt = dt;
-            UpdateRender(&p);
+            
+            if (p.Dimension.Width != 0 && p.Dimension.Height != 0)
+                UpdateRender(&p);
             
             Win32ResizeDIBSection(&GlobalBackbuffer, p.Dimension.Width,
                                   p.Dimension.Height);

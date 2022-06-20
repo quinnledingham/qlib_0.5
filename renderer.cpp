@@ -771,8 +771,8 @@ v4 u32toV4(uint32 input)
     uint32 B = *C++;
     uint32 G = *C++;
     uint32 R = *C++;
-    uint32 A = *C++;
-    return v4(real32(R), real32(G), real32(B), real32(A ));
+    real32 A = *C++;
+    return v4(real32(R), real32(G), real32(B), A);
 }
 
 v3 u32toV3(uint32 input)
@@ -823,6 +823,8 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
     mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z), AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), v3(Size.x, Size.y, 1)));
+    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     GlobalOpenGLRect.shader.Bind();
     

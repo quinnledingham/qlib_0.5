@@ -264,6 +264,16 @@ GetStringDimensions(Font* SrcFont, char* SrcText)
     return(Dimension);
 }
 
+internal v2
+GetStringDimensions(Font *SrcFont, strinq *SrcText)
+{
+    if ((SrcText->Dim.x == 0 && SrcText->Dim.y == 0) || (SrcFont->Scale != SrcText->DimScale)) {
+        SrcText->DimScale = SrcFont->Scale;
+        SrcText->Dim = GetStringDimensions(SrcFont, SrcText->Data);
+    }
+    return SrcText->Dim;
+}
+
 internal void
 SaveMemoryToHeaderFile(FILE* File, char* MemoryName, void* Memory, int MemorySize)
 {
@@ -503,7 +513,7 @@ PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
         int lsb;
         stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
         
-        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 2.0f),
+        Push(RenderGroup, v3(X + (lsb * SrcFont->Scale), (real32)Y, 100.0f),
              v2((real32)NextChar->Tex.mWidth, (real32)NextChar->Tex.mHeight),
              &NextChar->Tex, 0, BlendMode::gl_src_alpha);
         
