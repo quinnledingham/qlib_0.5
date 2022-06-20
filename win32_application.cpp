@@ -437,6 +437,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     p.Memory.PermanentStorage = VirtualAlloc(BaseAddress, (size_t)TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     p.Memory.TransientStorage = ((uint8 *)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
+    GlobalDebugBuffer.Mutex = CreateMutex(NULL, FALSE, NULL);
+    
     if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
     {
         platform_input Input[2] = {};
@@ -489,11 +491,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             float dt = float(thisTick - lastTick) * 0.0001f;
             lastTick = thisTick;
             
+            WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
             // PrintqDebug - DebugBuffer
             GlobalDebugBuffer= {};
             memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
             GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
             GlobalDebugBuffer.Size = 0;
+            ReleaseMutex(GlobalDebugBuffer.Mutex);
             
             platform_offscreen_buffer Buffer = {};
             Buffer.Memory = GlobalBackbuffer.Memory;
@@ -547,9 +551,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 }
             }
             
+            WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
             char CharBuffer[OUTPUTBUFFER_SIZE];
             _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
             OutputDebugStringA(CharBuffer);
+            ReleaseMutex(GlobalDebugBuffer.Mutex);
             
             if (p.Input.Quit)
             {

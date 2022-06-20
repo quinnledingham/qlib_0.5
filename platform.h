@@ -204,6 +204,8 @@ struct platform_debug_buffer
     int Size = 0;
     char Data[OUTPUTBUFFER_SIZE];
     char* Next;
+    
+    HANDLE Mutex;
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
 

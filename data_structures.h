@@ -229,6 +229,7 @@ void PrintqDebug(strinq Output)
 {
     Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
     
+    WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
     int i = 0;
     int j = 0;
     while(j <= Output.Length && i < 100) {
@@ -238,6 +239,7 @@ void PrintqDebug(strinq Output)
     }
     GlobalDebugBuffer.Size += Output.Length;
     GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
+    ReleaseMutex(GlobalDebugBuffer.Mutex);
 }
 
 void PrintqDebug(const char* Output)
