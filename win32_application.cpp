@@ -491,8 +491,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             // PrintqDebug - DebugBuffer
             GlobalDebugBuffer= {};
-            memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+            memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
             GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+            GlobalDebugBuffer.Size = 0;
             
             platform_offscreen_buffer Buffer = {};
             Buffer.Memory = GlobalBackbuffer.Memory;

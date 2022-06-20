@@ -227,6 +227,8 @@ bool operator==(const strinq& L, const strinq& R)
 
 void PrintqDebug(strinq Output)
 {
+    Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
+    
     int i = 0;
     int j = 0;
     while(j <= Output.Length && i < 100) {
@@ -234,7 +236,7 @@ void PrintqDebug(strinq Output)
         i++;
         j++;
     }
-    
+    GlobalDebugBuffer.Size += Output.Length;
     GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
 }
 

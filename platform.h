@@ -200,7 +200,8 @@ platform
 // PrintqDebug
 struct platform_debug_buffer
 {
-    int Size = OUTPUTBUFFER_SIZE;
+    int MaxSize = OUTPUTBUFFER_SIZE;
+    int Size = 0;
     char Data[OUTPUTBUFFER_SIZE];
     char* Next;
 };

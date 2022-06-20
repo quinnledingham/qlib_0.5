@@ -216,7 +216,7 @@ RecvBuffer(int Sock, struct addrinfo *Info, int Protocol, int Type, char* Buffer
                 return BytesRecdTotal;
             }
             
-            //PrintqDebug(S() + "Waiting for message (TCP).\n");
+            PrintqDebug(S() + "Waiting for message (TCP).\n");
             BytesRecd = Recv(Sock, Cursor, BufferSize, 0);
             if (BytesRecd < 0) {
                 PrintqDebug(S() + "RecvBuffer(): recv() called failed! errno: " + errno +", WSA: " + WSAGetLastError() + "\n");
