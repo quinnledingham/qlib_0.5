@@ -374,10 +374,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     // Loading OpenGL 4.6 Core functions with glad
     if (!gladLoadGL()) {
-        //std::cout << "Could not initialize GLAD\n";
+        PrintqDebug("Could not initialize GLAD\n");
     }
     else {
-        //std::cout << "OpenGL Version " <<
+        PrintqDebug("OpenGL Version \n");//" + GLVersion.major + "." + GLVersion.minor + "\n");
+        //std::cout <<  <<
         //GLVersion.major << "." << GLVersion.minor <<
         //"\n";
     }
