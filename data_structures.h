@@ -225,21 +225,27 @@ bool operator==(const strinq& L, const strinq& R)
     return false;
 }
 
-void PrintqDebug(strinq Output)
+bool PrintqDebug(strinq Output)
 {
-    Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
-    
-    WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
-    int i = 0;
-    int j = 0;
-    while(j <= Output.Length && i < 100) {
-        GlobalDebugBuffer.Next[i] = Output.Data[j];
-        i++;
-        j++;
+    switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
+    {
+        case WAIT_OBJECT_0: _try 
+        {
+            Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
+            int i = 0;
+            int j = 0;
+            while(j <= Output.Length && i < 100) {
+                GlobalDebugBuffer.Next[i] = Output.Data[j];
+                i++;
+                j++;
+            }
+            GlobalDebugBuffer.Size += Output.Length;
+            GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
+        }
+        _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
     }
-    GlobalDebugBuffer.Size += Output.Length;
-    GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
-    ReleaseMutex(GlobalDebugBuffer.Mutex);
+    
+    return true;
 }
 
 void PrintqDebug(const char* Output)

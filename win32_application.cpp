@@ -470,34 +470,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 ButtonIndex < ArrayCount(NewKeyboardController->Buttons);
                 ++ButtonIndex)
             {
-                NewKeyboardController->Buttons[ButtonIndex].EndedDown =
-                    OldKeyboardController->Buttons[ButtonIndex].EndedDown;
+                NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
             }
             
             platform_keyboard_input *OldKeyboard = GetKeyboard(OldInput, 0);
             platform_keyboard_input *NewKeyboard = GetKeyboard(&p.Input, 0);
             *NewKeyboard = {};
             //NewKeyboardController->IsConnected = true;
-            for(int ButtonIndex = 0;
-                ButtonIndex < ArrayCount(NewKeyboard->Buttons);
-                ++ButtonIndex)
+            for(int ButtonIndex = 0; ButtonIndex < ArrayCount(NewKeyboard->Buttons); ++ButtonIndex)
             {
-                NewKeyboard->Buttons[ButtonIndex].EndedDown =
-                    OldKeyboard->Buttons[ButtonIndex].EndedDown;
+                NewKeyboard->Buttons[ButtonIndex].EndedDown = OldKeyboard->Buttons[ButtonIndex].EndedDown;
             }
             Win32ProcessPendingMessages(NewKeyboardController, NewKeyboard);
             
             DWORD thisTick = GetTickCount();
             float dt = float(thisTick - lastTick) * 0.0001f;
-            lastTick = thisTick;
+            lastTick = thisTick;;
             
-            WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
-            // PrintqDebug - DebugBuffer
-            GlobalDebugBuffer= {};
-            memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
-            GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
-            GlobalDebugBuffer.Size = 0;
-            ReleaseMutex(GlobalDebugBuffer.Mutex);
+            switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
+            {
+                case WAIT_OBJECT_0: _try 
+                {
+                    // PrintqDebug - DebugBuffer
+                    GlobalDebugBuffer= {};
+                    memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
+                    GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+                    GlobalDebugBuffer.Size = 0;
+                }
+                _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
+            }
             
             platform_offscreen_buffer Buffer = {};
             Buffer.Memory = GlobalBackbuffer.Memory;
@@ -551,11 +552,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 }
             }
             
-            WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE);
-            char CharBuffer[OUTPUTBUFFER_SIZE];
-            _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
-            OutputDebugStringA(CharBuffer);
-            ReleaseMutex(GlobalDebugBuffer.Mutex);
+            switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
+            {
+                case WAIT_OBJECT_0: _try 
+                {
+                    char CharBuffer[OUTPUTBUFFER_SIZE];
+                    _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+                    OutputDebugStringA(CharBuffer);
+                }
+                _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
+            }
             
             if (p.Input.Quit)
             {
