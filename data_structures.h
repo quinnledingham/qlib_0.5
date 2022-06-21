@@ -104,6 +104,61 @@ char* Concat(char* Source, char* Add)
     return Result;
 }
 
+char* Insert(char* Source, int InsertPosition, char* Add)
+{
+    int AddLength = GetLength(Add);
+    int SourceLength = GetLength(Source);
+    int Size =  SourceLength + AddLength + 1;
+    char* Result = (char*)qalloc(Size);
+    
+    int SourceIndex = 0;
+    int AddIndex = 0;
+    int ResultIndex = 0;
+    while (ResultIndex < Size-1) {
+        if (SourceIndex < InsertPosition) {
+            Result[ResultIndex] = Source[SourceIndex];
+            SourceIndex++;
+        }
+        else if (SourceIndex >= InsertPosition) {
+            if (AddIndex < AddLength) {
+                Result[ResultIndex] = Add[AddIndex];
+                AddIndex++;
+            }
+            else {
+                Result[ResultIndex] = Source[SourceIndex];
+                SourceIndex++;
+            }
+        }
+        ResultIndex++;
+    }
+    Result[Size-1] = 0;
+    
+    return Result;
+}
+
+char* RemoveAt(char* Source, int RemovePosition)
+{
+    int Size = GetLength(Source);
+    char* Result = (char*)qalloc(Size);
+    
+    int SourceIndex = 0;
+    int ResultIndex = 0;
+    while (ResultIndex < Size-1) {
+        if (SourceIndex < RemovePosition) {
+            Result[ResultIndex] = Source[SourceIndex];
+            ResultIndex++;
+        }
+        else if (SourceIndex > RemovePosition) {
+            Result[ResultIndex] = Source[SourceIndex];
+            ResultIndex++;
+        }
+        SourceIndex++;
+    }
+    Result[Size - 1] = 0;
+    
+    return Result;
+}
+
 struct strinq
 {
     char *Data;

@@ -37,8 +37,8 @@ struct platform_sound_output_buffer
 
 struct platform_button_state
 {
-    bool32 NewEndedDown;
-    bool32 EndedDown;
+    bool NewEndedDown;
+    bool EndedDown;
 };
 
 struct platform_controller_input
@@ -78,11 +78,14 @@ struct platform_controller_input
 
 struct platform_keyboard_input
 {
+    bool32 IsConnected;
+    char Clipboard[1000];
     union
     {
-        platform_button_state Buttons[14];
+        platform_button_state Buttons[19];
         struct
         {
+            platform_button_state CtrlV;
             platform_button_state Escape;
             platform_button_state Period;
             platform_button_state Backspace;
@@ -102,6 +105,17 @@ struct platform_keyboard_input
                     platform_button_state Seven;
                     platform_button_state Eight;
                     platform_button_state Nine;
+                };
+            };
+            union
+            {
+                platform_button_state ArrowKeys[4];
+                struct
+                {
+                    platform_button_state Right;
+                    platform_button_state Up;
+                    platform_button_state Left;
+                    platform_button_state Down;
                 };
             };
         };
@@ -190,14 +204,23 @@ platform
     bool32 Initialized;
     
     platform_input Input;
+    platform_input OldInput;
+    
     platform_memory Memory;
     platform_window_dimension Dimension;
     platform_work_queue Queue;
 };
-
-#define OUTPUTBUFFER_SIZE 1000
+inline v2 GetDim(platform *p)
+{
+    return v2((real32)p->Dimension.Width, (real32)p->Dimension.Height);
+}
+inline v2 GetTopLeftCornerCoords(platform *p)
+{
+    return v2(-p->Dimension.Width/2, -p->Dimension.Height/2);
+}
 
 // PrintqDebug
+#define OUTPUTBUFFER_SIZE 1000
 struct platform_debug_buffer
 {
     int MaxSize = OUTPUTBUFFER_SIZE;

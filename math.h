@@ -54,6 +54,30 @@ operator/(const v2 &l, float r)
     return v2(l.x / r, l.y / r);
 }
 
+inline v2
+abso(const v2 &v)
+{
+    v2 r = v2();
+    if (v.x < 0)
+        r.x = -v.x;
+    else
+        r.x = v.x;
+    
+    if (v.y < 0)
+        r.y = -v.y;
+    else
+        r.y = v.y;
+    return r;
+}
+
+inline real32
+absol(real32 r)
+{
+    if (r < 0)
+        r *= -1;
+    return r;
+}
+
 // v3 Operations
 // Vector Addition
 inline v3

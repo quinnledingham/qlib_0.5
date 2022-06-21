@@ -47,6 +47,21 @@ Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
     //++NewState->HalfTransitionCount;
 }
 
+inline bool Compare(const char *c1, const char* c2)
+{
+    int i = 0;
+    while(c1[i] != 0 && c2[i] != 0) {
+        if (c1[i] != c2[i])
+            return false;
+        i++;
+    }
+    
+    if (c1[i] == c2[i])
+        return true;
+    else
+        return false;
+}
+
 internal void
 Win32ProcessPendingMessages(platform_controller_input *KeyboardController, platform_keyboard_input *Keyboard)
 {
@@ -92,18 +107,22 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController, platf
                 else if(VKCode == VK_UP)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->ActionUp, IsDown);
+                    Win32ProcessKeyboardMessage(&Keyboard->Up, IsDown);
                 }
                 else if(VKCode == VK_LEFT)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
+                    Win32ProcessKeyboardMessage(&Keyboard->Left, IsDown);
                 }
                 else if(VKCode == VK_DOWN)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->ActionDown, IsDown);
+                    Win32ProcessKeyboardMessage(&Keyboard->Down, IsDown);
                 }
                 else if(VKCode == VK_RIGHT)
                 {
                     Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
+                    Win32ProcessKeyboardMessage(&Keyboard->Right, IsDown);
                 }
                 else if(VKCode == VK_ESCAPE)
                 {
@@ -128,6 +147,20 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController, platf
                 if((VKCode == VK_F4) && AltKeyWasDown)
                 {
                     GlobalRunning = false;
+                }
+                
+                bool32 CrtlKeyWasDown = (Message.lParam & (1 << 17));
+                if ((VKCode == 'V') && CrtlKeyWasDown)
+                {
+                    
+                    HGLOBAL hglb; 
+                    OpenClipboard(0);
+                    hglb = GetClipboardData(CF_TEXT);
+                    if (hglb != 0) {
+                        memcpy(&Keyboard->Clipboard, hglb, (int)GlobalSize(hglb));
+                        Win32ProcessKeyboardMessage(&Keyboard->CtrlV, IsDown);
+                    }
+                    CloseClipboard();;
                 }
             } break;
             
@@ -282,7 +315,7 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
         case WM_ERASEBKGND:
         default:
         {
-            //            OutputDebugStringA("default\n");
+            // OutputDebugStringA("default\n");
             Result = DefWindowProcA(Window, MESSAGE, WParam, LParam);
         } break;
     }
@@ -291,6 +324,8 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
+    SetCurrentDirectory("../game/data");
+    
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
     GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
@@ -302,8 +337,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     WindowClass.cbClsExtra = 0;
     WindowClass.cbWndExtra = 0;
     WindowClass.hInstance = hInstance;
-    WindowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    WindowClass.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    
+    WindowClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+    WindowClass.hIconSm = (HICON)LoadImage(hInstance, "icon.ico", IMAGE_ICON, 100, 100, 
+                                           LR_LOADFROMFILE | LR_LOADTRANSPARENT);
+    
     //WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     WindowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     WindowClass.lpszMenuName = 0;
@@ -325,8 +363,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     Win32ResizeDIBSection(&GlobalBackbuffer, ClientWidth, ClientHeight);
     
-    DWORD Style = (WS_OVERLAPPED | WS_CAPTION |
-                   WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
+    DWORD Style = (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
     // | WS_THICKFRAME to resize
     
     AdjustWindowRectEx(&WindowRect, Style, FALSE, 0);
@@ -343,8 +380,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     pfd.nVersion = 1;
-    pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW
-        | PFD_DOUBLEBUFFER;
+    pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = 24;
     pfd.cDepthBits = 32;
@@ -442,10 +478,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
     {
-        platform_input Input[2] = {};
-        platform_input *NewInput = &Input[0];
-        platform_input *OldInput = &Input[1];
-        
         // Gameplay Loop
         GlobalRunning = true;
         DWORD lastTick = GetTickCount();
@@ -463,24 +495,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         
         while (GlobalRunning) {
             
-            platform_controller_input *OldKeyboardController = GetController(OldInput, 0);
             platform_controller_input *NewKeyboardController = GetController(&p.Input, 0);
-            *NewKeyboardController = {};
             NewKeyboardController->IsConnected = true;
-            for(int ButtonIndex = 0;
-                ButtonIndex < ArrayCount(NewKeyboardController->Buttons);
-                ++ButtonIndex)
+            for(int ButtonIndex = 0; ButtonIndex < ArrayCount(NewKeyboardController->Buttons); ++ButtonIndex)
             {
-                NewKeyboardController->Buttons[ButtonIndex].EndedDown = OldKeyboardController->Buttons[ButtonIndex].EndedDown;
+                NewKeyboardController->Buttons[ButtonIndex].EndedDown = 0;
+                NewKeyboardController->Buttons[ButtonIndex].NewEndedDown = false;
             }
             
-            platform_keyboard_input *OldKeyboard = GetKeyboard(OldInput, 0);
             platform_keyboard_input *NewKeyboard = GetKeyboard(&p.Input, 0);
-            *NewKeyboard = {};
-            //NewKeyboardController->IsConnected = true;
+            NewKeyboard->IsConnected = true;
             for(int ButtonIndex = 0; ButtonIndex < ArrayCount(NewKeyboard->Buttons); ++ButtonIndex)
             {
-                NewKeyboard->Buttons[ButtonIndex].EndedDown = OldKeyboard->Buttons[ButtonIndex].EndedDown;
+                NewKeyboard->Buttons[ButtonIndex].EndedDown = 0;
+                NewKeyboard->Buttons[ButtonIndex].NewEndedDown = false;
             }
             Win32ProcessPendingMessages(NewKeyboardController, NewKeyboard);
             
@@ -582,10 +610,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 Win32ResizeDIBSection(&GlobalBackbuffer, p.Dimension.Width, p.Dimension.Height);
             }
 #endif
-            
-            platform_input *Temp = &p.Input;
-            p.Input = *OldInput;
-            OldInput = Temp;
+            //platform_input Temp = *NewInput;
+            //*NewInput = *OldInput;
+            //*OldInput = Temp;
         } // End of game loop
     }
     else // if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
