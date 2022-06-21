@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <intrin.h>
 #include <stdio.h>
+#include <dxgi1_6.h>
 
 #include "types.h"
 #include "platform.h"
@@ -28,6 +29,17 @@ int main(int argc, const char** argv) { return WinMain(GetModuleHandle(NULL), NU
 #pragma comment(linker, "/subsystem:windows")
 #endif
 #pragma comment(lib, "opengl32.lib")
+
+// Enabling Discrete Graphics?
+extern "C" 
+{
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+}
+
+extern "C"
+{
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 
 // opengl declarations
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
