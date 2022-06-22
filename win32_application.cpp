@@ -477,6 +477,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     p.Memory.TransientStorage = ((uint8 *)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
     GlobalDebugBuffer.Mutex = CreateMutex(NULL, FALSE, NULL);
+    Manager.Mutex = CreateMutex(NULL, FALSE, NULL);
     
     if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
     {
@@ -571,12 +572,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             if (p.Input.NewCursor)
             {
-                if (p.Input.Cursor == Arrow)
+                if (p.Input.Cursor == platform_cursor_mode::Arrow)
                 {
                     HCURSOR curs = LoadCursor(NULL, IDC_ARROW);
                     SetCursor(curs); 
                 }
-                else if (p.Input.Cursor == Hand)
+                else if (p.Input.Cursor == platform_cursor_mode::Hand)
                 {
                     HCURSOR curs = LoadCursor(NULL, IDC_HAND);
                     SetCursor(curs); 

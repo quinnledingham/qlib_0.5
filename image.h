@@ -32,6 +32,18 @@ struct loaded_bitmap
     void *Free;
 };
 
+inline Image ResizeImage(Image *ToResize, v2 NewDim)
+{
+    if (NewDim.x == 0)
+        NewDim.x = (NewDim.y / ToResize->y) * ToResize->x;
+    else if (NewDim.y == 0)
+        NewDim.y = (NewDim.x / ToResize->x) * ToResize->y;
+    
+    Image ResizedImage = {};
+    ResizedImage.data = (unsigned char*)malloc((int)NewDim.x * (int)NewDim.y * ToResize->n);
+    return ResizedImage;
+}
+
 internal Image
 LoadImage(const char* FileName)
 {

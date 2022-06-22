@@ -141,6 +141,7 @@ void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int ins
 void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
+void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode Mode);
 
 //typedef int type;
 struct Piece
@@ -149,6 +150,9 @@ struct Piece
     v2 Dim;
     real32 Rotation;
     BlendMode BMode;
+    
+    v2 ScissorCoords;
+    v2 ScissorDim;
     
     enum type
     {
@@ -161,7 +165,8 @@ struct Piece
     Texture *Tex;
     
     inline Piece() {}
-    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
+    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), ScissorCoords(0), ScissorDim(0), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
+    inline Piece(v3 _Coords, v2 _Dim, v2 _ScissorCoords, v2 _ScissorDim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), ScissorCoords(_ScissorCoords), ScissorDim(_ScissorDim), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
     inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) : Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = Piece::type::ColorRect;}
 };
 struct PieceGroup
@@ -189,6 +194,7 @@ struct PieceGroup
 };
 inline void Push(PieceGroup &Group, Piece p) { *Group[Group.Size] = p; Group.Size++; }
 inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) { Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode)); }
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode BMode) { Push(Group, Piece(Coords, Dim, ScissorCoords, ScissorDim, Tex, Rotation, BMode)); }
 inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation) { Push(Group, Piece(Coords, Dim , Color, Rotation)); }
 
 internal void
@@ -212,7 +218,7 @@ RenderPieceGroup(PieceGroup &Group)
     for (int i = 0; i < Group.Size; i++) {
         Piece *p = Group[i];
         if (p->Type == Piece::type::TextureRect)
-            DrawRect(p->Coords, p->Dim, p->Tex, p->Rotation, p->BMode);
+            DrawRect(p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Tex, p->Rotation, p->BMode);
         else if (p->Type == Piece::type::ColorRect)
             DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
     }

@@ -104,7 +104,7 @@ char* Concat(char* Source, char* Add)
     return Result;
 }
 
-char* Insert(char* Source, int InsertPosition, char* Add)
+const char* Insert(const char* Source, int InsertPosition, const char* Add)
 {
     int AddLength = GetLength(Add);
     int SourceLength = GetLength(Source);
@@ -136,7 +136,7 @@ char* Insert(char* Source, int InsertPosition, char* Add)
     return Result;
 }
 
-char* RemoveAt(char* Source, int RemovePosition)
+const char* RemoveAt(const char* Source, int RemovePosition)
 {
     int Size = GetLength(Source);
     char* Result = (char*)qalloc(Size);

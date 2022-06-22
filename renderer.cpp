@@ -545,15 +545,16 @@ LoadTexture(const char* FileName)
 {
     Texture Tex = {};
     unsigned char* data = stbi_load(FileName, (int*)&Tex.mWidth, (int*)&Tex.mHeight, (int*)&Tex.mChannels, 0);
+    Assert(Tex.mWidth != 0 && Tex.mHeight != 0);
     Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
     stbi_image_free(data);
     
     Tex.og.x = Tex.mWidth;
     Tex.og.y = Tex.mHeight;
     Tex.og.n = Tex.mChannels;
-    // Tex.og.data = (unsigned char*)qalloc((void*)Tex.data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
+    Tex.og.data = (unsigned char*)qalloc((void*)Tex.data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
     
-    Tex.Init(Tex.data);
+    //Tex.Init(Tex.data);
     return (Texture*)qalloc(&Tex, sizeof(Texture));
 }
 
@@ -670,6 +671,7 @@ glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instance
 
 mat4 projection;
 mat4 view;
+v2 CameraViewDim;
 
 // Paints the screen white
 internal void
@@ -707,6 +709,7 @@ void
 BeginMode2D(Camera C)
 {
     BeginMode(C);
+    CameraViewDim = v2((float)C.Dimension.Width, (float)C.Dimension.Height);
     float width = (float)C.Dimension.Width;
     float height = (float)C.Dimension.Height;
     projection = Ortho(-width/2, width/2, -height/2, height/2, 0.1f, 1000.0f);
@@ -717,6 +720,7 @@ void
 BeginMode3D(Camera C)
 {
     BeginMode(C);
+    CameraViewDim = v2((float)C.Dimension.Width, (float)C.Dimension.Height);
     C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
     projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
     InMode3D = 1;
@@ -850,7 +854,7 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 }
 
 void
-DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
+DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode Mode)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
@@ -899,6 +903,15 @@ DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
                                            v3(Size.x, Size.y, 1)));
     
+    if (ScissorDim.x > 0 && ScissorDim.y > 0) {
+        glScissor((GLsizei)(ScissorCoords.x + (CameraViewDim.x/2)), 
+                  (GLsizei)(-ScissorCoords.y + (CameraViewDim.y/2)), 
+                  (GLint)ScissorDim.x,
+                  (GLint)ScissorDim.y);
+        //glScissor(500, 500, 100, 100);
+        glEnable(GL_SCISSOR_TEST);
+    }
+    
     if (Mode == BlendMode::gl_one)
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     else if (Mode == BlendMode::gl_src_alpha)
@@ -933,6 +946,13 @@ DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
         PrintqDebug(S() + (int)err + "\n");
     }
     
+    if (ScissorDim.x > 0 && ScissorDim.y > 0)
+        glDisable(GL_SCISSOR_TEST);
+    
+}
+inline void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
+{
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Tex, Rotation, Mode);
 }
 
 #else // !QLIB_OPENGL

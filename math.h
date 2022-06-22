@@ -55,6 +55,28 @@ operator/(const v2 &l, float r)
 }
 
 inline v2
+operator/(const v2 &l, const v2 &r)
+{
+    return v2(l.x / r.x, l.y / r.y);
+}
+
+inline bool
+operator==(const v2 &l, const v2 &r)
+{
+    if (l.x == r.x && l.y == r.y)
+        return true;
+    return false;
+}
+
+inline bool
+operator!=(const v2 &l, const v2 &r)
+{
+    if (l.x == r.x && l.y == r.y)
+        return false;
+    return true;
+}
+
+inline v2
 abso(const v2 &v)
 {
     v2 r = v2();
@@ -984,6 +1006,35 @@ v3 TransformVector(const Transform& a, const v3& b)
 mat4 Rotate(mat4& m, float degs)
 {
     return (m * QuatToMat4(AngleAxis(degs * DEG2RAD, v3(0, 0, 1))));
+}
+
+// MISC
+typedef real32 resize_factor;
+inline resize_factor  GetResizeFactor(real32 OldNum, real32 ResizedNum) { return (ResizedNum / OldNum); }
+inline v2 GetResizeFactor(v2 OldDim, v2 NewDim)
+{
+    return NewDim / OldDim;
+}
+real32 ResizeEquivalentAmount(real32 ToResize, resize_factor ResizeFactor)
+{
+    if (ResizeFactor == 0)
+        return ToResize;
+    else
+        return (ResizeFactor * ToResize);
+}
+real32 ResizeEquivalentAmount(real32 ToResize, real32 OldNum, real32 ResizedNum)
+{
+    if (OldNum == 0)
+        return ToResize;
+    else
+        return ((ResizedNum / OldNum) * ToResize);
+}
+v2 ResizeEquivalentAmount(v2 ToResize, v2 ResizeFactors)
+{
+    if (ResizeFactors == 0)
+        return ToResize;
+    else
+        return v2(ResizeFactors.x * ToResize.x, ResizeFactors.y * ToResize.y);
 }
 
 #endif //MATH_H

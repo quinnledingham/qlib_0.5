@@ -5,18 +5,12 @@
 #pragma message ("gui.h requires text.h")
 #endif
 
-enum direction
-{
-    Right,
-    Up,
-    Left,
-    Down,
-};
-
+/*
 struct Button
 {
     char* Text;
     Font *FontType;
+    
     int ID;
     uint32 Color;
     uint32 RegularColor;
@@ -48,6 +42,7 @@ struct TextBox
     int ID;
     
     real32 Active;
+    int MaxTextLength = 100;
     real32 XAdvances[100];
     int CursorPosition; // What char to print the cursor after (0 is front, 1 after first char)
     
@@ -126,6 +121,8 @@ struct GUI
     v2 DefaultDim;
     int DefaultPadding = 0;
 };
+*/
+
 
 inline int MouseInRect(v2 RectCoords, v2 RectDim, v2 MouseCoords)
 {
@@ -137,7 +134,7 @@ inline int MouseInRect(v2 RectCoords, v2 RectDim, v2 MouseCoords)
 }
 
 internal void
-SetCursorMode(platform_input *Input, CursorMode CursorM)
+SetCursorMode(platform_input *Input, platform_cursor_mode CursorM)
 {
     if (Input->Cursor != CursorM) {
         Input->Cursor = CursorM;
@@ -148,7 +145,7 @@ SetCursorMode(platform_input *Input, CursorMode CursorM)
 }
 
 internal void
-TextBoxMoveCursorArrowKeys(GUI *G, direction Dir)
+TextBoxMoveCursorArrowKeys(GUI *G, menu_direction Dir)
 {
     GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0) {
@@ -169,14 +166,14 @@ TextBoxLoadXAdvances(TextBox *TB)
     for (int i = 0; i < GetLength(TB->Text); i++)
     {
         FontChar *NextChar = LoadFontChar(TB->FontType,  TB->Text[i], 0xFF000000);
-        NextChar->Advance = 0;
-        // advance x 
-        NextChar->Advance += (int)roundf(NextChar->AX * TB->FontType->Scale);
+        
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(&TB->FontType->Info, TB->Text[i], &ax, &lsb);
+        
         // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&TB->FontType->Info, TB->Text[i], TB->Text[i + 1]);
-        NextChar->Advance += (int)roundf(kern * TB->FontType->Scale);
-        TB->XAdvances[i] = NextChar->Advance;
+        int kern = stbtt_GetCodepointKernAdvance(&TB->FontType->Info, TB->Text[i], TB->Text[i + 1]);
+        TB->XAdvances[i] = ((kern + ax) * TB->FontType->Scale);
     }
 }
 
@@ -222,7 +219,7 @@ AddCharTextBoxText(GUI* G, char* Char)
     GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0) {
         TextBox* TB = (TextBox*)Cursor->Data;
-        if (TB->Active) {
+        if (TB->Active && GetLength(TB->Text) + 1 < TB->MaxTextLength) {
             TB->Text = Insert(TB->Text, TB->CursorPosition, Char);
             IncrementCursorPosition(TB);
         }
@@ -265,7 +262,7 @@ TextBoxAddText(GUI *G, char *NewText)
     GUIComponent* Cursor = G->TextBoxes;
     while(Cursor != 0) {
         TextBox* TB = (TextBox*)Cursor->Data;
-        if (TB->Active) {
+        if (TB->Active && GetLength(TB->Text) + GetLength(NewText) < TB->MaxTextLength) {
             TB->Text = Insert(TB->Text, TB->CursorPosition, NewText);
             TB->CursorPosition += GetLength(NewText);
         }
@@ -347,6 +344,7 @@ AddButton(GUI* G, v2 GridCoords, v2 Dim, Button B)
     NewComponent->Type = GUIComponent::type::button;
     
     B.Color = B.RegularColor;
+    
     NewComponent->Data = qalloc((void*)&B, sizeof(Button));
     
     G->Components.Push(NewComponent);
@@ -361,7 +359,13 @@ AddButton(GUI* G, v2 GridCoords, v2 Dim, Button B)
         Cursor->Next = (GUIComponent*)G->Components.Last();
     }
 }
-
+/*
+internal void
+GUIAddButton(gui *GUI, v2 GridCoords, v2 Dim, gui_button *Button)
+{
+    //
+}
+*/
 internal GUIComponent*
 AddText(GUI* G, v2 GridCoords,  Text T, GUIComponent *Align)
 {
@@ -605,18 +609,39 @@ RenderGUI(GUI* G)
             
             v2 SDim = GetStringDimensions(b->FontType, b->Text);
             //b->TextCoords = Component->Coords + v2((Component->Dim.x - SDim.x)/2, (Component->Dim.y - SDim.y)/2);
-            b->TextCoords = Component->Coords + v2((Component->Dim.y)/4, (Component->Dim.y - SDim.y)/2);
             
-            Push(RenderGroup, v3(Component->Coords - Padding, 100.0f), Component->Dim, b->Color, 0.0f);
-            PrintOnScreen(b->FontType, b->Text, b->TextCoords - Padding, b->TextColor);
+            b->TextCoords = Component->Coords + v2(0.0f ,(Component->Dim.y - SDim.y)/2);
+            real32 OutOfBounds = (SDim.x + (Component->Dim.y/4)) - (Component->Dim.x);
+            if (OutOfBounds >= 0) {
+                b->TextCoords.x -= SDim.x - (Component->Dim.x);
+                b->TextCoords.x -= (Component->Dim.y)/4;
+            }
+            else {
+                b->TextCoords.x += (Component->Dim.y)/4;
+            }
+            
+            Push(RenderGroup, v3(Component->Coords - Padding, 50.0f), Component->Dim, b->Color, 0.0f);
             if (b->Active) {
                 TextBoxLoadXAdvances(b);
                 real32 CursorX = b->TextCoords.x;
                 for (int i = 0; i <  b->CursorPosition; i++) {
                     CursorX += b->XAdvances[i];
                 }
+                
+                if (CursorX < Component->Coords.x) {
+                    real32 TempCursorX = CursorX;
+                    int i = 0;
+                    while (TempCursorX < Component->Coords.x) {
+                        TempCursorX += b->XAdvances[i];
+                    }
+                    real32 Diff = TempCursorX - CursorX;
+                    CursorX = TempCursorX;
+                    b->TextCoords.x += Diff;
+                }
+                
                 Push(RenderGroup, v3(CursorX - Padding.x, Component->Coords.y - Padding.y, 100.0f), v2(5.0f, Component->Dim.y), 0xFF000000, 0.0f);
             }
+            PrintOnScreen(b->FontType, b->Text, b->TextCoords - Padding, b->TextColor, Component->Coords - Padding, Component->Dim);
         }
         else if (Component->Type == GUIComponent::type::text) {
             Text* b = (Text*)Component->Data;

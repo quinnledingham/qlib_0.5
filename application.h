@@ -30,6 +30,7 @@ int main(int argc, const char** argv) { return WinMain(GetModuleHandle(NULL), NU
 #endif
 #pragma comment(lib, "opengl32.lib")
 
+/*
 // Enabling Discrete Graphics?
 extern "C" 
 {
@@ -40,6 +41,7 @@ extern "C"
 {
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+*/
 
 // opengl declarations
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091

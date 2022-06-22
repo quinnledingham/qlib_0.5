@@ -122,8 +122,8 @@ struct platform_keyboard_input
     };
 };
 
-enum
-CursorMode
+enum struct
+platform_cursor_mode
 {
     Arrow,
     Hand,
@@ -134,7 +134,7 @@ platform_input
 {
     platform_button_state MouseButtons[5];
     int32 MouseX, MouseY, MouseZ;
-    CursorMode Cursor;
+    platform_cursor_mode Cursor;
     bool32 NewCursor;
     
     float dt;
@@ -159,6 +159,16 @@ inline platform_keyboard_input *GetKeyboard(platform_input *Input, int unsigned 
 {
     platform_keyboard_input *Result = &Input->Keyboard;
     return Result;
+}
+
+inline void PlatformSetCursorMode(platform_input *Input, platform_cursor_mode CursorMode)
+{
+    if (Input->Cursor != CursorMode) {
+        Input->Cursor = CursorMode;
+        Input->NewCursor = true;
+    }
+    else
+        Input->NewCursor = false;
 }
 
 struct

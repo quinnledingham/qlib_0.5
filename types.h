@@ -56,7 +56,7 @@ typedef intptr_t smm;
 
 #define DEG2RAD 0.0174533f
 
-struct v2
+typedef struct v2
 {
     union
     {
@@ -64,6 +64,11 @@ struct v2
         {
             real32 x;
             real32 y;
+        };
+        struct
+        {
+            real32 Width;
+            real32 Height;
         };
         real32 v[2];
     };
@@ -74,7 +79,7 @@ struct v2
     inline v2(real32 *fv) : x(fv[0]), y(fv[1]) {}
     inline v2(int32 _x, int32 _y) : x((real32)_x), y((real32)_y) {}
     inline v2(unsigned int _x, unsigned int _y) : x((real32)_x), y((real32)_y) {}
-};
+} Dim;
 
 struct iv2
 {
