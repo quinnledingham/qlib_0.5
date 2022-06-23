@@ -192,10 +192,22 @@ struct PieceGroup
         return &Buffer[i];
     }
 };
-inline void Push(PieceGroup &Group, Piece p) { *Group[Group.Size] = p; Group.Size++; }
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) { Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode)); }
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode BMode) { Push(Group, Piece(Coords, Dim, ScissorCoords, ScissorDim, Tex, Rotation, BMode)); }
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation) { Push(Group, Piece(Coords, Dim , Color, Rotation)); }
+inline void Push(PieceGroup &Group, Piece p)
+{ 
+    *Group[Group.Size] = p; Group.Size++; 
+}
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) 
+{ 
+    Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode));
+}
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode BMode)
+{ 
+    Push(Group, Piece(Coords, Dim, ScissorCoords, ScissorDim, Tex, Rotation, BMode));
+}
+inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
+{
+    Push(Group, Piece(Coords, Dim , Color, Rotation)); 
+}
 
 internal void
 RenderPieceGroup(PieceGroup &Group)

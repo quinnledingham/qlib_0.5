@@ -58,7 +58,6 @@ enum struct menu_component_type
 };
 struct menu_component
 {
-    menu_component_type Type;
     int ID;
     
     v2 Coords;
@@ -68,12 +67,26 @@ struct menu_component
     real32 DefaultTextPixelHeight;
     v2 PaddingDim;
     
+    bool Active;
+    
     menu_component *AlignWith;
     
+    menu_component *ActivePrevious;
+    menu_component *ActiveNext;
+    
     menu_component *NextSameType;
+    menu_component_type Type;
     void *Data;
 };
 
+#define GetComponentData(d, t) ((t*)d->Data)
+
+enum struct menu_input_mode
+{
+    Controller,
+    Keyboard,
+    Mouse,
+};
 struct menu_events
 {
     int ButtonClicked;
@@ -108,6 +121,11 @@ struct menu
     menu_component *Logos;
     
     menu_events Events;
+    
+    menu_component *Active;
+    menu_component *ActiveStart;
+    
+    menu_input_mode InputMode;
     
     uint32 BackgroundColor;
 };
@@ -394,6 +412,19 @@ inline menu_component* MenuAddLogo(menu *Menu, v2 GridCoords, v2 Dim, menu_logo 
 
 // menu
 internal void
+MenuSetUpActivePath(menu *Menu)
+{
+    Menu->Active = &Menu->Components[0];
+    for (int i = 1; i < Menu->NumOfComponents; i++) {
+        v2 CGridCoords = Menu->Components[0].GridCoords;
+        for (int i = 1; i < Menu->NumOfComponents; i++) {
+            v2 Temp = Menu->Components[0].GridCoords;
+            
+        }
+    }
+}
+
+internal void
 MenuInit(menu *Menu, v2 DefaultDim, int Padding)
 {
     Menu->DefaultDim = DefaultDim;
@@ -401,22 +432,54 @@ MenuInit(menu *Menu, v2 DefaultDim, int Padding)
     Menu->NumOfComponents = 0;
     Menu->MaxNumOfComponents = ArrayCount(Menu->Components);
     Menu->Initialized = true;
+    
+    Menu->Active = &Menu->Components[1];
 }
 
 internal menu_events*
 HandleMenuEvents(menu *Menu, platform_input *Input)
 {
+    for (int i = 0; i < ArrayCount(Input->Controllers); i++) {
+        platform_controller_input *Input2 = &Input->Controllers[i];
+        for (int j = 0; j < ArrayCount(Input2->Buttons); j++) {
+            if (Input2->Buttons[j].EndedDown != 0) {
+                if (i == 0)
+                    Menu->InputMode = menu_input_mode::Keyboard;
+                else
+                    Menu->InputMode = menu_input_mode::Controller;
+            }
+        }
+    }
+    platform_keyboard_input *Input2 = &Input->Keyboard;
+    for (int i = 0; i < ArrayCount(Input2->Buttons); i++) {
+        if (Input2->Buttons[i].EndedDown != 0)
+            Menu->InputMode = menu_input_mode::Keyboard;
+    }
+    
     Menu->Events.ButtonClicked = -1;
     v2 MouseCoords = v2(Input->MouseX, Input->MouseY);
     
-    if(Input->MouseButtons[0].NewEndedDown) {
+    if (Input->MouseButtons[0].HalfTransitionCount) {
         Menu->Events.ButtonClicked = MenuButtonClicked(Menu, MouseCoords);
+    }
+    
+    platform_controller_input *Controller = &Input->Controllers[0];
+    if (Controller->MoveUp.NewEndedDown) {
+        Menu->Active = Menu->Active->NextSameType;
+    }
+    if (Controller->MoveDown.NewEndedDown) {
+        Menu->Active = Menu->Active->NextSameType;
     }
     
     if (MenuButtonHovered(Menu, v2(Input->MouseX, Input->MouseY)))
         PlatformSetCursorMode(Input, platform_cursor_mode::Hand);
     else
         PlatformSetCursorMode(Input, platform_cursor_mode::Arrow);
+    
+    if (Menu->InputMode == menu_input_mode::Keyboard || Menu->InputMode == menu_input_mode::Controller) {
+        menu_button *Button = GetComponentData(Menu->Active, menu_button);
+        Button->CurrentColor = Button->HoverColor;
+    }
     
     return &Menu->Events;
 }
@@ -430,7 +493,6 @@ UpdateMenu(menu *Menu, v2 BufferDim)
         v2 ResizeFactors = GetResizeFactor(Menu->DefaultDim, BufferDim);
         Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
         
-        
         for (int i = 0; i < Menu->NumOfComponents; i++) {
             menu_component *MenuComponent = &Menu->Components[i];
             if (MenuComponent->Type == menu_component_type::Button)
@@ -442,7 +504,6 @@ UpdateMenu(menu *Menu, v2 BufferDim)
             if (MenuComponent->Type == menu_component_type::Logo)
                 MenuResizeLogo(Menu, MenuComponent, ResizeFactors);
         }
-        
         
         // Setting up rows
         memset(Menu->Rows, 0, sizeof(menu_grid_row) * 10);
@@ -531,7 +592,6 @@ DrawMenu(menu *Menu, real32 Z)
             Push(RenderGroup, v3(MenuComponent->Coords - Padding, 50.0f), MenuComponent->Dim, TextBox->CurrentColor, 0.0f);
             
             if (TextBox->Active) {
-                //TextBoxLoadXAdvances(TextBox);
                 real32 CursorX = TextBox->TextCoords.x;
                 for (int i = 0; i <  TextBox->CursorPosition; i++) {
                     CursorX += TextBox->FontString.Advances[i];
@@ -570,4 +630,3 @@ DrawMenu(menu *Menu, real32 Z)
 inline void DrawMenu(menu *Menu) { DrawMenu(Menu, 0); }
 
 #endif //MENU_H
-\

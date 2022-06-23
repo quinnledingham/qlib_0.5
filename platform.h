@@ -38,7 +38,9 @@ struct platform_sound_output_buffer
 struct platform_button_state
 {
     bool NewEndedDown;
-    bool EndedDown;
+    
+    bool32 EndedDown;
+    int HalfTransitionCount;
 };
 
 struct platform_controller_input
@@ -82,13 +84,14 @@ struct platform_keyboard_input
     char Clipboard[1000];
     union
     {
-        platform_button_state Buttons[19];
+        platform_button_state Buttons[20];
         struct
         {
             platform_button_state CtrlV;
             platform_button_state Escape;
             platform_button_state Period;
             platform_button_state Backspace;
+            platform_button_state Tab;
             platform_button_state F5;
             union
             {

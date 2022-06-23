@@ -16,6 +16,7 @@
 #include <intrin.h>
 #include <stdio.h>
 #include <dxgi1_6.h>
+#include <xinput.h>
 
 #include "types.h"
 #include "platform.h"
