@@ -282,6 +282,7 @@ bool operator==(const strinq& L, const strinq& R)
 
 bool PrintqDebug(strinq Output)
 {
+#if QLIB_INTERNAL
     switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
     {
         case WAIT_OBJECT_0: _try 
@@ -299,7 +300,7 @@ bool PrintqDebug(strinq Output)
         }
         _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
     }
-    
+#endif
     return true;
 }
 
