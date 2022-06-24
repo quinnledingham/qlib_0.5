@@ -96,7 +96,8 @@ struct font_string
     font_char *Memory[FONT_STRING_MAX_LENGTH];
     real32 Advances[FONT_STRING_MAX_LENGTH];
     
-    const char* Text;
+    char Text[FONT_STRING_MAX_LENGTH];
+    bool32 NewText;
     int Length;
     int MaxLength;
     
@@ -721,10 +722,20 @@ LoadFontChar(font* Font, int Codepoint, real32 Scale, uint32 Color)
     return FontChar;
 }
 
+internal void
+FontStringLoadChars(font_string *FontString)
+{
+    for (int i = 0; i < FontString->Length; i++) {
+        font_char *Temp = LoadFontChar(FontString->Font, FontString->Text[i], FontString->Scale, FontString->Color);
+        FontString->Memory[i] = Temp;
+    }
+}
+
 internal v2
 FontStringGetDim(font_string *FontString)
 {
-    if (FontString->OldScale != FontString->Scale) {
+    if (FontString->OldScale != FontString->Scale || FontString->NewText) {
+        FontStringLoadChars(FontString);
         FontString->OldScale = FontString->Scale;
         real32 StringWidth = 0;
         real32 StringHeight = 0;
@@ -751,26 +762,20 @@ FontStringGetDim(font_string *FontString)
 }
 
 internal void
-FontStringLoadChars(font_string *FontString)
-{
-    for (int i = 0; i < FontString->Length; i++) {
-        font_char *Temp = LoadFontChar(FontString->Font, FontString->Text[i], FontString->Scale, FontString->Color);
-        FontString->Memory[i] = Temp;
-    }
-}
-
-internal void
 FontStringSetText(font_string *FontString, const char *NewText)
 {
+    FontString->MaxLength = FONT_STRING_MAX_LENGTH;
     int NewTextLength = GetLength(NewText);
     if (NewTextLength <= FontString->MaxLength)
     {
-        FontString->Text = NewText;
+        memset(FontString->Text, 0, FontString->MaxLength);
+        memcpy(FontString->Text, NewText, NewTextLength);
         FontString->Length = NewTextLength;
     }
     else {
         PrintqDebug(S() + "FontStringSetText: NewText is too long\n");
     }
+    FontString->NewText = true;
 }
 
 internal v2
@@ -793,7 +798,7 @@ FontStringInit(font_string *FontString, font *Font, const char *Text, real32 Pix
 {
     FontString->Font = Font;
     FontString->Color = Color;
-    FontString->MaxLength = FONT_STRING_MAX_LENGTH;
+    
     FontStringSetText(FontString, Text);
     FontStringResize(FontString, PixelHeight);
 }

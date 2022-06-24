@@ -42,6 +42,14 @@ struct platform_button_state
     bool32 EndedDown;
     int HalfTransitionCount;
 };
+inline bool KeyDown(platform_button_state *Button)
+{
+    return (Button->HalfTransitionCount && Button->EndedDown);
+}
+inline bool KeyPressed(platform_button_state *Button)
+{
+    return Button->EndedDown;
+}
 
 struct platform_controller_input
 {
@@ -61,7 +69,7 @@ struct platform_controller_input
             platform_button_state MoveRight;
             
             platform_button_state ActionUp;
-            platform_button_state ActionDown;
+            platform_button_state Enter;
             platform_button_state ActionLeft;
             platform_button_state ActionRight;
             
@@ -82,6 +90,9 @@ struct platform_keyboard_input
 {
     bool32 IsConnected;
     char Clipboard[1000];
+    
+    platform_controller_input *ControllerInput;
+    
     union
     {
         platform_button_state Buttons[20];
@@ -125,31 +136,51 @@ struct platform_keyboard_input
     };
 };
 
+enum struct platform_input_mode
+{
+    Mouse,
+    Controller,
+    Keyboard,
+};
 enum struct
 platform_cursor_mode
 {
     Arrow,
     Hand,
 };
-
+struct platform_input_info
+{
+    platform_input_mode InputMode;
+    platform_controller_input *Controller;
+};
 struct
 platform_input
 {
     platform_button_state MouseButtons[5];
     int32 MouseX, MouseY, MouseZ;
     platform_cursor_mode Cursor;
+    bool32 MouseMoved;
     bool32 NewCursor;
     
-    float dt;
     real32 WorkSecondsElapsed;
-    real32 Seconds;
+    
+    real32 TriggerCount;
     
     platform_controller_input Controllers[5];
     platform_keyboard_input Keyboard;
     
+    union
+    {
+        platform_input_info InputInfo[2];
+        struct 
+        {
+            platform_input_info CurrentInputInfo;
+            platform_input_info PreviousInputInfo;
+        };
+    };
+    
     int Quit;
 };
-
 inline platform_controller_input *GetController(platform_input *Input, int unsigned ControllerIndex)
 {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
@@ -157,13 +188,11 @@ inline platform_controller_input *GetController(platform_input *Input, int unsig
     platform_controller_input *Result = &Input->Controllers[ControllerIndex];
     return(Result);
 }
-
 inline platform_keyboard_input *GetKeyboard(platform_input *Input, int unsigned KeyboardIndex)
 {
     platform_keyboard_input *Result = &Input->Keyboard;
     return Result;
 }
-
 inline void PlatformSetCursorMode(platform_input *Input, platform_cursor_mode CursorMode)
 {
     if (Input->Cursor != CursorMode) {
@@ -172,6 +201,57 @@ inline void PlatformSetCursorMode(platform_input *Input, platform_cursor_mode Cu
     }
     else
         Input->NewCursor = false;
+}
+inline void UpdateInputInfo(platform_input *Input)
+{
+    platform_input_info InputInfo = Input->PreviousInputInfo;
+    
+    for (int i = 0; i < ArrayCount(Input->Controllers); i++) {
+        platform_controller_input *Input2 = &Input->Controllers[i];
+        for (int j = 0; j < ArrayCount(Input2->Buttons); j++) {
+            if (Input2->Buttons[j].EndedDown != 0) {
+                if (i == 0) 
+                    InputInfo.InputMode = platform_input_mode::Keyboard;
+                else 
+                    InputInfo.InputMode = platform_input_mode::Controller;
+                InputInfo.Controller = &Input->Controllers[i];
+            }
+        }
+    }
+    platform_keyboard_input *Input2 = &Input->Keyboard;
+    for (int i = 0; i < ArrayCount(Input2->Buttons); i++) {
+        if (Input2->Buttons[i].EndedDown != 0) {
+            InputInfo.InputMode = platform_input_mode::Keyboard;
+            InputInfo.Controller = &Input->Controllers[0];
+        }
+    }
+    
+    if (Input->MouseMoved) {
+        InputInfo.InputMode = platform_input_mode::Mouse;
+        InputInfo.Controller = &Input->Controllers[0];
+    }
+    
+    Input->PreviousInputInfo = Input->CurrentInputInfo;
+    Input->CurrentInputInfo = InputInfo;
+}
+inline bool KeyPressed(platform_button_state *Button, platform_input *Input)
+{
+    if (Button->EndedDown) {
+        Input->TriggerCount += Input->WorkSecondsElapsed;
+        fprintf(stderr, "%d %d %f\n", Button->EndedDown, Button->HalfTransitionCount, Input->TriggerCount);
+        if (Input->TriggerCount >= 0.5f) {
+            Input->TriggerCount = -0.3f;
+            return true;
+        }
+        else if (Input->TriggerCount >= 0.1f) {
+            Input->TriggerCount = 0.0f;
+            return true;
+        }
+    }
+    else {
+        Input->TriggerCount = 0.6f;
+    }
+    return false;
 }
 
 struct
@@ -216,8 +296,10 @@ platform
 {
     bool32 Initialized;
     
-    platform_input Input;
-    platform_input OldInput;
+    //platform_input Input;
+    
+    platform_input Inputs[2];
+    platform_input *Input;
     
     platform_memory Memory;
     platform_window_dimension Dimension;
