@@ -11,24 +11,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
 
-struct FontChar
-{
-    int codepoint;
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    int AX;
-    int LSB;
-    int C_X1;
-    int C_Y1;
-    int C_X2;
-    int C_Y2;
-    Texture Tex;
-    uint32 Color;
-    real32 Scale;
-    void* Memory;
-};
-
 struct font_scale
 {
     real32 PixelHeight;
@@ -41,21 +23,6 @@ struct font_scale
     real32 ScaledDescent;
 };
 
-#define FONTCACHEMAXSIZE 200 
-struct Font
-{
-    stbtt_fontinfo Info;
-    real32 Ascent;
-    real32 Descent;
-    real32 Scale;
-    real32 ScaleIn;
-    
-    font_scale FontScales[10];
-    
-    int Size = 0;
-    FontChar Memory[FONTCACHEMAXSIZE];
-    entire_file TTFFile;
-};
 
 struct font_char
 {
@@ -77,6 +44,7 @@ struct font_char
     void* Memory;
 };
 
+#define FONTCACHEMAXSIZE 200 
 struct font
 {
     stbtt_fontinfo Info;
@@ -107,7 +75,7 @@ struct font_string
     real32 OldScale;
     uint32 Color;
 };
-
+/*
 internal void
 FilenameSearchModify(char* filename, char* result)
 {
@@ -141,200 +109,6 @@ FilenameCapitalize(char* filename, char* result)
         j++;
     }
     result[j] = 0;
-}
-
-internal loaded_bitmap
-LoadGlyphBitmap(Font *font, u32 Codepoint, uint32 Color)
-{
-    loaded_bitmap Result = {};
-    if(font->TTFFile.ContentsSize != 0)
-    {
-        int Width, Height, XOffset, YOffset;
-        u8 *MonoBitmap = stbtt_GetCodepointBitmap(&font->Info, 0, font->Scale,
-                                                  Codepoint, &Width, &Height, &XOffset, &YOffset);
-        
-        Result.Width = Width;
-        Result.Height = Height;
-        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
-        Result.Memory = malloc(Height*Result.Pitch);
-        Result.Free = Result.Memory;
-        
-        u8 *Source = MonoBitmap;
-        u8 *DestRow = (u8 *)Result.Memory;
-        for(s32 Y = 0; Y < Height; ++Y)
-        {
-            u32 *Dest = (u32 *)DestRow;
-            for(s32 X = 0; X < Width; ++X)
-            {
-                u8 Gray = *Source++;
-                u32 Alpha = ((Gray << 24) |
-                             (Gray << 16) |
-                             (Gray <<  8) |
-                             (Gray << 0));
-                Color &= 0x00FFFFFF;
-                Alpha &= 0xFF000000;
-                Color += Alpha;
-                *Dest++ = Color;
-            }
-            
-            DestRow += Result.Pitch;
-        }
-        
-        stbtt_FreeBitmap(MonoBitmap, 0);
-    }
-    
-    return (Result);
-}
-
-internal void
-LoadFont(Font *F, char* FileName, real32 ScaleIn)
-{
-    entire_file File = ReadEntireFile(FileName);
-    
-    stbtt_fontinfo Info;
-    stbtt_InitFont(&Info, (u8 *)File.Contents, stbtt_GetFontOffsetForIndex((u8 *)File.Contents, 0));
-    
-    float Scale = stbtt_ScaleForPixelHeight(&Info, ScaleIn);
-    
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&Info, &ascent, &descent, &lineGap);
-    
-    F->Info = Info;
-    F->Scale = Scale;
-    F->ScaleIn = ScaleIn;
-    F->TTFFile = File;
-}
-
-internal void
-ResizeFont(Font *Font, real32 ScaleIn)
-{
-    float Scale = stbtt_ScaleForPixelHeight(&Font->Info, ScaleIn);
-    
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&Font->Info, &ascent, &descent, &lineGap);
-    
-    Font->Ascent = roundf((real32)ascent * Scale);
-    Font->Descent = roundf((real32)descent * Scale);
-    Font->Scale = Scale;
-    Font->ScaleIn = ScaleIn;
-    
-}
-
-internal Font*
-LoadFont(const char* FileName, real32 ScaleIn)
-{
-    Font *F = (Font*)qalloc(sizeof(Font));
-    
-    F->TTFFile = ReadEntireFile(FileName);
-    stbtt_InitFont(&F->Info, (u8 *)F->TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)F->TTFFile.Contents, 0));
-    ResizeFont(F, ScaleIn);
-    
-    return F;
-}
-
-internal void
-UnLoadFont(Font DelFont)
-{
-    
-}
-
-internal FontChar*
-LoadFontChar(Font* font, int codepoint, uint32 Color)
-{
-    // If codepoint is already loaded
-    for (int i = 0; i < font->Size; i++)
-    {
-        if (font->Memory[i].codepoint == codepoint &&
-            font->Memory[i].Color == Color &&
-            font->Memory[i].Scale == font->Scale)
-        {
-            return &font->Memory[i];
-        }
-    }
-    
-    // If the codepoint has to be loaded
-    
-    // how wide is this character
-    int ax;
-    int lsb;
-    stbtt_GetCodepointHMetrics(&font->Info, codepoint, &ax, &lsb);
-    
-    // get bounding box for character (may be offset to account for chars that dip above or below the line
-    int c_x1, c_y1, c_x2, c_y2;
-    stbtt_GetCodepointBitmapBox(&font->Info, codepoint, font->Scale, font->Scale, &c_x1, &c_y1, &c_x2, &c_y2);
-    
-    // render character
-    loaded_bitmap Temp = LoadGlyphBitmap(font, codepoint, Color);
-    
-    FontChar NewFontChar = {};
-    NewFontChar.codepoint = codepoint;
-    NewFontChar.Width = Temp.Width;
-    NewFontChar.Height = Temp.Height;
-    NewFontChar.Pitch = Temp.Pitch;
-    NewFontChar.Memory = Temp.Memory;
-    NewFontChar.AX = ax;
-    NewFontChar.LSB = lsb;
-    NewFontChar.C_X1 = c_x1;
-    NewFontChar.C_Y1 = c_y1;
-    NewFontChar.C_X2 = c_x2;
-    NewFontChar.C_Y2 = c_y2;
-    NewFontChar.Color = Color;
-    NewFontChar.Scale = font->Scale;
-    
-#if QLIB_OPENGL
-    Image SrcImage = {};
-    SrcImage.x = NewFontChar.Width;
-    SrcImage.y = NewFontChar.Height;
-    SrcImage.n = NewFontChar.Pitch;
-    SrcImage.data = (unsigned char*)NewFontChar.Memory;
-    NewFontChar.Tex.Init(&SrcImage);
-    stbi_image_free(SrcImage.data);
-#endif
-    
-    font->Memory[font->Size] = NewFontChar;
-    font->Size++;
-    return &font->Memory[font->Size - 1];
-}
-
-internal v2
-GetStringDimensions(Font* SrcFont, char* SrcText)
-{
-    real32 X = 0;
-    int StrLength = GetLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        FontChar *NextChar = LoadFontChar(SrcFont,  SrcText[i], 0xFF000000);
-        
-        int Y = -1 *  NextChar->C_Y1;
-        if(BiggestY < Y)
-            BiggestY = Y;
-        
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
-        
-        // add kerning
-        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        
-        X += ((kern + ax) * SrcFont->Scale);
-    }
-    
-    int StringWidth = (int)X;
-    
-    v2 Dimension = v2((real32)StringWidth, (real32)BiggestY);
-    return(Dimension);
-}
-
-internal v2
-GetStringDimensions(Font *SrcFont, strinq *SrcText)
-{
-    if ((SrcText->Dim.x == 0 && SrcText->Dim.y == 0) || (SrcFont->Scale != SrcText->DimScale)) {
-        SrcText->DimScale = SrcFont->Scale;
-        SrcText->Dim = GetStringDimensions(SrcFont, SrcText->Data);
-    }
-    return SrcText->Dim;
 }
 
 internal void
@@ -541,59 +315,7 @@ LoadFontFromHeaderFile(Font* LoadFont,
         CharMemoryCursor += NextSpot;
     }
 }
-
-/*
- Problems:
- z-sorting - buttons are in front of the text
-off by one - texture is off by one in some places so a line is drawn.
-fixed right now by turning off tiling. Can't tell if it still makes the font look bad.
 */
-void
-PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color, v2 ScissorCoords, v2 ScissorDim)
-{
-    int StrLength = GetLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++){
-        int SrcChar = SrcText[i];
-        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, 0xFF000000);
-        int Y = -1 *  NextChar->C_Y1;
-        if(BiggestY < Y)
-            BiggestY = Y;
-    }
-    
-    real32 X = Coords.x;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        
-        FontChar *NextChar = LoadFontChar(SrcFont, SrcChar, Color);
-        
-        int Y = (int)Coords.y + NextChar->C_Y1 + BiggestY;
-        
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
-        
-        v2 Scissor = v2(ScissorCoords.x, ScissorCoords.y + ScissorDim.y);
-        
-        Push(RenderGroup,
-             v3(X + (lsb * SrcFont->Scale), (real32)Y, 100.0f), 
-             v2((real32)NextChar->Tex.mWidth, (real32)NextChar->Tex.mHeight), 
-             Scissor,
-             ScissorDim,
-             &NextChar->Tex, 0, BlendMode::gl_src_alpha);
-        
-        int kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        X += ((kern + ax) * SrcFont->Scale);
-    }
-}
-inline void PrintOnScreen(Font* SrcFont, char* SrcText, v2 Coords, uint32 Color)
-{
-    PrintOnScreen(SrcFont, SrcText, Coords, Color, v2(0,0), v2(0,0));
-}
-
 internal loaded_bitmap
 LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
 {

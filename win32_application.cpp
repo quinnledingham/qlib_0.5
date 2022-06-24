@@ -132,6 +132,7 @@ Win32ProcessKeyboardMessage(platform_button_state *NewState, platform_button_sta
     if(NewState->EndedDown != IsDown) {
         NewState->EndedDown = IsDown;
         NewState->HalfTransitionCount = (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
+        //fprintf(stderr, "%d %d\n", NewState->EndedDown, NewState->HalfTransitionCount);
     }
 }
 
@@ -181,7 +182,7 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController,
                     }
                     else if(VKCode == VK_F5)
                     {
-                        Win32ProcessKeyboardMessage(&Keyboard->F5, IsDown);
+                        Win32ProcessKeyboardMessage(&Keyboard->F5, &OldKeyboard->F5, IsDown);
                     }
                     else if(VKCode == VK_UP)
                     {
@@ -189,7 +190,7 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController,
                     }
                     else if(VKCode == VK_LEFT)
                     {
-                        Win32ProcessKeyboardMessage(&Keyboard->Left, IsDown);
+                        Win32ProcessKeyboardMessage(&Keyboard->Left, &OldKeyboard->Left, IsDown);
                     }
                     else if(VKCode == VK_DOWN)
                     {
@@ -210,7 +211,7 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController,
                     }
                     else if (VKCode == VK_OEM_PERIOD)
                     {
-                        Win32ProcessKeyboardMessage(&Keyboard->Period, IsDown);
+                        Win32ProcessKeyboardMessage(&Keyboard->Period, &OldKeyboard->Period, IsDown);
                     }
                     else if (VKCode == VK_BACK)
                     {
@@ -222,7 +223,7 @@ Win32ProcessPendingMessages(platform_controller_input *KeyboardController,
                     }
                     else if (VKCode == VK_RETURN)
                     {
-                        Win32ProcessKeyboardMessage(&KeyboardController->Enter, IsDown);
+                        Win32ProcessKeyboardMessage(&KeyboardController->Enter, &OldKeyboardController->MoveLeft, IsDown);
                     }
                     
                     // alt-f4

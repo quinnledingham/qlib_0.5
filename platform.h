@@ -236,21 +236,19 @@ inline void UpdateInputInfo(platform_input *Input)
 }
 inline bool KeyPressed(platform_button_state *Button, platform_input *Input)
 {
-    if (Button->EndedDown) {
+    if (KeyDown(Button)) {
+        Input->TriggerCount = -0.2f;
+        return true;
+    }
+    else if (Button->EndedDown) {
+        //fprintf(stderr, "%d %d %f\n", Button->EndedDown, Button->HalfTransitionCount, Input->TriggerCount);
         Input->TriggerCount += Input->WorkSecondsElapsed;
-        fprintf(stderr, "%d %d %f\n", Button->EndedDown, Button->HalfTransitionCount, Input->TriggerCount);
-        if (Input->TriggerCount >= 0.5f) {
-            Input->TriggerCount = -0.3f;
-            return true;
-        }
-        else if (Input->TriggerCount >= 0.1f) {
+        if (Input->TriggerCount >= 0.05f) {
             Input->TriggerCount = 0.0f;
             return true;
         }
     }
-    else {
-        Input->TriggerCount = 0.6f;
-    }
+    
     return false;
 }
 
@@ -295,8 +293,6 @@ struct
 platform
 {
     bool32 Initialized;
-    
-    //platform_input Input;
     
     platform_input Inputs[2];
     platform_input *Input;

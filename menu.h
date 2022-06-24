@@ -9,7 +9,7 @@ enum struct menu_direction
     Down,
 };
 
-struct menu_button
+struct menu_component_button
 {
     font_string FontString;
     real32 DefaultTextPixelHeight;
@@ -23,18 +23,18 @@ struct menu_button
     uint32 HoverTextColor;
 };
 
-struct menu_logo
+struct menu_component_logo
 {
     Texture *Tex;
 };
 
-struct menu_text
+struct menu_component_text
 {
     font_string FontString;
     uint32 DefaultTextColor;
 };
 
-struct menu_textbox
+struct menu_component_textbox
 {
     font_string FontString;
     v2 TextCoords;
@@ -139,7 +139,7 @@ inline void DecrActive(menu *Menu)
     if (Menu->ActiveIndex < 0)
         Menu->ActiveIndex = Menu->NumOfActiveComponents - 1;
 }
-inline void FindActive(menu *Menu)
+inline void UpdateActiveIndex(menu *Menu)
 {
     for (int i = 0; i < Menu->NumOfActiveComponents; i++) {
         menu_component *C = Menu->ActiveComponents[i];
@@ -147,6 +147,7 @@ inline void FindActive(menu *Menu)
             Menu->ActiveIndex = i;
     }
 }
+
 
 inline bool CoordsInRect( v2 Coords, v2 RectCoords, v2 RectDim)
 {
@@ -179,13 +180,13 @@ MenuGetNextComponent(menu *Menu)
     return &Menu->Components[Menu->NumOfComponents++];
 }
 
-// menu_button
+// menu_component_button
 internal int
 MenuButtonClicked(menu *Menu, v2 MouseCoords)
 {
     menu_component* Cursor = Menu->Buttons;
     while(Cursor != 0) {
-        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->Dim)) {
+        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->PaddingDim)) {
             return Cursor->ID;
         }
         Cursor = Cursor->NextSameType;
@@ -200,8 +201,8 @@ MenuButtonHovered(menu *Menu, v2 MouseCoords)
     
     menu_component* Cursor = Menu->Buttons;
     while(Cursor != 0) {
-        menu_button *Button = (menu_button*)Cursor->Data;
-        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->Dim)) {
+        menu_component_button *Button = (menu_component_button*)Cursor->Data;
+        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->PaddingDim)) {
             //Button->CurrentColor = Button->HoverColor;
             //Button->FontString.Color = Button->HoverTextColor;
             Cursor->Active = true;
@@ -219,93 +220,109 @@ MenuButtonHovered(menu *Menu, v2 MouseCoords)
 }
 
 internal void
-MenuResizeButton(menu *Menu, menu_component *MenuComponent, v2 ResizeFactors)
+MenuResizeButton(menu *Menu, menu_component *MComp, v2 ResizeFactors)
 {
-    menu_button *Button = (menu_button*)MenuComponent->Data;
-    FontStringResize(&Button->FontString, ResizeEquivalentAmount(MenuComponent->DefaultTextPixelHeight, ResizeFactors.y));
-    MenuComponent->Dim = ResizeEquivalentAmount(MenuComponent->DefaultDim, ResizeFactors);
-    MenuComponent->PaddingDim = MenuComponent->Dim + (Menu->Padding * 2);
+    menu_component_button *Button = (menu_component_button*)MComp->Data;
+    FontStringResize(&Button->FontString, ResizeEquivalentAmount(MComp->DefaultTextPixelHeight, ResizeFactors.y));
+    MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
 internal menu_component*
-MenuAddButton(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_button *Button)
+MenuAddButton(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_button *Button)
 {
     Button->FontString.Color = Button->DefaultTextColor;
     FontStringInit(&Button->FontString);
     
-    menu_component *MenuComponent = MenuGetNextComponent(Menu);
-    MenuComponent->GridCoords = GridCoords;
-    MenuComponent->Dim = Dim;
-    MenuComponent->DefaultDim = MenuComponent->Dim;
-    MenuComponent->DefaultTextPixelHeight = Button->FontString.PixelHeight;
-    MenuComponent->Type = menu_component_type::Button;
-    MenuComponent->ID = ID;
+    menu_component *MComp = MenuGetNextComponent(Menu);
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = Dim;
+    MComp->DefaultDim = MComp->Dim;
+    MComp->DefaultTextPixelHeight = Button->FontString.PixelHeight;
+    MComp->Type = menu_component_type::Button;
+    MComp->ID = ID;
     
     Button->CurrentColor = Button->DefaultColor;
     
-    MenuComponent->Data = qalloc((void*)Button, sizeof(menu_button));
-    MenuResizeButton(Menu, MenuComponent, 0);
+    MComp->Data = qalloc((void*)Button, sizeof(menu_component_button));
+    MenuResizeButton(Menu, MComp, 0);
     
     
-    Menu->Buttons = MenuAddToComponentList(Menu->Buttons, MenuComponent);
-    return MenuComponent;
+    Menu->Buttons = MenuAddToComponentList(Menu->Buttons, MComp);
+    return MComp;
 }
 
-// menu_text
+// menu_component_text
 internal void
-MenuResizeText(menu *Menu, menu_component *MenuComponent, v2 ResizeFactors)
+MenuResizeText(menu *Menu, menu_component *MComp, v2 ResizeFactors)
 {
-    menu_text *Text = (menu_text*)MenuComponent->Data;
-    MenuComponent->Dim = FontStringResize(&Text->FontString, ResizeEquivalentAmount(MenuComponent->DefaultTextPixelHeight, ResizeFactors.y));
-    MenuComponent->PaddingDim = MenuComponent->Dim + (Menu->Padding * 2);
+    menu_component_text *Text = (menu_component_text*)MComp->Data;
+    MComp->Dim = FontStringResize(&Text->FontString, ResizeEquivalentAmount(MComp->DefaultTextPixelHeight, ResizeFactors.y));
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
 internal menu_component*
-MenuAddText(menu *Menu, int ID, v2 GridCoords, menu_text *Text, menu_component *Align)
+MenuAddText(menu *Menu, int ID, v2 GridCoords, menu_component_text *Text, menu_component *Align)
 {
     Text->FontString.Color = Text->DefaultTextColor;
     FontStringInit(&Text->FontString);
     
-    menu_component *MenuComponent = MenuGetNextComponent(Menu);
-    MenuComponent->GridCoords = GridCoords;
-    MenuComponent->Dim = FontStringGetDim(&Text->FontString);
-    MenuComponent->DefaultDim = MenuComponent->Dim;
-    MenuComponent->DefaultTextPixelHeight = Text->FontString.PixelHeight;
-    MenuComponent->AlignWith = Align;
-    MenuComponent->Type = menu_component_type::Text;
-    MenuComponent->ID = ID;
+    menu_component *MComp = MenuGetNextComponent(Menu);
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = FontStringGetDim(&Text->FontString);
+    MComp->DefaultDim = MComp->Dim;
+    MComp->DefaultTextPixelHeight = Text->FontString.PixelHeight;
+    MComp->AlignWith = Align;
+    MComp->Type = menu_component_type::Text;
+    MComp->ID = ID;
     
-    MenuComponent->Data = qalloc((void*)Text, sizeof(menu_text));
-    MenuResizeText(Menu, MenuComponent, 0);
+    MComp->Data = qalloc((void*)Text, sizeof(menu_component_text));
+    MenuResizeText(Menu, MComp, 0);
     
-    Menu->Texts = MenuAddToComponentList(Menu->Texts, MenuComponent);
-    return MenuComponent;
+    Menu->Texts = MenuAddToComponentList(Menu->Texts, MComp);
+    return MComp;
 }
-inline menu_component* MenuAddText(menu *Menu, int ID, v2 GridCoords, menu_text *Text)
+inline menu_component* MenuAddText(menu *Menu, int ID, v2 GridCoords, menu_component_text *Text)
 {
     return MenuAddText(Menu, ID, GridCoords, Text, 0);
 }
-inline menu_component* MenuAddText(menu *Menu, v2 GridCoords, menu_text *Text, menu_component *Align)
+inline menu_component* MenuAddText(menu *Menu, v2 GridCoords, menu_component_text *Text, menu_component *Align)
 {
     return MenuAddText(Menu, -1, GridCoords, Text, Align);
 }
-inline menu_component* MenuAddText(menu *Menu, v2 GridCoords, menu_text *Text)
+inline menu_component* MenuAddText(menu *Menu, v2 GridCoords, menu_component_text *Text)
 {
     return MenuAddText(Menu, -1, GridCoords, Text, 0);
 }
 
-// menu_textbox
-inline void IncrementCursorPosition(menu_textbox *TextBox)
+// menu_component_textbox
+inline void IncrementCursorPosition(menu_component_textbox *TextBox)
 {
     if (TextBox->CursorPosition < TextBox->FontString.Length) {
         TextBox->CursorPosition++;
     }
 }
-inline void DecrementCursorPosition(menu_textbox *TextBox)
+inline void DecrementCursorPosition(menu_component_textbox *TextBox)
 {
     if (TextBox->CursorPosition != 0) {
         TextBox->CursorPosition--;
     }
+}
+
+internal char*
+MenuGetTextBoxText(menu *Menu, int ID)
+{
+    menu_component* Cursor = Menu->TextBoxes;
+    while(Cursor != 0) {
+        menu_component_textbox *TextBox = (menu_component_textbox*)Cursor->Data;
+        if (Cursor->ID == ID ) {
+            return TextBox->FontString.Text;
+        }
+        
+        Cursor = Cursor->NextSameType;
+    }
+    
+    return 0;
 }
 
 internal int
@@ -315,8 +332,8 @@ MenuTextBoxClicked(menu *Menu, v2 MouseCoords)
     
     menu_component* Cursor = Menu->TextBoxes;
     while(Cursor != 0) {
-        menu_textbox *TextBox = (menu_textbox*)Cursor->Data;
-        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->Dim)) {
+        menu_component_textbox *TextBox = (menu_component_textbox*)Cursor->Data;
+        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->PaddingDim)) {
             Cursor->Active = true;
             ID = Cursor->ID;
         }
@@ -332,7 +349,7 @@ internal menu_component*
 MenuTextBoxGetActive(menu_component* Cursor)
 {
     while(Cursor != 0) {
-        menu_textbox *TextBox = (menu_textbox*)Cursor->Data;
+        menu_component_textbox *TextBox = (menu_component_textbox*)Cursor->Data;
         if (TextBox->Active)
             return Cursor;
         Cursor = Cursor->NextSameType;
@@ -341,9 +358,9 @@ MenuTextBoxGetActive(menu_component* Cursor)
 }
 
 internal void
-MenuTextBoxArrowKeysMoveCursor(menu_component *MenuComponent,  menu_direction Dir)
+MenuTextBoxArrowKeysMoveCursor(menu_component *MComp,  menu_direction Dir)
 {
-    menu_textbox* TextBox = (menu_textbox*)MenuComponent->Data;
+    menu_component_textbox* TextBox = (menu_component_textbox*)MComp->Data;
     if (Dir == menu_direction::Right) 
         IncrementCursorPosition(TextBox);
     else if (Dir == menu_direction::Left) 
@@ -351,11 +368,11 @@ MenuTextBoxArrowKeysMoveCursor(menu_component *MenuComponent,  menu_direction Di
 }
 
 internal void
-MenuTextBoxMouseMoveCursor(menu_component *MenuComponent, v2 MouseCoords)
+MenuTextBoxMouseMoveCursor(menu_component *MComp, v2 MouseCoords)
 {
-    menu_textbox* TextBox = (menu_textbox*)MenuComponent->Data;
+    menu_component_textbox* TextBox = (menu_component_textbox*)MComp->Data;
     
-    v2 Coords = MenuComponent->Coords;
+    v2 Coords = MComp->Coords;
     
     int StringLength = GetLength(TextBox->FontString.Text);
     
@@ -379,9 +396,9 @@ MenuTextBoxMouseMoveCursor(menu_component *MenuComponent, v2 MouseCoords)
 }
 
 internal void
-MenuTextBoxAddChar(menu_component *MenuComponent, const char *Char)
+MenuTextBoxAddChar(menu_component *MComp, const char *Char)
 {
-    menu_textbox* TextBox = (menu_textbox*)MenuComponent->Data;
+    menu_component_textbox* TextBox = (menu_component_textbox*)MComp->Data;
     if (TextBox->FontString.Length + 1 < TextBox->MaxTextLength) {
         FontStringSetText(&TextBox->FontString, Insert(TextBox->FontString.Text, TextBox->CursorPosition, Char));
         IncrementCursorPosition(TextBox);
@@ -389,9 +406,9 @@ MenuTextBoxAddChar(menu_component *MenuComponent, const char *Char)
 }
 
 internal void
-MenuTextBoxRemoveChar(menu_component *MenuComponent)
+MenuTextBoxRemoveChar(menu_component *MComp)
 {
-    menu_textbox* TextBox = (menu_textbox*)MenuComponent->Data;
+    menu_component_textbox* TextBox = (menu_component_textbox*)MComp->Data;
     if (TextBox->FontString.Length + 1 < TextBox->MaxTextLength) {
         DecrementCursorPosition(TextBox);
         FontStringSetText(&TextBox->FontString, RemoveAt(TextBox->FontString.Text, TextBox->CursorPosition));
@@ -399,9 +416,9 @@ MenuTextBoxRemoveChar(menu_component *MenuComponent)
 }
 
 internal void
-MenuTextBoxReplaceText(menu_component *MenuComponent, char *NewText)
+MenuTextBoxReplaceText(menu_component *MComp, char *NewText)
 {
-    menu_textbox* TextBox = (menu_textbox*)MenuComponent->Data;
+    menu_component_textbox* TextBox = (menu_component_textbox*)MComp->Data;
     if (TextBox->FontString.Length + GetLength(NewText) < TextBox->MaxTextLength) {
         FontStringSetText(&TextBox->FontString, Insert(TextBox->FontString.Text, TextBox->CursorPosition, NewText));
         TextBox->CursorPosition += GetLength(NewText);
@@ -409,65 +426,65 @@ MenuTextBoxReplaceText(menu_component *MenuComponent, char *NewText)
 }
 
 internal void
-MenuResizeTextBox(menu *Menu, menu_component *MenuComponent, v2 ResizeFactors)
+MenuResizeTextBox(menu *Menu, menu_component *MComp, v2 ResizeFactors)
 {
-    menu_textbox *TextBox = (menu_textbox*)MenuComponent->Data;
-    FontStringResize(&TextBox->FontString, ResizeEquivalentAmount(MenuComponent->DefaultTextPixelHeight, ResizeFactors.y));
-    MenuComponent->Dim = ResizeEquivalentAmount(MenuComponent->DefaultDim, ResizeFactors);
-    MenuComponent->PaddingDim = MenuComponent->Dim + (Menu->Padding * 2);
+    menu_component_textbox *TextBox = (menu_component_textbox*)MComp->Data;
+    FontStringResize(&TextBox->FontString, ResizeEquivalentAmount(MComp->DefaultTextPixelHeight, ResizeFactors.y));
+    MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
 internal menu_component*
-MenuAddTextBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_textbox *TextBox, menu_component *Align)
+MenuAddTextBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_textbox *TextBox, menu_component *Align)
 {
     TextBox->FontString.Color = TextBox->CurrentTextColor;
     FontStringInit(&TextBox->FontString);
     
-    menu_component *MenuComponent = MenuGetNextComponent(Menu);
-    MenuComponent->GridCoords = GridCoords;
-    MenuComponent->Dim = Dim;
-    MenuComponent->DefaultDim = MenuComponent->Dim;
-    MenuComponent->DefaultTextPixelHeight = TextBox->FontString.PixelHeight;
-    MenuComponent->Type = menu_component_type::TextBox;
-    MenuComponent->ID = ID;
-    MenuComponent->AlignWith = Align;
+    menu_component *MComp = MenuGetNextComponent(Menu);
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = Dim;
+    MComp->DefaultDim = MComp->Dim;
+    MComp->DefaultTextPixelHeight = TextBox->FontString.PixelHeight;
+    MComp->Type = menu_component_type::TextBox;
+    MComp->ID = ID;
+    MComp->AlignWith = Align;
     
-    MenuComponent->Data = qalloc((void*)TextBox, sizeof(menu_textbox));
-    MenuResizeTextBox(Menu, MenuComponent, 0);
+    MComp->Data = qalloc((void*)TextBox, sizeof(menu_component_textbox));
+    MenuResizeTextBox(Menu, MComp, 0);
     
-    Menu->TextBoxes = MenuAddToComponentList(Menu->TextBoxes, MenuComponent);
-    return MenuComponent;
+    Menu->TextBoxes = MenuAddToComponentList(Menu->TextBoxes, MComp);
+    return MComp;
 }
 
 
-// menu_logo
+// menu_component_logo
 internal void
-MenuResizeLogo(menu *Menu, menu_component *MenuComponent, v2 ResizeFactors)
+MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors)
 {
-    menu_logo *Logo = (menu_logo*)MenuComponent->Data;
-    MenuComponent->Dim = ResizeEquivalentAmount(MenuComponent->DefaultDim, ResizeFactors.y);
-    ResizeTexture(Logo->Tex, MenuComponent->Dim);
-    MenuComponent->PaddingDim = MenuComponent->Dim + (Menu->Padding * 2);
+    menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
+    MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors.y);
+    ResizeTexture(Logo->Tex, MComp->Dim);
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
 internal menu_component*
-MenuAddLogo(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_logo *Logo)
+MenuAddLogo(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_logo *Logo)
 {
-    menu_component *MenuComponent = MenuGetNextComponent(Menu);
+    menu_component *MComp = MenuGetNextComponent(Menu);
     
-    MenuComponent->GridCoords = GridCoords;
-    MenuComponent->Dim = Dim;
-    MenuComponent->DefaultDim = Dim;
-    MenuComponent->Type = menu_component_type::Logo;
-    MenuComponent->ID = ID;
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = Dim;
+    MComp->DefaultDim = Dim;
+    MComp->Type = menu_component_type::Logo;
+    MComp->ID = ID;
     
-    MenuComponent->Data = qalloc((void*)Logo, sizeof(menu_logo));
-    MenuResizeLogo(Menu, MenuComponent, 0);
+    MComp->Data = qalloc((void*)Logo, sizeof(menu_component_logo));
+    MenuResizeLogo(Menu, MComp, 0);
     
-    Menu->Logos = MenuAddToComponentList(Menu->Logos, MenuComponent);
-    return MenuComponent;
+    Menu->Logos = MenuAddToComponentList(Menu->Logos, MComp);
+    return MComp;
 }
-inline menu_component* MenuAddLogo(menu *Menu, v2 GridCoords, v2 Dim, menu_logo *Logo)
+inline menu_component* MenuAddLogo(menu *Menu, v2 GridCoords, v2 Dim, menu_component_logo *Logo)
 {
     return MenuAddLogo(Menu, -1, GridCoords, Dim, Logo);
 }
@@ -587,6 +604,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
         if (KeyDown(&Input->MouseButtons[0])) {
             Menu->Events.ButtonClicked = MenuButtonClicked(Menu, MouseCoords);
             Menu->Events.TextBoxClicked = MenuTextBoxClicked(Menu, MouseCoords);
+            UpdateActiveIndex(Menu);
         }
         
         if (MenuButtonHovered(Menu, v2(Input->MouseX, Input->MouseY)))
@@ -608,9 +626,9 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
             MenuTextBoxMouseMoveCursor(ActiveTextBox, MouseCoords);
         }
         
-        if (KeyDown(&Input->Keyboard.Left))
+        if (KeyPressed(&Input->Keyboard.Left, Input))
             MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Left);
-        if (KeyDown(&Input->Keyboard.Right))
+        if (KeyPressed(&Input->Keyboard.Right, Input))
             MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Right);
         if (KeyDown(&Input->Keyboard.CtrlV))
             MenuTextBoxReplaceText(ActiveTextBox, Input->Keyboard.Clipboard);
@@ -634,15 +652,15 @@ UpdateMenu(menu *Menu, v2 BufferDim)
         Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
         
         for (int i = 0; i < Menu->NumOfComponents; i++) {
-            menu_component *MenuComponent = &Menu->Components[i];
-            if (MenuComponent->Type == menu_component_type::Button)
-                MenuResizeButton(Menu, MenuComponent, ResizeFactors);
-            if (MenuComponent->Type == menu_component_type::Text)
-                MenuResizeText(Menu, MenuComponent, ResizeFactors);
-            if (MenuComponent->Type == menu_component_type::TextBox)
-                MenuResizeTextBox(Menu, MenuComponent, ResizeFactors);
-            if (MenuComponent->Type == menu_component_type::Logo)
-                MenuResizeLogo(Menu, MenuComponent, ResizeFactors);
+            menu_component *MComp = &Menu->Components[i];
+            if (MComp->Type == menu_component_type::Button)
+                MenuResizeButton(Menu, MComp, ResizeFactors);
+            if (MComp->Type == menu_component_type::Text)
+                MenuResizeText(Menu, MComp, ResizeFactors);
+            if (MComp->Type == menu_component_type::TextBox)
+                MenuResizeTextBox(Menu, MComp, ResizeFactors);
+            if (MComp->Type == menu_component_type::Logo)
+                MenuResizeLogo(Menu, MComp, ResizeFactors);
         }
         
         // Setting up rows
@@ -700,14 +718,14 @@ internal void
 DrawMenu(menu *Menu, real32 Z)
 {
     for (int i = 0; i < Menu->NumOfComponents; i++) {
-        menu_component *MenuComponent = &Menu->Components[i];
+        menu_component *MComp = &Menu->Components[i];
         
-        v2 Padding = (MenuComponent->Dim - MenuComponent->PaddingDim)/2;
+        v2 Padding = (MComp->Dim - MComp->PaddingDim)/2;
         
-        if (MenuComponent->Type == menu_component_type::Button) {
-            menu_button *Button = (menu_button*)MenuComponent->Data;
+        if (MComp->Type == menu_component_type::Button) {
+            menu_component_button *Button = (menu_component_button*)MComp->Data;
             
-            if (MenuComponent->Active == true) {
+            if (MComp->Active == true) {
                 Button->CurrentColor = Button->HoverColor;
                 Button->FontString.Color = Button->HoverTextColor;
             }
@@ -716,25 +734,25 @@ DrawMenu(menu *Menu, real32 Z)
                 Button->FontString.Color = Button->DefaultTextColor;
             }
             v2 SDim = FontStringGetDim(&Button->FontString);
-            v2 TextCoords = MenuComponent->Coords + ((MenuComponent->Dim - SDim)/2);
-            Push(RenderGroup, v3(MenuComponent->Coords - Padding, Z), MenuComponent->Dim, Button->CurrentColor, 0.0f);
+            v2 TextCoords = MComp->Coords + ((MComp->Dim - SDim)/2);
+            Push(RenderGroup, v3(MComp->Coords - Padding, Z), MComp->Dim, Button->CurrentColor, 0.0f);
             FontStringPrint(&Button->FontString, TextCoords - Padding);
         }
-        else if (MenuComponent->Type == menu_component_type::TextBox) {
-            menu_textbox *TextBox = (menu_textbox*)MenuComponent->Data;
-            Push(RenderGroup, v3(MenuComponent->Coords - Padding, 50.0f), MenuComponent->Dim, TextBox->CurrentColor, 0.0f);
+        else if (MComp->Type == menu_component_type::TextBox) {
+            menu_component_textbox *TextBox = (menu_component_textbox*)MComp->Data;
+            Push(RenderGroup, v3(MComp->Coords - Padding, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
             
-            if (MenuComponent->Active) {
+            if (MComp->Active) {
                 v2 SDim = FontStringGetDim(&TextBox->FontString);
-                TextBox->TextCoords = MenuComponent->Coords;
-                TextBox->TextCoords.y += (MenuComponent->Dim.y - SDim.y)/2;
-                real32 CursorPadding = (MenuComponent->Dim.y)/4;
+                TextBox->TextCoords = MComp->Coords;
+                TextBox->TextCoords.y += (MComp->Dim.y - SDim.y)/2;
+                real32 CursorPadding = (MComp->Dim.y)/4;
                 real32 CursorX = 0;
-                real32 LeftX = MenuComponent->Coords.x;
-                real32 RightX = MenuComponent->Coords.x + MenuComponent->Dim.x;
+                real32 LeftX = MComp->Coords.x;
+                real32 RightX = MComp->Coords.x + MComp->Dim.x;
                 
                 if (TextBox->DisplayRight == 0) {
-                    TextBox->DisplayRight = MenuComponent->Dim.x;
+                    TextBox->DisplayRight = MComp->Dim.x;
                     TextBox->DisplayLeft = 0;
                 }
                 
@@ -763,21 +781,21 @@ DrawMenu(menu *Menu, real32 Z)
                 
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
-                Push(RenderGroup, v3(CursorX - Padding.x, MenuComponent->Coords.y - Padding.y, 100.0f), v2(5.0f, MenuComponent->Dim.y), 0xFF000000, 0.0f);
+                Push(RenderGroup, v3(CursorX - Padding.x, MComp->Coords.y - Padding.y, 100.0f), v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
             }
             
-            FontStringPrint(&TextBox->FontString, TextBox->TextCoords - Padding, MenuComponent->Coords - Padding, MenuComponent->Dim);
+            FontStringPrint(&TextBox->FontString, TextBox->TextCoords - Padding, MComp->Coords - Padding, MComp->Dim);
         }
-        else if (MenuComponent->Type == menu_component_type::Text) {
-            menu_text *Text = (menu_text*)MenuComponent->Data;
-            v2 TextCoords = MenuComponent->Coords;
-            if (MenuComponent->AlignWith != 0)
-                TextCoords.x = MenuComponent->Coords.x + MenuComponent->AlignWith->Dim.x - MenuComponent->Dim.x;
+        else if (MComp->Type == menu_component_type::Text) {
+            menu_component_text *Text = (menu_component_text*)MComp->Data;
+            v2 TextCoords = MComp->Coords;
+            if (MComp->AlignWith != 0)
+                TextCoords.x = MComp->Coords.x + MComp->AlignWith->Dim.x - MComp->Dim.x;
             FontStringPrint(&Text->FontString, TextCoords - Padding);
         }
-        else if (MenuComponent->Type == menu_component_type::Logo) {
-            menu_logo *Logo = (menu_logo*)MenuComponent->Data;
-            Push(RenderGroup, v3(MenuComponent->Coords - Padding, 100.0f), MenuComponent->Dim, 
+        else if (MComp->Type == menu_component_type::Logo) {
+            menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
+            Push(RenderGroup, v3(MComp->Coords - Padding, 100.0f), MComp->Dim, 
                  Logo->Tex, 0.0f, BlendMode::gl_src_alpha);
         }
     }
