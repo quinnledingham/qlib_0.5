@@ -109,7 +109,7 @@ Win32GetWindowDimension(HWND Window)
 internal void
 Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
 {
-    fprintf(stderr, "%d %d\n", NewState->EndedDown, IsDown);
+    //fprintf(stderr, "%d %d\n", NewState->EndedDown, IsDown);
     if (IsDown) 
     {
         NewState->NewEndedUp = false;
@@ -392,7 +392,7 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-    //SetCurrentDirectory("../game/data");
+    SetCurrentDirectory("../game/data");
     
     
     LARGE_INTEGER PerfCountFrequencyResult;
@@ -673,7 +673,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                     Win32ProcessXInputDigitalButton((Controller->StickAverageY < -Threshold) ? 1 : 0, 1, &Controller->MoveDown);
                     Win32ProcessXInputDigitalButton((Controller->StickAverageY > Threshold) ? 1 : 0, 1, &Controller->MoveUp);
                     
-                    Win32ProcessXInputDigitalButton(Pad->wButtons, XINPUT_GAMEPAD_A, &Controller->MoveUp);
+                    Win32ProcessXInputDigitalButton(Pad->wButtons, XINPUT_GAMEPAD_A, &Controller->Enter);
                     Win32ProcessXInputDigitalButton(Pad->wButtons, XINPUT_GAMEPAD_B, &Controller->ActionRight);
                     Win32ProcessXInputDigitalButton(Pad->wButtons, XINPUT_GAMEPAD_X, &Controller->ActionLeft);
                     Win32ProcessXInputDigitalButton(Pad->wButtons, XINPUT_GAMEPAD_Y, &Controller->ActionUp);

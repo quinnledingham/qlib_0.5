@@ -96,6 +96,8 @@ struct platform_controller_input
     real32 StickAverageX;
     real32 StickAverageY;
     
+    bool32 IgnoreInputs;
+    
     union
     {
         platform_button_state Buttons[12];

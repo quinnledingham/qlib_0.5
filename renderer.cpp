@@ -436,8 +436,10 @@ Texture::Init(unsigned char* Data)
 {
     glGenTextures(1, &mHandle);
     glBindTexture(GL_TEXTURE_2D, mHandle);
-    if (mChannels == 3)
+    if (mChannels == 3) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)mWidth, (int)mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
     else if (mChannels == 4)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)mWidth, (int)mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -530,7 +532,10 @@ ResizeTexture(Texture *Tex, v2 Dim)
 {
     unsigned char* delsize = Tex->data;
     Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
-    stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels);
+    if (!stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels))
+    {
+        PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
+    }
     Tex->mWidth = (int)Dim.x;
     Tex->mHeight = (int)Dim.y;
     Tex->mChannels = Tex->mChannels;

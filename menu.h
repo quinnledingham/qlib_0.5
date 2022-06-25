@@ -26,6 +26,7 @@ struct menu_component_button
 struct menu_component_logo
 {
     Texture *Tex;
+    Texture *Alt;
 };
 
 struct menu_component_text
@@ -52,6 +53,24 @@ struct menu_component_textbox
     uint32 CurrentTextColor;
 };
 
+struct menu_component_checkbox
+{
+    bool32 Clicked;
+    platform_controller_input *Controller;
+    
+    uint32 CurrentColor;
+    uint32 DefaultColor;
+    uint32 HoverColor;
+    uint32 DefaultTextColor;
+    uint32 HoverTextColor;
+    
+    Texture *CurrentTexture;
+    Texture *DefaultTexture;
+    Texture *ClickedTexture;
+    Texture *ActiveTexture;
+    Texture *ActiveClickedTexture;
+};
+
 //enum menu_component_id;
 enum struct menu_component_type
 {
@@ -59,6 +78,7 @@ enum struct menu_component_type
     Text,
     TextBox,
     Logo,
+    CheckBox,
 };
 struct menu_component
 {
@@ -85,6 +105,7 @@ struct menu_component
 struct menu_events
 {
     int ButtonClicked;
+    int CheckBoxClicked;
     int TextBoxClicked;
     bool ButtonHoverFlag;
 };
@@ -116,6 +137,7 @@ struct menu
     menu_component *TextBoxes;
     menu_component *Texts;
     menu_component *Logos;
+    menu_component *CheckBoxes;
     
     menu_events Events;
     
@@ -246,7 +268,6 @@ MenuAddButton(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_button *
     
     MComp->Data = qalloc((void*)Button, sizeof(menu_component_button));
     MenuResizeButton(Menu, MComp, 0);
-    
     
     Menu->Buttons = MenuAddToComponentList(Menu->Buttons, MComp);
     return MComp;
@@ -489,13 +510,55 @@ inline menu_component* MenuAddLogo(menu *Menu, v2 GridCoords, v2 Dim, menu_compo
     return MenuAddLogo(Menu, -1, GridCoords, Dim, Logo);
 }
 
+// menu_component_checkbox
+internal menu_component*
+MenuGetComponent(menu_component *Cursor, int ID)
+{
+    while(Cursor != 0) {
+        if (Cursor->ID == ID)
+            return Cursor;
+        Cursor = Cursor->NextSameType;
+    }
+    return 0;
+}
+
+internal void
+MenuResizeCheckBox(menu *Menu, menu_component *MComp, v2 ResizeFactors)
+{
+    menu_component_button *Button = (menu_component_button*)MComp->Data;
+    MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
+}
+
+internal menu_component*
+MenuAddCheckBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_checkbox *CheckBox)
+{
+    menu_component *MComp = MenuGetNextComponent(Menu);
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = Dim;
+    MComp->DefaultDim = MComp->Dim;
+    MComp->Type = menu_component_type::CheckBox;
+    MComp->ID = ID;
+    
+    CheckBox->CurrentColor = CheckBox->DefaultColor;
+    CheckBox->CurrentTexture = CheckBox->DefaultTexture;
+    
+    MComp->Data = qalloc((void*)CheckBox, sizeof(menu_component_checkbox));
+    MenuResizeCheckBox(Menu, MComp, 0);
+    
+    Menu->CheckBoxes = MenuAddToComponentList(Menu->CheckBoxes, MComp);
+    return MComp;
+}
+
 // menu
 internal void
 MenuSortActiveComponents(menu *Menu)
 {
     for (int i = 0; i < Menu->NumOfComponents; i++) {
         menu_component *C = &Menu->Components[i];
-        if (C->Type == menu_component_type::Button || C->Type == menu_component_type::TextBox) {
+        if (C->Type == menu_component_type::Button ||
+            C->Type == menu_component_type::TextBox ||
+            C->Type == menu_component_type::CheckBox) {
             Menu->ActiveComponents[Menu->NumOfActiveComponents++] = C;
         }
     }
@@ -544,8 +607,14 @@ MenuInit(menu *Menu, v2 DefaultDim, int Padding)
 internal void
 MenuReset(menu *Menu) 
 {
-    for (int i = 0; i < Menu->NumOfComponents; i++)
+    for (int i = 0; i < Menu->NumOfComponents; i++) {
         Menu->Components[i].Active = false;
+        
+        if (Menu->Components[i].Type == menu_component_type::CheckBox) {
+            menu_component_checkbox *CheckBox = (menu_component_checkbox*)Menu->Components[i].Data;
+            CheckBox->Clicked = false;
+        }
+    }
     
     Menu->ActiveIndex = 0;
     Menu->Reset = false;
@@ -556,7 +625,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
 {
     UpdateInputInfo(Input);
     
-    //printf("%d\n", (int)Input->PreviousInputInfo.InputMode);
+    //fprintf(stderr, "%d\n", (int)Input->PreviousInputInfo.InputMode);
     
     bool KeyboardMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Keyboard;
     bool KeyboardPreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Keyboard;
@@ -569,7 +638,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
     
     Menu->Events.ButtonClicked = -1;
     
-    v2 MouseCoords = v2(Input->MouseX, Input->MouseY);
+    v2 MouseCoords = v2(Input->Mouse.X, Input->Mouse.Y);
     
     if (KeyboardMode || ControllerMode) {
         if (KeyboardPreviousMode || ControllerPreviousMode) {
@@ -579,19 +648,34 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
             else if (ControllerMode)
                 Controller = Input->CurrentInputInfo.Controller;
             
-            if (KeyDown(&Controller->MoveUp)) {
+            if (OnKeyDown(&Controller->MoveUp)) {
                 DecrActive(Menu);
             }
-            if (KeyDown(&Controller->MoveDown)) {
+            if (OnKeyDown(&Controller->MoveDown)) {
                 IncrActive(Menu);
             }
-            if(KeyDown(&Input->Keyboard.Tab)) {
+            if(OnKeyDown(&Input->Keyboard.Tab)) {
                 IncrActive(Menu);
             }
-            if (KeyDown(&Controller->Enter)) {
+            
+            if (OnKeyDown(&Controller->Enter)) {
                 menu_component *C = Menu->ActiveComponents[Menu->ActiveIndex];
                 if (C->Type == menu_component_type::Button)
                     Menu->Events.ButtonClicked = C->ID;
+                else if (C->Type == menu_component_type::CheckBox) {
+                    menu_component_checkbox *CheckBox = (menu_component_checkbox*)C->Data;
+                    
+                    if (CheckBox->Clicked && Controller == CheckBox->Controller) {
+                        CheckBox->Clicked = false;
+                        Controller->IgnoreInputs = false;
+                    }
+                    else if (!CheckBox->Clicked && !Controller->IgnoreInputs) {
+                        CheckBox->Controller = Controller;
+                        Controller->IgnoreInputs = true;
+                        CheckBox->Clicked = true;
+                    }
+                    Menu->Events.CheckBoxClicked = C->ID;
+                }
             }
         }
         
@@ -601,16 +685,16 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
         if (Menu->ActiveComponents[Menu->ActiveIndex]->Type == menu_component_type::Button)
             Menu->ActiveComponents[Menu->ActiveIndex]->Active = false;
         
-        if (KeyDown(&Input->MouseButtons[0])) {
+        if (OnKeyDown(&Input->Mouse.Left)) {
             Menu->Events.ButtonClicked = MenuButtonClicked(Menu, MouseCoords);
             Menu->Events.TextBoxClicked = MenuTextBoxClicked(Menu, MouseCoords);
             UpdateActiveIndex(Menu);
         }
         
-        if (MenuButtonHovered(Menu, v2(Input->MouseX, Input->MouseY)))
-            PlatformSetCursorMode(Input, platform_cursor_mode::Hand);
+        if (MenuButtonHovered(Menu, v2(Input->Mouse.X, Input->Mouse.Y)))
+            PlatformSetCursorMode(&Input->Mouse, platform_cursor_mode::Hand);
         else
-            PlatformSetCursorMode(Input, platform_cursor_mode::Arrow);
+            PlatformSetCursorMode(&Input->Mouse, platform_cursor_mode::Arrow);
     }
     
     //menu_component *ActiveTextBox = MenuTextBoxGetActive(Menu->TextBoxes);
@@ -618,11 +702,11 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
     if (ActiveTextBox->Type == menu_component_type::TextBox)
     {
         for (int i = 0; i < 10; i++) {
-            if (KeyDown(&Input->Keyboard.Numbers[i]))
+            if (OnKeyDown(&Input->Keyboard.Numbers[i]))
                 MenuTextBoxAddChar(ActiveTextBox, IntToString(i));
         }
         
-        if (KeyPressed(&Input->MouseButtons[0])) {
+        if (KeyDown(&Input->Mouse.Left)) {
             MenuTextBoxMouseMoveCursor(ActiveTextBox, MouseCoords);
         }
         
@@ -635,7 +719,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
         
         if (KeyPressed(&Input->Keyboard.Backspace, Input))
             MenuTextBoxRemoveChar(ActiveTextBox);
-        if (KeyDown(&Input->Keyboard.Period))
+        if (OnKeyDown(&Input->Keyboard.Period))
             MenuTextBoxAddChar(ActiveTextBox, ".");
     }
     
@@ -661,6 +745,8 @@ UpdateMenu(menu *Menu, v2 BufferDim)
                 MenuResizeTextBox(Menu, MComp, ResizeFactors);
             if (MComp->Type == menu_component_type::Logo)
                 MenuResizeLogo(Menu, MComp, ResizeFactors);
+            if (MComp->Type == menu_component_type::CheckBox)
+                MenuResizeCheckBox(Menu, MComp, ResizeFactors);
         }
         
         // Setting up rows
@@ -736,6 +822,7 @@ DrawMenu(menu *Menu, real32 Z)
             v2 SDim = FontStringGetDim(&Button->FontString);
             v2 TextCoords = MComp->Coords + ((MComp->Dim - SDim)/2);
             Push(RenderGroup, v3(MComp->Coords - Padding, Z), MComp->Dim, Button->CurrentColor, 0.0f);
+            
             FontStringPrint(&Button->FontString, TextCoords - Padding);
         }
         else if (MComp->Type == menu_component_type::TextBox) {
@@ -797,6 +884,29 @@ DrawMenu(menu *Menu, real32 Z)
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
             Push(RenderGroup, v3(MComp->Coords - Padding, 100.0f), MComp->Dim, 
                  Logo->Tex, 0.0f, BlendMode::gl_src_alpha);
+        }
+        else if (MComp->Type == menu_component_type::CheckBox) {
+            menu_component_checkbox *CheckBox = (menu_component_checkbox*)MComp->Data;
+            
+            if (MComp->Active == true && !CheckBox->Clicked) {
+                CheckBox->CurrentColor = CheckBox->HoverColor;
+                CheckBox->CurrentTexture = CheckBox->ActiveTexture;
+            }
+            else if (MComp->Active == false && CheckBox->Clicked) {
+                CheckBox->CurrentColor = CheckBox->HoverColor;
+                CheckBox->CurrentTexture = CheckBox->ClickedTexture;
+            }
+            else if (MComp->Active == true && CheckBox->Clicked) {
+                CheckBox->CurrentColor = CheckBox->HoverColor;
+                CheckBox->CurrentTexture = CheckBox->ActiveClickedTexture;
+            }
+            else {
+                CheckBox->CurrentColor = CheckBox->DefaultColor;
+                CheckBox->CurrentTexture = CheckBox->DefaultTexture;
+            }
+            
+            Push(RenderGroup, v3(MComp->Coords - Padding, 100.0f), MComp->Dim, 
+                 CheckBox->CurrentTexture, 0.0f, BlendMode::gl_src_alpha);
         }
     }
     
