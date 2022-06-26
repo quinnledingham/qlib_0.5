@@ -144,6 +144,7 @@ struct platform_keyboard_input
             platform_button_state Backspace;
             platform_button_state Tab;
             platform_button_state F5;
+            platform_button_state F6;
             union
             {
                 platform_button_state Numbers[10];

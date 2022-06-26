@@ -181,6 +181,8 @@ Win32ProcessPendingMessages(platform_keyboard_input *Keyboard, platform_mouse_in
                         Win32ProcessKeyboardMessage(&Keyboard->Right, IsDown);
                     else if(VKCode == VK_F5)
                         Win32ProcessKeyboardMessage(&Keyboard->F5, IsDown);
+                    else if(VKCode == VK_F6)
+                        Win32ProcessKeyboardMessage(&Keyboard->F6, IsDown);
                     else if(VKCode == VK_ESCAPE)
                         Win32ProcessKeyboardMessage(&Keyboard->ControllerInput->Start, IsDown);
                     else if(VKCode == VK_OEM_PERIOD)

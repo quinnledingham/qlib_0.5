@@ -1037,4 +1037,39 @@ v2 ResizeEquivalentAmount(v2 ToResize, v2 ResizeFactors)
         return v2(ResizeFactors.x * ToResize.x, ResizeFactors.y * ToResize.y);
 }
 
+//https://stackoverflow.com/questions/26839558/hex-char-to-int-conversion
+int Hex2Int(char Char)
+{
+    if (Char >= '0' && Char <= '9')
+        return Char - '0';
+    if (Char >= 'A' && Char <= 'F')
+        return Char - 'A' + 10;
+    if (Char >= 'a' && Char <= 'f')
+        return Char - 'a' + 10;
+    return -1;
+}
+
+uint32 Pow(int a, int n)
+{
+    if (n == 0)
+        return 1;
+    
+    uint32 Result = a;
+    for (int i = 1; i < n; i++)
+        Result *= a;
+    return Result;
+}
+
+int StringHex2Int(char *Hex)
+{
+    uint32 Result = 0;
+    0xFF000000;
+    for (int i = 2; i < 10; i++)
+    {
+        int Temp = Hex2Int(Hex[i]);
+        Result += (Temp * Pow(16, 10 - i - 1));
+    }
+    return Result;
+}
+
 #endif //MATH_H

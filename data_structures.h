@@ -28,7 +28,7 @@ ReadEntireFile(const char*FileName)
         fclose(In);
     }
     else {
-        //printf("ERROR: Cannot open file %s.\n", FileName);
+        fprintf(stderr, "ERROR: Cannot open file %s.\n", FileName);
     }
     
     return(Result);
@@ -75,6 +75,11 @@ inline bool Equal(const char *c1, const char* c2)
         return true;
     else
         return false;
+}
+
+inline bool Equal(char *c1, const char* c2)
+{
+    return Equal((const char*)c1, c2);
 }
 
 inline char* IntToString(int Value)
@@ -547,4 +552,23 @@ struct Arr
 };
 // End of Arr
 
+// pair_int_string
+struct pair_int_string
+{
+    int Int;
+    char* String;
+};
+int GetInt(pair_int_string *IDs, int NumOf, const char *String)
+{
+    for (int i = 0; i < NumOf; i++) {
+        if (Equal(IDs[i].String, String))
+        {
+            return IDs[i].Int;
+        }
+    }
+    return -1;
+}
+
+
+// End of pair_int_string
 #endif //DATA_STRUCTURES_H

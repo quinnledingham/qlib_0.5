@@ -530,17 +530,20 @@ Texture::GetHandle()
 internal void
 ResizeTexture(Texture *Tex, v2 Dim)
 {
-    unsigned char* delsize = Tex->data;
-    Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
+    //unsigned char* delsize = Tex->data;
+    //Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
+    //stbi_image_free(Tex->data);
     if (!stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels))
     {
         PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
     }
+    
     Tex->mWidth = (int)Dim.x;
     Tex->mHeight = (int)Dim.y;
     Tex->mChannels = Tex->mChannels;
     
-    dalloc((void*)delsize);
+    //dalloc((void*)delsize);
+    //
     
     Tex->Init(Tex->data);
 }
@@ -551,8 +554,9 @@ LoadTexture(const char* FileName)
     Texture Tex = {};
     unsigned char* data = stbi_load(FileName, (int*)&Tex.mWidth, (int*)&Tex.mHeight, (int*)&Tex.mChannels, 0);
     Assert(Tex.mWidth != 0 && Tex.mHeight != 0);
-    Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
-    stbi_image_free(data);
+    Tex.data = data;
+    //Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
+    //stbi_image_free(data);
     
     Tex.og.x = Tex.mWidth;
     Tex.og.y = Tex.mHeight;

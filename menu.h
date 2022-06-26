@@ -83,6 +83,7 @@ enum struct menu_component_type
 struct menu_component
 {
     int ID;
+    //char* ID;
     
     v2 Coords;
     v2 GridCoords;
@@ -119,6 +120,9 @@ struct menu
 {
     bool Initialized;
     bool Reset;
+    
+    bool Edit;
+    
     menu_grid_row Rows[10];
     
     v2 Coords;
@@ -200,6 +204,25 @@ MenuGetNextComponent(menu *Menu)
 {
     Assert(Menu->NumOfComponents + 1 < Menu->MaxNumOfComponents);
     return &Menu->Components[Menu->NumOfComponents++];
+}
+
+internal menu_component*
+MenuGetComponent(menu *Menu, pair_int_string *IDs, int NumOfIDs, const char *ID)
+{
+    int intID = -1;
+    for (int i = 0; i < NumOfIDs; i++) {
+        if (Equal(IDs[i].String, ID))
+        {
+            intID = IDs[i].Int;
+        }
+    }
+    
+    for (int i = 0; i < Menu->NumOfComponents; i++) {
+        if (Menu->Components[i].ID == intID)
+            return &Menu->Components[i];
+    }
+    
+    return 0;
 }
 
 // menu_component_button
@@ -456,7 +479,7 @@ MenuResizeTextBox(menu *Menu, menu_component *MComp, v2 ResizeFactors)
 }
 
 internal menu_component*
-MenuAddTextBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_textbox *TextBox, menu_component *Align)
+MenuAddTextBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_textbox *TextBox)
 {
     TextBox->FontString.Color = TextBox->CurrentTextColor;
     FontStringInit(&TextBox->FontString);
@@ -468,7 +491,7 @@ MenuAddTextBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_textbox
     MComp->DefaultTextPixelHeight = TextBox->FontString.PixelHeight;
     MComp->Type = menu_component_type::TextBox;
     MComp->ID = ID;
-    MComp->AlignWith = Align;
+    //MComp->AlignWith = Align;
     
     MComp->Data = qalloc((void*)TextBox, sizeof(menu_component_textbox));
     MenuResizeTextBox(Menu, MComp, 0);
@@ -499,8 +522,10 @@ MenuAddLogo(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_logo *Logo
     MComp->Type = menu_component_type::Logo;
     MComp->ID = ID;
     
+    MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
     MComp->Data = qalloc((void*)Logo, sizeof(menu_component_logo));
-    MenuResizeLogo(Menu, MComp, 0);
+    //MenuResizeLogo(Menu, MComp, 0);
+    
     
     Menu->Logos = MenuAddToComponentList(Menu->Logos, MComp);
     return MComp;
@@ -554,6 +579,7 @@ MenuAddCheckBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_checkb
 internal void
 MenuSortActiveComponents(menu *Menu)
 {
+    Menu->NumOfActiveComponents = 0;
     for (int i = 0; i < Menu->NumOfComponents; i++) {
         menu_component *C = &Menu->Components[i];
         if (C->Type == menu_component_type::Button ||
@@ -601,6 +627,30 @@ MenuInit(menu *Menu, v2 DefaultDim, int Padding)
     Menu->DefaultPadding = Padding;
     Menu->NumOfComponents = 0;
     Menu->MaxNumOfComponents = ArrayCount(Menu->Components);
+    memset(Menu->Components, 0, Menu->MaxNumOfComponents * sizeof(menu_component));
+    
+    Menu->Buttons = 0;
+    Menu->TextBoxes = 0;
+    Menu->Texts = 0;
+    Menu->Logos = 0;
+    Menu->CheckBoxes = 0;
+    
+    Menu->Initialized = true;
+}
+
+internal void
+MenuInit(menu *Menu)
+{
+    Menu->NumOfComponents = 0;
+    Menu->MaxNumOfComponents = ArrayCount(Menu->Components);
+    memset(Menu->Components, 0, Menu->MaxNumOfComponents * sizeof(menu_component));
+    
+    Menu->Buttons = 0;
+    Menu->TextBoxes = 0;
+    Menu->Texts = 0;
+    Menu->Logos = 0;
+    Menu->CheckBoxes = 0;
+    
     Menu->Initialized = true;
 }
 
@@ -625,8 +675,6 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
 {
     UpdateInputInfo(Input);
     
-    //fprintf(stderr, "%d\n", (int)Input->PreviousInputInfo.InputMode);
-    
     bool KeyboardMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Keyboard;
     bool KeyboardPreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Keyboard;
     
@@ -637,6 +685,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
     bool MousePreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Mouse;
     
     Menu->Events.ButtonClicked = -1;
+    Menu->Events.TextBoxClicked = -1;
     
     v2 MouseCoords = v2(Input->Mouse.X, Input->Mouse.Y);
     
@@ -727,77 +776,84 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
 }
 
 internal void
-UpdateMenu(menu *Menu, v2 BufferDim)
+ResizeMenu(menu *Menu, v2 BufferDim)
 {
-    if (Menu->ScreenDim != BufferDim) {
-        Menu->ScreenDim = BufferDim;
-        
-        v2 ResizeFactors = GetResizeFactor(Menu->DefaultDim, BufferDim);
-        Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
-        
-        for (int i = 0; i < Menu->NumOfComponents; i++) {
-            menu_component *MComp = &Menu->Components[i];
-            if (MComp->Type == menu_component_type::Button)
-                MenuResizeButton(Menu, MComp, ResizeFactors);
-            if (MComp->Type == menu_component_type::Text)
-                MenuResizeText(Menu, MComp, ResizeFactors);
-            if (MComp->Type == menu_component_type::TextBox)
-                MenuResizeTextBox(Menu, MComp, ResizeFactors);
-            if (MComp->Type == menu_component_type::Logo)
-                MenuResizeLogo(Menu, MComp, ResizeFactors);
-            if (MComp->Type == menu_component_type::CheckBox)
-                MenuResizeCheckBox(Menu, MComp, ResizeFactors);
-        }
-        
-        // Setting up rows
-        memset(Menu->Rows, 0, sizeof(menu_grid_row) * 10);
-        for (int i = 0; i < Menu->NumOfComponents; i++) {
-            menu_component *C = &Menu->Components[i];
-            menu_grid_row* R = &Menu->Rows[(int)C->GridCoords.y];
-            
-            real32 Width = 0;
-            if (C->AlignWith == 0) 
-                Width = C->PaddingDim.x;
-            else if (C->AlignWith != 0)
-                Width = C->AlignWith->PaddingDim.x;
-            
-            R->MenuGridColumnWidth[(int)C->GridCoords.x] = Width;
-            R->Dim.x += Width;
-            if (R->Dim.y < C->PaddingDim.y)
-                R->Dim.y = C->PaddingDim.y;
-        }
-        
-        // Height of GUI
-        Menu->Dim.y = 0;
-        for (int i = 0; i < 10; i++)
-            Menu->Dim.y += Menu->Rows[i].Dim.y;
-        
-        Menu->Dim.x = 0;
-        for (int i = 0; i <  Menu->NumOfComponents; i++) {
-            menu_component *C = &Menu->Components[i];
-            menu_grid_row *R = &Menu->Rows[(int)C->GridCoords.y];
-            
-            // Calculate column location to center
-            C->Coords.x = (-R->Dim.x)/2;
-            for (int  i = 0; i < C->GridCoords.x; i++)
-                C->Coords.x += Menu->Rows[(int)C->GridCoords.y].MenuGridColumnWidth[i];
-            
-            // Find biggest row
-            if (Menu->Dim.x < R->Dim.x) {
-                Menu->Dim.x = R->Dim.x;
-                Menu->Coords.x = C->Coords.x - (Menu->Padding);
-            }
-            // Calculate row location to center
-            C->Coords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2);
-            for (int i = 0; i < C->GridCoords.y; i++) {
-                menu_grid_row* tempR = &Menu->Rows[i];
-                C->Coords.y += tempR->Dim.y;
-            }
-        }
-        
-        menu_component* C = &Menu->Components[0];
-        Menu->Coords.y = C->Coords.y - (Menu->Padding);
+    Menu->ScreenDim = BufferDim;
+    
+    v2 ResizeFactors = GetResizeFactor(Menu->DefaultDim, BufferDim);
+    Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
+    
+    for (int i = 0; i < Menu->NumOfComponents; i++) {
+        menu_component *MComp = &Menu->Components[i];
+        if (MComp->Type == menu_component_type::Button)
+            MenuResizeButton(Menu, MComp, ResizeFactors);
+        if (MComp->Type == menu_component_type::Text)
+            MenuResizeText(Menu, MComp, ResizeFactors);
+        if (MComp->Type == menu_component_type::TextBox)
+            MenuResizeTextBox(Menu, MComp, ResizeFactors);
+        if (MComp->Type == menu_component_type::Logo)
+            MenuResizeLogo(Menu, MComp, ResizeFactors);
+        if (MComp->Type == menu_component_type::CheckBox)
+            MenuResizeCheckBox(Menu, MComp, ResizeFactors);
     }
+}
+
+internal void
+UpdateMenu(menu *Menu)
+{
+    // Setting up rows
+    memset(Menu->Rows, 0, sizeof(menu_grid_row) * 10);
+    for (int i = 0; i < Menu->NumOfComponents; i++) {
+        menu_component *C = &Menu->Components[i];
+        menu_grid_row* R = &Menu->Rows[(int)C->GridCoords.y];
+        
+        real32 Width = 0;
+        if (C->AlignWith == 0) 
+            Width = C->PaddingDim.x;
+        else if (C->AlignWith != 0)
+            Width = C->AlignWith->PaddingDim.x;
+        
+        R->MenuGridColumnWidth[(int)C->GridCoords.x] = Width;
+        R->Dim.x += Width;
+        if (R->Dim.y < C->PaddingDim.y)
+            R->Dim.y = C->PaddingDim.y;
+    }
+    
+    // Height of GUI
+    Menu->Dim.y = 0;
+    for (int i = 0; i < 10; i++)
+        Menu->Dim.y += Menu->Rows[i].Dim.y;
+    
+    Menu->Dim.x = 0;
+    for (int i = 0; i <  Menu->NumOfComponents; i++) {
+        menu_component *C = &Menu->Components[i];
+        menu_grid_row *R = &Menu->Rows[(int)C->GridCoords.y];
+        
+        // Calculate column location to center
+        C->Coords.x = (-R->Dim.x)/2;
+        for (int  i = 0; i < C->GridCoords.x; i++)
+            C->Coords.x += Menu->Rows[(int)C->GridCoords.y].MenuGridColumnWidth[i];
+        
+        // Find biggest row
+        if (Menu->Dim.x < R->Dim.x) {
+            Menu->Dim.x = R->Dim.x;
+            Menu->Coords.x = C->Coords.x - (Menu->Padding);
+        }
+        // Calculate row location to center
+        C->Coords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2);
+        for (int i = 0; i < C->GridCoords.y; i++) {
+            menu_grid_row* tempR = &Menu->Rows[i];
+            C->Coords.y += tempR->Dim.y;
+        }
+    }
+    
+    menu_component* C = &Menu->Components[0];
+    Menu->Coords.y = C->Coords.y - (Menu->Padding);
+}
+inline void UpdateMenu(menu *Menu, v2 BufferDim) 
+{
+    ResizeMenu(Menu, BufferDim);
+    UpdateMenu(Menu);
 }
 
 internal void
@@ -812,6 +868,7 @@ DrawMenu(menu *Menu, real32 Z)
             menu_component_button *Button = (menu_component_button*)MComp->Data;
             
             if (MComp->Active == true) {
+                //fprintf(stderr, "BtnDraw %d %d\n", Menu->ActiveIndex, Menu->NumOfComponents);
                 Button->CurrentColor = Button->HoverColor;
                 Button->FontString.Color = Button->HoverTextColor;
             }
@@ -913,5 +970,141 @@ DrawMenu(menu *Menu, real32 Z)
     Push(RenderGroup, v3(Menu->Coords, 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
 }
 inline void DrawMenu(menu *Menu) { DrawMenu(Menu, 0); }
+
+struct menu_token
+{
+    char ID[100];
+    char Value[100];
+};
+
+struct menu_token_collection
+{
+    char ID[50];
+    char Type[50];
+    int NumOfTokens = 0;
+    menu_token Tokens[30];
+};
+
+struct string_copy_buffer
+{
+    int Index;
+    char Value[100];
+};
+inline void Clear(string_copy_buffer *Buffer)
+{
+    Buffer->Index = 0;
+    memset(Buffer->Value, 0, sizeof(Buffer->Value));
+}
+inline void NextChar(string_copy_buffer *Buffer, char Next)
+{
+    Buffer->Value[Buffer->Index++] = Next;
+}
+
+struct v2_string
+{
+    union
+    {
+        struct
+        {
+            string_copy_buffer x;
+            string_copy_buffer y;
+        };
+        char *v[2];
+    };
+};
+internal v2_string
+Getv2StringFromChar(char *Input)
+{
+    v2_string Result = {};
+    
+    bool FirstNum = true;
+    int i = 0;
+    while(Input[i] != 0)
+    {
+        if (FirstNum)
+        {
+            if (Input[i] != ',')
+            {
+                NextChar(&Result.x, Input[i]);
+            }
+            else
+            {
+                FirstNum = false;
+            }
+        }
+        else
+        {
+            NextChar(&Result.y, Input[i]);
+        }
+        
+        i++;
+    }
+    
+    
+    return Result;
+}
+
+internal v2
+GetCoordsFromChar(char *Input)
+{
+    string_copy_buffer N1;
+    Clear(&N1);
+    string_copy_buffer N2;
+    Clear(&N2);
+    
+    bool FirstNum = true;
+    int i = 0;
+    while(Input[i] != 0)
+    {
+        if (FirstNum)
+        {
+            if (Input[i] != ',')
+            {
+                NextChar(&N1, Input[i]);
+            }
+            else
+            {
+                FirstNum = false;
+            }
+        }
+        else
+        {
+            NextChar(&N2, Input[i]);
+        }
+        
+        i++;
+    }
+    
+    return v2(atoi(N1.Value), atoi(N2.Value));
+}
+
+internal v2
+GetCoordsFromChar(char *Input, int N2)
+{
+    string_copy_buffer N1;
+    Clear(&N1);
+    
+    bool FirstNum = true;
+    int i = 0;
+    while(Input[i] != 0)
+    {
+        if (FirstNum)
+        {
+            if (Input[i] != ',')
+            {
+                NextChar(&N1, Input[i]);
+            }
+            else
+            {
+                break;
+            }
+        }
+        i++;
+    }
+    
+    return v2(atoi(N1.Value), N2);
+}
+
+
 
 #endif //MENU_H
