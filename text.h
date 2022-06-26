@@ -339,10 +339,7 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
             for(s32 X = 0; X < Width; ++X)
             {
                 u8 Gray = *Source++;
-                u32 Alpha = ((Gray << 24) |
-                             (Gray << 16) |
-                             (Gray <<  8) |
-                             (Gray << 0));
+                u32 Alpha = ((Gray << 24) | (Gray << 16) | (Gray <<  8) | (Gray << 0));
                 Color &= 0x00FFFFFF;
                 Alpha &= 0xFF000000;
                 Color += Alpha;
@@ -389,6 +386,7 @@ LoadFont(const char *FileName)
     font *F = (font*)qalloc(sizeof(font));
     F->TTFFile = ReadEntireFile(FileName);
     stbtt_InitFont(&F->Info, (u8 *)F->TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)F->TTFFile.Contents, 0));
+    //DestroyEntireFile();
     return F;
 }
 

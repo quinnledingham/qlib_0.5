@@ -550,6 +550,64 @@ struct Arr
         return (void*)Cursor;
     }
 };
+
+struct arr
+{
+    void *Data;
+    int CurrentSize;
+    int MaxSize;
+    int TypeSize;
+    
+    void* operator[](int i)
+    {
+        char *Cursor = (char*)Data;
+        Cursor += (i * TypeSize);
+        return (void*)Cursor;
+    }
+};
+
+internal void
+ArrInit(arr *Arr, int MaxSize, int TypeSize)
+{
+    Arr->MaxSize = MaxSize;
+    Arr->TypeSize = TypeSize;
+    Arr->CurrentSize = 0;
+    
+    if (Arr->Data == 0)
+        Arr->Data = qalloc(Arr->MaxSize * Arr->TypeSize);
+    else
+        memset(Arr->Data, 0, Arr->MaxSize * Arr->TypeSize);
+}
+
+internal void*
+ArrPush(arr *Arr, void *NewData, int TypeSize)
+{
+    Assert(Arr->TypeSize == TypeSize);
+    if (Arr->CurrentSize + 1 >= Arr->MaxSize)
+        return 0;
+    
+    char *Cursor = (char*)Arr->Data;
+    Cursor += (Arr->CurrentSize * Arr->TypeSize);
+    memcpy(Cursor, NewData, Arr->TypeSize);
+    Arr->CurrentSize++;
+    
+    return (void*)Cursor;
+}
+#define ArrPush(a, p, t) ((t*)ArrPush(&a, (void*)p, sizeof(t)))
+
+internal void*
+ArrGetNext(arr *Arr, int TypeSize)
+{
+    Assert(Arr->TypeSize == TypeSize);
+    
+    char *Ret = (char*)Arr->Data;
+    Ret += (Arr->CurrentSize * TypeSize);
+    Arr->CurrentSize++;
+    return (void*)Ret;
+}
+#define GetNext(a, t) ((t*)ArrGetNext(&a, sizeof(t)))
+#define MemCpy(d, s, t) (memcpy(d, (void*)s, sizeof(t)))
+
 // End of Arr
 
 // pair_int_string
@@ -571,4 +629,7 @@ int GetInt(pair_int_string *IDs, int NumOf, const char *String)
 
 
 // End of pair_int_string
+
+
+
 #endif //DATA_STRUCTURES_H

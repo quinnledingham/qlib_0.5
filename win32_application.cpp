@@ -536,7 +536,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     LPVOID BaseAddress = 0;
 #endif
     
-    p.Memory.PermanentStorageSize = Gigabytes(1);
+    p.Memory.PermanentStorageSize = Megabytes(126);
+    //p.Memory.PermanentStorageSize = Gigabytes(1);
     p.Memory.TransientStorageSize = Megabytes(1);
     //p.Memory.PermanentStorageSize = Megabytes(256);
     //p.Memory.TransientStorageSize = Gigabytes(1);

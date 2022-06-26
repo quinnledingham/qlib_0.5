@@ -137,6 +137,9 @@ struct menu
     int NumOfComponents;
     int MaxNumOfComponents;
     menu_component Components[20];
+    
+    arr MenuButtons; // menu_component_button
+    
     menu_component *Buttons;
     menu_component *TextBoxes;
     menu_component *Texts;
@@ -272,7 +275,31 @@ MenuResizeButton(menu *Menu, menu_component *MComp, v2 ResizeFactors)
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
     MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
-
+/*
+internal void
+MenuUpdateButton(menu *Menu, menu_component *MComp, int ID, v2 GridCoords, v2 Dim, menu_component_button *Updated)
+{
+    menu_component_button *Button = (menu_component_button*)MComp->Data;
+    Button->DefaultTextColor = Updated->DefaultTextColor;
+    Button->HoverTextColor = Updated->HoverTextColor;
+    Button->FontString = Updated->FontString;
+    Button->FontString.Color = Button->DefaultTextColor;
+    FontStringInit(&Button->FontString);
+    
+    MComp->GridCoords = GridCoords;
+    MComp->Dim = Dim;
+    MComp->DefaultDim = MComp->Dim;
+    MComp->DefaultTextPixelHeight = Button->FontString.PixelHeight;
+    MComp->ID = ID;
+    
+    Button->DefaultColor = Updated->DefaultColor;
+    Button->HoverColor = Updated->HoverColor;
+    
+    Button->CurrentColor = Updated->DefaultColor;
+    
+    MenuResizeButton(Menu, MComp, 0);
+}
+*/
 internal menu_component*
 MenuAddButton(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_button *Button)
 {
@@ -289,7 +316,14 @@ MenuAddButton(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_button *
     
     Button->CurrentColor = Button->DefaultColor;
     
-    MComp->Data = qalloc((void*)Button, sizeof(menu_component_button));
+    //MComp->Data = qalloc((void*)Button, sizeof(menu_component_button));
+    //MComp->Data = ArrPush(Menu->MenuButtons, Button, menu_component_button);
+    
+    if (MComp->Data == 0)
+        MComp->Data = ArrPush(Menu->MenuButtons, Button, menu_component_button);
+    else
+        MemCpy(MComp->Data, Button, menu_component_button);
+    
     MenuResizeButton(Menu, MComp, 0);
     
     Menu->Buttons = MenuAddToComponentList(Menu->Buttons, MComp);
@@ -629,6 +663,8 @@ MenuInit(menu *Menu, v2 DefaultDim, int Padding)
     Menu->MaxNumOfComponents = ArrayCount(Menu->Components);
     memset(Menu->Components, 0, Menu->MaxNumOfComponents * sizeof(menu_component));
     
+    ArrInit(&Menu->MenuButtons, 10, sizeof(menu_component_button));
+    
     Menu->Buttons = 0;
     Menu->TextBoxes = 0;
     Menu->Texts = 0;
@@ -644,6 +680,9 @@ MenuInit(menu *Menu)
     Menu->NumOfComponents = 0;
     Menu->MaxNumOfComponents = ArrayCount(Menu->Components);
     memset(Menu->Components, 0, Menu->MaxNumOfComponents * sizeof(menu_component));
+    //memset(&Menu->MenuButtons, 0, Menu->MenuButtons.MaxSize * Menu->MenuButtons.TypeSize);
+    
+    ArrInit(&Menu->MenuButtons, 10, sizeof(menu_component_button));
     
     Menu->Buttons = 0;
     Menu->TextBoxes = 0;
