@@ -533,10 +533,9 @@ ResizeTexture(Texture *Tex, v2 Dim)
     //unsigned char* delsize = Tex->data;
     //Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
     //stbi_image_free(Tex->data);
+    
     if (!stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels))
-    {
         PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
-    }
     
     Tex->mWidth = (int)Dim.x;
     Tex->mHeight = (int)Dim.y;

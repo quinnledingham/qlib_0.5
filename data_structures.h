@@ -553,6 +553,7 @@ struct Arr
 
 struct arr
 {
+    bool Initialized;
     void *Data;
     int CurrentSize;
     int MaxSize;
@@ -569,6 +570,7 @@ struct arr
 internal void
 ArrInit(arr *Arr, int MaxSize, int TypeSize)
 {
+    Arr->Initialized = true;
     Arr->MaxSize = MaxSize;
     Arr->TypeSize = TypeSize;
     Arr->CurrentSize = 0;
@@ -593,7 +595,6 @@ ArrPush(arr *Arr, void *NewData, int TypeSize)
     
     return (void*)Cursor;
 }
-#define ArrPush(a, p, t) ((t*)ArrPush(&a, (void*)p, sizeof(t)))
 
 internal void*
 ArrGetNext(arr *Arr, int TypeSize)
@@ -607,6 +608,22 @@ ArrGetNext(arr *Arr, int TypeSize)
 }
 #define GetNext(a, t) ((t*)ArrGetNext(&a, sizeof(t)))
 #define MemCpy(d, s, t) (memcpy(d, (void*)s, sizeof(t)))
+
+// Adds new space if return pointer is null. replaces mem if return pointer is not null
+internal void*
+ArrUseNext(arr *Arr, void *Data, void *Return, int TypeSize)
+{
+    Assert(Arr->Initialized);
+    Assert(Arr->TypeSize == TypeSize);
+    
+    if (Return == 0)
+        Return = ArrPush(Arr, Data, TypeSize);
+    else
+        MemCpy(Return, Data, TypeSize);
+    
+    return Return;
+}
+#define ArrUseNext(a, p, r, t) ((t*)ArrUseNext(&a, (void*)p, (void*)r,  sizeof(t)))
 
 // End of Arr
 
