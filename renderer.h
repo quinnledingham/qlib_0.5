@@ -79,6 +79,7 @@ struct Texture
 {
     const char* ID;
     unsigned int mHandle;
+    bool Initialized;
     
     unsigned int mWidth;
     unsigned int mHeight;

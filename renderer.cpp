@@ -429,6 +429,8 @@ Texture::Init()
     mHeight = 0;
     mChannels = 0;
     glGenTextures(1, &mHandle);
+    
+    Initialized = true;
 }
 
 void
@@ -455,6 +457,8 @@ Texture::Init(unsigned char* Data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    Initialized = true;
 }
 
 void
@@ -489,6 +493,8 @@ Texture::Init(Image* image)
     mWidth = image->x;
     mHeight = image->y;
     mChannels = image->n;
+    
+    Initialized = true;
 }
 
 void
@@ -497,6 +503,7 @@ Texture::Init(const char* path)
     Image i = LoadImage(path);
     Init(&i);
     stbi_image_free(i.data);
+    Initialized = true;
 }
 
 void
@@ -508,6 +515,9 @@ Texture::Destroy()
 void
 Texture::Set(unsigned int uniformIndex, unsigned int textureIndex)
 {
+    if (!Initialized)
+        Init(data);
+    
     glActiveTexture(GL_TEXTURE0 + textureIndex);
     glBindTexture(GL_TEXTURE_2D, mHandle);
     glUniform1i(uniformIndex, textureIndex);

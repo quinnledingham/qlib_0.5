@@ -26,6 +26,16 @@ struct platform_window_dimension
     int Width;
     int Height;
 };
+
+struct
+platform_memory
+{
+    uint64 PermanentStorageSize;
+    void *PermanentStorage; // REQUIRED to be cleared to zero at startup
+    
+    uint64 TransientStorageSize;
+    void *TransientStorage; // REQUIRED to be cleared to zero at startup
+};
 // End Win32
 
 struct platform_sound_output_buffer
@@ -34,6 +44,12 @@ struct platform_sound_output_buffer
     int SampleCount;
     int16 *Samples;
 };
+// NOTE(casey): At the moment, this has to be a very fast function, it cannot be
+// more than a millisecond or so.
+// TODO(casey): Reduce the pressure on this function's performance by measuring it
+// or asking about it, etc.
+#define PLATFORM_GET_SOUND_SAMPLES(name) void name(platform_memory *Memory, platform_sound_output_buffer *SoundBuffer)
+typedef PLATFORM_GET_SOUND_SAMPLES(platform_get_sound_samples);
 
 struct platform_button_state
 {
@@ -282,16 +298,6 @@ inline bool KeyPressed(platform_button_state *Button, platform_input *Input)
     return false;
 }
 
-struct
-platform_memory
-{
-    uint64 PermanentStorageSize;
-    void *PermanentStorage; // REQUIRED to be cleared to zero at startup
-    
-    uint64 TransientStorageSize;
-    void *TransientStorage; // REQUIRED to be cleared to zero at startup
-};
-
 // Multithreading
 struct platform_work_queue;
 #define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
@@ -325,6 +331,7 @@ platform
     bool32 Initialized;
     
     platform_input Input;
+    platform_sound_output_buffer SoundOutputBuffer;
     
     platform_memory Memory;
     platform_window_dimension Dimension;
@@ -351,5 +358,8 @@ struct platform_debug_buffer
     HANDLE Mutex;
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
+
+#define BEGIN_BLOCK(Name)
+#define END_BLOCK(Name)
 
 #endif //PLATFORM_H

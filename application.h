@@ -9,9 +9,11 @@
 #ifdef QLIB_WINDOW_APPLICATION
 #include "glad/glad.h"
 #include "glad/glad.c"
-#undef APIENTRY
+//#undef APIENTRY
 #endif
 #include <windows.h>
+#include <mmsystem.h>
+#include <dsound.h>
 #include <stdint.h>
 #include <intrin.h>
 #include <stdio.h>
@@ -69,6 +71,51 @@ void UpdateRender(platform* p);
 void Update(platform* p);
 #endif // QLIB_CONSOLE_APPLICATION
 
+#include "qlib/random.h"
+#include "qlib/socketq.h"
+#include "qlib/text.h"
+
+enum game_asset_id
+{
+    GAI_Background,
+    GAI_Grass,
+    GAI_Rocks,
+    GAI_Grid,
+    GAI_CoffeeTex,
+    GAI_Head,
+    GAI_Straight,
+    GAI_Corner,
+    GAI_CoffeeStreak,
+    GAI_HeadOutline,
+    GAI_StraightOutline,
+    GAI_CornerOutline,
+    GAI_Tail,
+    GAI_Tongue,
+    GAI_Miz,
+    GAI_Join,
+    GAI_JoinAlt,
+    GAI_JoinHover,
+    GAI_JoinAltHover,
+    GAI_MainMenuBack,
+    
+    GAI_Count
+};
+enum game_asset_font_id
+{
+    GAFI_Rubik,
+    
+    GAFI_Count
+};
+#include "qlib/asset.h"
+
+#include "qlib/menu.h"
+
+#include "coffee_cow.h"
+#include "snake.h"
+
+internal void OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuffer, int ToneHz);
+
+#include "win32_application.h"
 #include "win32_application.cpp"
 #endif // _WIN32
 

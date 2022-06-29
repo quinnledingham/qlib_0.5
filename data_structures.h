@@ -503,7 +503,8 @@ struct Arr
         MaxSize = ms;
         TypeSize = ts;
         
-        Data = qalloc(ms * ts);
+        if (Data == 0)
+            Data = qalloc(ms * ts);
     }
     
     void Del()
@@ -537,6 +538,13 @@ struct Arr
     }
     
     void* operator[](int i)
+    {
+        char *Cursor = (char*)Data;
+        Cursor += (i * TypeSize);
+        return (void*)Cursor;
+    }
+    
+    void* Get(int i)
     {
         char *Cursor = (char*)Data;
         Cursor += (i * TypeSize);

@@ -15,11 +15,17 @@
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
+#define AlignPow2(Value, Alignment) ((Value + ((Alignment) - 1)) & ~((Alignment) - 1))
+#define Align4(Value) ((Value + 3) & ~3)
+#define Align8(Value) ((Value + 7) & ~7)
+#define Align16(Value) ((Value + 15) & ~15)
+
 #define internal static 
 #define local_persist static 
 #define global_variable static
 
 #define Pi32 3.14159265359f
+#define Tau32 6.28318530717958647692f
 
 typedef int8_t int8;
 typedef int16_t int16;
@@ -251,5 +257,22 @@ struct Transform
     inline Transform(const v3& p, const quat& r, const v3& s) : Position(p), Rotation(r), Scale(s) {}
     inline Transform() : Position(v3(0, 0, 0)), Rotation(quat(0, 0, 0, 1)), Scale(v3(1, 1, 1)) {}
 };
+
+struct qlib_bool
+{
+    bool Value;
+    bool New;
+};
+inline void Toggle(qlib_bool *Bool)
+{
+    Bool->Value = !Bool->Value;
+    Bool->New = true;
+}
+inline bool GetNew(qlib_bool *Bool)
+{
+    bool Ret = Bool->New;
+    Bool->New = false;
+    return Ret;
+}
 
 #endif //TYPES_H
