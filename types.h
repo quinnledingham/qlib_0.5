@@ -60,6 +60,8 @@ typedef real64 r64;
 typedef uintptr_t umm;
 typedef intptr_t smm;
 
+typedef size_t memory_index;
+
 #define DEG2RAD 0.0174533f
 
 typedef struct v2

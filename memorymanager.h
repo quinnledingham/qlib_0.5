@@ -68,7 +68,7 @@ qalloc(int size)
         }
         _finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
     }
-    
+    memset(r, 0, size);
     return r;
 }
 

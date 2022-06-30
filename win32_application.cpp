@@ -169,10 +169,7 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
     DWORD Region1Size;
     VOID *Region2;
     DWORD Region2Size;
-    if(SUCCEEDED(GlobalSecondaryBuffer->Lock(ByteToLock, BytesToWrite,
-                                             &Region1, &Region1Size,
-                                             &Region2, &Region2Size,
-                                             0)))
+    if(SUCCEEDED(GlobalSecondaryBuffer->Lock(ByteToLock, BytesToWrite, &Region1, &Region1Size, &Region2, &Region2Size, 0)))
     {
         // TODO(casey): assert that Region1Size/Region2Size is valid
         
@@ -279,8 +276,6 @@ Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
         
         if (NewState->EndedDown != IsDown)
             NewState->NewEndedDown = true;
-        else
-            NewState->NewEndedDown = false;
     }
     else if (!IsDown)
     {
@@ -288,8 +283,6 @@ Win32ProcessKeyboardMessage(platform_button_state *NewState, bool32 IsDown)
         
         if (NewState->EndedDown != IsDown)
             NewState->NewEndedUp = true;
-        else
-            NewState->NewEndedUp = false;
     }
     
     
@@ -1007,43 +1000,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
                 SoundBuffer.Samples = Samples;
                 game_state *GameState = (game_state *)p.Memory.PermanentStorage;
-                //OutputTestSineWave(GameState, &SoundBuffer, 256);
                 
-                int16 *SampleOut = SoundBuffer.Samples;
-                for(int SampleIndex = 0; SampleIndex < SoundBuffer.SampleCount; ++SampleIndex)
-                {
-                    uint32 TestSoundSampleIndex = (GameState->TestSampleIndex + SampleIndex) % GameState->TestSound.SampleCount;
-                    int16 SampleValue = GameState->TestSound.Samples[0][TestSoundSampleIndex];
-                    *SampleOut++ = SampleValue;
-                    *SampleOut++ = SampleValue;
-                }
-                
-                GameState->TestSampleIndex += SoundBuffer.SampleCount;
-                
-#if QLIB_INTERNAL
-                win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];
-                Marker->OutputPlayCursor = PlayCursor;
-                Marker->OutputWriteCursor = WriteCursor;
-                Marker->OutputLocation = ByteToLock;
-                Marker->OutputByteCount = BytesToWrite;
-                Marker->ExpectedFlipPlayCursor = ExpectedFrameBoundaryByte;
-                
-                DWORD UnwrappedWriteCursor = WriteCursor;
-                if(UnwrappedWriteCursor < PlayCursor)
-                {
-                    UnwrappedWriteCursor += SoundOutput.SecondaryBufferSize;
-                }
-                AudioLatencyBytes = UnwrappedWriteCursor - PlayCursor;
-                AudioLatencySeconds = (((real32)AudioLatencyBytes / (real32)SoundOutput.BytesPerSample) / (real32)SoundOutput.SamplesPerSecond);
-                
-#if 0
-                char TextBuffer[256];
-                _snprintf_s(TextBuffer, sizeof(TextBuffer), "BTL:%u TC:%u BTW:%u - PC:%u WC:%u DELTA:%u (%fs)\n",
-                            ByteToLock, TargetCursor, BytesToWrite, PlayCursor, WriteCursor, AudioLatencyBytes, 
-                            AudioLatencySeconds);
-                OutputDebugStringA(TextBuffer);
-#endif
-#endif   
+                PlayLoadedSound(&GameState->AudioState, &SoundBuffer);
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }
             END_BLOCK(AudioUpdate);

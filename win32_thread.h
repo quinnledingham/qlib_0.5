@@ -3,6 +3,26 @@
 
 #include "platform.h"
 
+#if COMPILER_MSVC
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 New, uint32 Expected)
+{
+    uint32 Result = _InterlockedCompareExchange((long *)Value, New, Expected);
+    
+    return(Result);
+}
+#elif COMPILER_LLVM
+#define CompletePreviousWritesBeforeFutureWrites asm volatile("" ::: "memory")
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 New, uint32 Expected)
+{
+    uint32 Result = __sync_val_compare_and_swap(Value, Expected, New);
+    
+    return(Result);
+}
+#else
+// TODO(casey): Need GCC/LLVM equivalents!
+#endif
+
 struct win32_thread_info
 {
     int LogicalThreadIndex;

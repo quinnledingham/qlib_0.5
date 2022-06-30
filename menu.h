@@ -735,28 +735,26 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
     bool MouseMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Mouse;
     bool MousePreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Mouse;
     
+    //PrintqDebug(S() + "OnKeyDown " + Input->Controllers[0].MoveDown.EndedDown + " " + Input->Controllers[0].MoveDown.NewEndedDown + " " + KeyboardPreviousMode + "\n");
     Menu->Events.ButtonClicked = -1;
     Menu->Events.TextBoxClicked = -1;
     
     v2 MouseCoords = v2(Input->Mouse.X, Input->Mouse.Y);
     
     if (KeyboardMode || ControllerMode) {
+        platform_controller_input *Controller = 0;
+        if (KeyboardMode)
+            Controller = Input->CurrentInputInfo.Controller;
+        else if (ControllerMode)
+            Controller = Input->CurrentInputInfo.Controller;
+        
         if (KeyboardPreviousMode || ControllerPreviousMode) {
-            platform_controller_input *Controller = 0;
-            if (KeyboardMode)
-                Controller = Input->CurrentInputInfo.Controller;
-            else if (ControllerMode)
-                Controller = Input->CurrentInputInfo.Controller;
-            
-            if (OnKeyDown(&Controller->MoveUp)) {
+            if (OnKeyDown(&Controller->MoveUp))
                 DecrActive(Menu);
-            }
-            if (OnKeyDown(&Controller->MoveDown)) {
+            if (OnKeyDown(&Controller->MoveDown))
                 IncrActive(Menu);
-            }
-            if(OnKeyDown(&Input->Keyboard.Tab)) {
+            if(OnKeyDown(&Input->Keyboard.Tab))
                 IncrActive(Menu);
-            }
             
             if (OnKeyDown(&Controller->Enter)) {
                 menu_component *C = Menu->ActiveComponents[Menu->ActiveIndex];
@@ -777,6 +775,12 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
                     Menu->Events.CheckBoxClicked = C->ID;
                 }
             }
+        }
+        else {
+            OnKeyDown(&Controller->MoveUp);
+            OnKeyDown(&Controller->MoveDown);
+            OnKeyDown(&Input->Keyboard.Tab);
+            OnKeyDown(&Controller->Enter);
         }
         
         Menu->ActiveComponents[Menu->ActiveIndex]->Active = true;
