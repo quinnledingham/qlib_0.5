@@ -20,6 +20,7 @@
 #include <xinput.h>
 
 #include "types.h"
+#include "audio.h"
 #include "platform.h"
 #include "win32_thread.h"
 
@@ -61,8 +62,8 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "image.h"
 #include "math.h"
 #include "renderer.h"
-
 #include "renderer.cpp"
+#include "audio.cpp"
 
 void UpdateRender(platform* p);
 #endif
@@ -70,22 +71,6 @@ void UpdateRender(platform* p);
 #ifdef QLIB_CONSOLE_APPLICATION
 void Update(platform* p);
 #endif // QLIB_CONSOLE_APPLICATION
-
-#include "qlib/random.h"
-#include "qlib/socketq.h"
-#include "qlib/text.h"
-
-#include "qlib/audio.h"
-#include "qlib/asset.h"
-
-#include "qlib/menu.h"
-#include "coffee_cow.h"
-
-#include "snake.h"
-
-
-
-internal void OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuffer, int ToneHz);
 
 #include "win32_application.h"
 #include "win32_application.cpp"

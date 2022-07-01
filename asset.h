@@ -126,7 +126,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadFontAsset)
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundAsset)
 {
     game_asset *GA = (game_asset*)Data;
-    loaded_sound Temp = DEBUGLoadWAV(GA->FileName);
+    loaded_sound Temp = LoadWAV(GA->FileName);
     GA->Data = qalloc((void*)&Temp, sizeof(loaded_sound));
 }
 

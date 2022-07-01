@@ -336,6 +336,8 @@ platform
     platform_memory Memory;
     platform_window_dimension Dimension;
     platform_work_queue Queue;
+    
+    audio_state AudioState;
 };
 inline v2 GetDim(platform *p)
 {

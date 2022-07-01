@@ -999,9 +999,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
                 SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
                 SoundBuffer.Samples = Samples;
-                game_state *GameState = (game_state *)p.Memory.PermanentStorage;
                 
-                PlayLoadedSound(&GameState->AudioState, &SoundBuffer);
+                //game_state *GameState = (game_state *)p.Memory.PermanentStorage;
+                
+                PlayLoadedSound(&p.AudioState, &SoundBuffer);
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }
             END_BLOCK(AudioUpdate);
