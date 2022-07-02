@@ -127,9 +127,7 @@ struct Camera
     v3 Up;
     
     float inAspectRatio;
-    Shader* shader;
     float FOV;
-    float F;
     platform_window_dimension Dimension;
 };
 
@@ -242,5 +240,40 @@ RenderPieceGroup(PieceGroup &Group)
 // handle to the global opengl Vertex Array Object (VAO)
 global_variable GLuint gVertexArrayObject = 0;
 global_variable PieceGroup RenderGroup = {};
+
+//
+// Animation
+//
+
+enum struct interpolation
+{
+    constant,
+    linear,
+    cubic,
+};
+
+template<unsigned int N>
+struct frame
+{
+    real32 Value[N];
+    real32 In[N];
+    real32 Out[N];
+    real32 Time;
+};
+typedef frame<1> frame_scalar;
+typedef frame<3> frame_vector;
+typedef frame<4> frame_quaternion;
+
+template<typename T, int N>
+struct track
+{
+    DynArray<frame<N>> Frames;
+    interpolation Interpolation;
+    
+    frame<N>& operator[](unsigned int index);
+};
+typedef track<real32, 1> track_scaler;
+typedef track<v3, 3> track_vector;
+typedef track<quat, 4> track_quaternion;
 
 #endif //RENDERER_H

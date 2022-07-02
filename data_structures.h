@@ -364,6 +364,7 @@ struct DynArray
     unsigned int Size;
     unsigned int MaxSize;
     
+    T& operator[](unsigned int index);
     unsigned int GetSize();
     void Resize(int n, const T& copy);
     void push_back(const T& NewData);
@@ -372,6 +373,13 @@ struct DynArray
 
 
 // DynArray
+
+template<typename T>
+T& DynArray<T>::operator[](unsigned int index)
+{
+    T* i = Data + (Size * sizeof(T));
+    return *i;
+}
 
 template<typename T>
 unsigned int DynArray<T>::GetSize()

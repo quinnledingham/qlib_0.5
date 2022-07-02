@@ -19,6 +19,9 @@ Shader::Init(const char* vertex, const char* fragment)
     entire_file vertFile = ReadEntireFile(vertex);
     entire_file fragFile = ReadEntireFile(fragment);
     
+    Assert(vertFile.Contents != 0);
+    Assert(fragFile.Contents != 0);
+    
     strinq v_source = NewStrinq(&vertFile);
     strinq f_source = NewStrinq(&fragFile);
     
@@ -867,7 +870,7 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
     {
-        PrintqDebug(S() + (int)err + "\n");
+        PrintqDebug(S() + "Opengl Error: " + (int)err + "\n");
     }
 }
 
@@ -1156,7 +1159,7 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
         SourceRow += Bitmap->Width;
     }
 }
-
+/*
 void
 PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
 {
@@ -1207,11 +1210,99 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
         X += ((kern + ax) * SrcFont->Scale);
     }
 }
+*/
+#endif
 
-void
-PrintqScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
+//
+// track
+//
+
+template track<real32, 1>;
+template track<v3, 3>;
+template track<quat, 4>;
+
+// track helpers
+
+inline real32 Interpolate(real32 a, real32 b, real32 t)
 {
-    
+    return a + (b - a) * t;
 }
 
-#endif
+inline v3 Interpolate(const v3& a, const v3 &b, real32 t)
+{
+    return Lerp(a, b, t);
+}
+
+inline quat Interpolate(const quat &a, const quat &b, real32 t)
+{
+    quat Result = Mix(a, b, t);
+    if (Dot(a, b) < 0) // Neighborhood
+    {
+        Result = Mix(a, -b, t);
+    }
+    return Normalized(Result); // NLerp, not slerp
+}
+
+inline real32 AdjustHermiteResult(real32 f) { return f; }
+inline v3 AdjustHermiteResult(const v3 &v) { return v; }
+inline quat AdjustHermiteResult(const quat &q)
+{
+    return Normalized(q);
+}
+
+inline void Neighborhood(const real32 &a, real32 &b) {}
+inline void Neighborhood(const v3 &a, v3 &b) {}
+inline void Neighborhood(const quat &a, quat &b) 
+{
+    if (Dot(a, b) < 0)
+        b = -b;
+}
+
+// end of track helpers
+
+template<typename T, int N> void
+TrackInit(track<T, N> *Track)
+{
+    Track->Interpolation = interpolation::linear;
+}
+
+template<typename T, int N> real32
+TrackGetStartTime(track<T, N> *Track)
+{
+    return Track->Frames[0].Time;
+}
+
+template<typename T, int N> real32
+TrackGetEndTime(track<T, N> *Track)
+{
+    return Track->Frames[Track->Frames.GetSize() - 1].Time;
+}
+
+template<typename T, int N> T
+TrackSample(track<T, N> *Track, real32 Time, bool Looping)
+{
+    if (Track->Interpolation = interpolation::constant)
+        return SampleConstant(Time, Looping);
+    else if (Track->Interpolation = interpolation::constant)
+        return SampleLinear(Time, Looping);
+    else if (Track->Interpolation = interpolation::cubic)
+        return SampleCubic(Time, Looping);
+}
+
+template<typename T, int N> frame<N>&
+track<T, N>::operator[] (unsigned int Index)
+{
+    return Frames[Index];
+}
+
+template<typename T, int N> void
+TrackResize(track<T, N> *Track, unsigned int Size)
+{
+    Track->Frames.Resize(Size);
+}
+
+template<typename T, int N> unsigned int
+TrackGetSize(track<T, N> *Track)
+{
+    return Frames.GetSize();
+}
