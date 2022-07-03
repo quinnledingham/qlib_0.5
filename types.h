@@ -95,10 +95,10 @@ struct iv2
     {
         struct
         {
-            int x;
-            int y;
+            int32 x;
+            int32 y;
         };
-        int v[2];
+        int32 v[2];
     };
     inline iv2() : x(0), y(0) {}
     inline iv2(int _x, int _y) : x(_x), y(_y) {}

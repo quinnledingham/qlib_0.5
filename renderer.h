@@ -11,6 +11,7 @@
 #pragma message ("renderer.h requires image.h")
 #endif
 
+
 template<typename T>
 struct Attribute
 {
@@ -75,6 +76,13 @@ struct IndexBuffer
     unsigned int GetHandle();
 };
 
+struct texture
+{
+    unsigned int Handle;
+    loaded_bitmap ResizedBitmap;
+    loaded_bitmap OriginalBitmp;
+};
+
 struct Texture
 {
     const char* ID;
@@ -131,7 +139,6 @@ struct Camera
     platform_window_dimension Dimension;
 };
 
-
 void glDraw(unsigned int vertexCount, DrawMode mode);
 void glDraw(IndexBuffer& inIndexBuffer, DrawMode mode);
 void glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances);
@@ -142,7 +149,22 @@ void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
 void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode Mode);
 
-//typedef int type;
+enum struct render_piece_type
+{
+    color_rect,
+    texture_rect,
+};
+
+struct render_piece
+{
+    render_piece_type Type;
+};
+
+struct render_piece_group
+{
+    
+};
+
 struct Piece
 {
     v3 Coords;
@@ -164,7 +186,20 @@ struct Piece
     Texture *Tex;
     
     inline Piece() {}
-    inline Piece(v3 _Coords, v2 _Dim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), ScissorCoords(0), ScissorDim(0), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
+    inline Piece(v3 _Coords, 
+                 v2 _Dim,
+                 Texture *_Tex,
+                 real32 _Rotation,
+                 BlendMode _BMode) : 
+    Coords(_Coords), 
+    Dim(_Dim), 
+    ScissorCoords(0), 
+    ScissorDim(0), 
+    Tex(_Tex), 
+    Rotation(_Rotation), 
+    BMode(_BMode) 
+    { Type = Piece::type::TextureRect; }
+    
     inline Piece(v3 _Coords, v2 _Dim, v2 _ScissorCoords, v2 _ScissorDim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), ScissorCoords(_ScissorCoords), ScissorDim(_ScissorDim), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
     inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) : Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = Piece::type::ColorRect;}
 };
@@ -193,7 +228,8 @@ struct PieceGroup
 };
 inline void Push(PieceGroup &Group, Piece p)
 { 
-    *Group[Group.Size] = p; Group.Size++; 
+    *Group[Group.Size] = p;
+    Group.Size++; 
 }
 inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) 
 { 

@@ -62,6 +62,7 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "image.h"
 #include "math.h"
 #include "renderer.h"
+#include "qlib/text.h"
 #include "renderer.cpp"
 #include "audio.cpp"
 

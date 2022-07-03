@@ -45,6 +45,11 @@ Win32AddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback
     Queue->NextEntryToWrite = NewNextEntryToWrite;
     ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
 }
+inline void
+WorkQueueAddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data)
+{
+    Win32AddEntry(Queue, Callback, Data);
+}
 
 internal bool32
 Win32DoNextWorkQueueEntry(platform_work_queue *Queue)
@@ -85,21 +90,10 @@ Win32CompleteAllWork(platform_work_queue *Queue)
     Queue->CompletionGoal = 0;
     Queue->CompletionCount = 0;
 }
-
-internal void
-Win32WaitForAllWork(platform_work_queue *Queue)
+inline void
+WorkQueueCompleteAllWork(platform_work_queue *Queue)
 {
-    while(Queue->CompletionGoal != Queue->CompletionCount){}
-    
-    Queue->CompletionGoal = 0;
-    Queue->CompletionCount = 0;
-}
-
-internal void
-Win32CancelAllWork(platform_work_queue *Queue)
-{
-    Queue->CompletionGoal = 0;
-    Queue->CompletionCount = 0;
+    Win32CompleteAllWork(Queue);
 }
 
 DWORD WINAPI

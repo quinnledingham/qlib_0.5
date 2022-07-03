@@ -1179,7 +1179,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int
         char Line[100];
         memset(Line, 0, 100);
         int j = 0;
-        while (Cursor[i] != 0x0A && i < (int)EntireFile.ContentsSize)
+        while (Cursor[i] != 0x0A && Cursor[i] != 0x0D && i < (int)EntireFile.ContentsSize)
         {
             Line[j] = Cursor[i];
             j++;

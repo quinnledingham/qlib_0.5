@@ -1,4 +1,10 @@
+#ifndef TEXT_H
+#pragma message ("renderer.h requires text.h")
+#endif
+
+//
 // SHADER 
+//
 
 void
 Shader::Init()
@@ -30,9 +36,9 @@ Shader::Init(const char* vertex, const char* fragment)
     const char* v = v_source.Data; // v_source needs to be 0 terminated
     glShaderSource(v_shader, 1, &v, NULL);
     glCompileShader(v_shader);
+    
     int GotVertexShader = 0;
     glGetShaderiv(v_shader, GL_COMPILE_STATUS, &GotVertexShader);
-    
     if (GotVertexShader)
     {
         unsigned vert = v_shader;
@@ -45,7 +51,6 @@ Shader::Init(const char* vertex, const char* fragment)
         
         int GotFragmentShader = 0;
         glGetShaderiv(f_shader, GL_COMPILE_STATUS, &GotFragmentShader);
-        
         if (GotFragmentShader)
         {
             unsigned int frag = f_shader;
@@ -54,9 +59,9 @@ Shader::Init(const char* vertex, const char* fragment)
             glAttachShader(mHandle, vert);
             glAttachShader(mHandle, frag);
             glLinkProgram(mHandle);
+            
             int GotProgram = 0;
             glGetProgramiv(mHandle, GL_LINK_STATUS, &GotProgram);
-            
             if (GotProgram)
             {
                 glDeleteShader(vert);
@@ -577,43 +582,6 @@ LoadTexture(const char* FileName)
     
     //Tex.Init(Tex.data);
     return (Texture*)qalloc(&Tex, sizeof(Texture));
-}
-
-internal void
-SaveTextureEthan(Texture* Tex, const char* SaveFileName)
-{
-    FILE *File = fopen(SaveFileName, "wb");
-    ImageHeader Header = 
-    {
-        Tex->mWidth,
-        Tex->mHeight,
-        Tex->mChannels,
-    };
-    fwrite(&Header, sizeof(struct ImageHeader), 1, File);
-    fwrite(Tex->data, Tex->mWidth * Tex->mHeight * Tex->mChannels, 1, File);
-    fclose(File);
-}
-
-internal Texture*
-LoadTextureEthan(Texture *Tex, const char* LoadFileName)
-{
-    entire_file File = ReadEntireFile(LoadFileName);
-    ImageHeader *Header = (ImageHeader*)File.Contents;
-    char* Cursor = (char*)File.Contents + sizeof(ImageHeader);
-    Tex->mWidth = Header->x;
-    Tex->mHeight = Header->y;
-    Tex->mChannels = Header->n;
-    Tex->data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
-    //Tex->data = (unsigned char*)malloc(Header->x * Header->y * Header->n);
-    //memcpy(Tex->data, Cursor, Header->x * Header->y * Header->n);
-    
-    Tex->og.x = Tex->mWidth;
-    Tex->og.y = Tex->mHeight;
-    Tex->og.n = Tex->mChannels;
-    Tex->og.data = (unsigned char*)qalloc((void*)Cursor, Header->x * Header->y * Header->n);
-    
-    Tex->Init(Tex->data);
-    return Tex;
 }
 // End of Texture
 
@@ -1305,4 +1273,23 @@ template<typename T, int N> unsigned int
 TrackGetSize(track<T, N> *Track)
 {
     return Frames.GetSize();
+}
+
+//
+// FPS Counter
+//
+
+internal void
+DrawFPS(real32 Seconds, v2 ScreenDim, font *Font)
+{
+    real32 fps = 0;
+    if (Seconds != 0) {
+        fps= 1 / Seconds;
+        strinq FPS = S() + (int)fps;
+        
+        font_string FontString = {};
+        FontStringInit(&FontString, Font, FPS.Data, 50, 0xFFFFFF00);
+        v2 SDim = FontStringGetDim(&FontString);
+        FontStringPrint(&FontString, v2((ScreenDim.x/2)-(int)SDim.x-10, -ScreenDim.y/2 + 10));
+    }
 }
