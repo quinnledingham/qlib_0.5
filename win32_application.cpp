@@ -552,7 +552,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 {
     SetCurrentDirectory("../game/data");
     
-    
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
     GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
@@ -1003,6 +1002,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 //game_state *GameState = (game_state *)p.Memory.PermanentStorage;
                 
                 PlayLoadedSound(&p.AudioState, &SoundBuffer);
+                //OutputTestSineWave(GameState, &SoundBuffer,256);
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }
             END_BLOCK(AudioUpdate);

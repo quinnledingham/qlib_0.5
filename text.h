@@ -35,7 +35,7 @@ struct font_char
     int C_Y2;
     real32 Scale;
     
-    Texture Tex;
+    texture Tex;
     
     uint32 Color;
     int32 Width;
@@ -327,7 +327,8 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
         
         Result.Width = Width;
         Result.Height = Height;
-        Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
+        Result.Channels = BITMAP_BYTES_PER_PIXEL;
+        Result.Pitch = Result.Width * Result.Channels;
         Result.Memory = malloc(Height*Result.Pitch);
         Result.Free = Result.Memory;
         
@@ -430,13 +431,8 @@ LoadFontChar(font* Font, int Codepoint, real32 Scale, uint32 Color)
     FontChar->Memory = Temp.Memory;
     
 #if QLIB_OPENGL
-    Image SrcImage = {};
-    SrcImage.x = FontChar->Width;
-    SrcImage.y = FontChar->Height;
-    SrcImage.n = FontChar->Pitch;
-    SrcImage.data = (unsigned char*)FontChar->Memory;
-    FontChar->Tex.Init(&SrcImage);
-    stbi_image_free(SrcImage.data);
+    if (Temp.Width != 0 && Temp.Height != 0)
+        TextureInit(&FontChar->Tex, &Temp);
 #endif
     
     return FontChar;
@@ -557,10 +553,10 @@ FontStringPrint(font_string *FontString, v2 Coords, v2 ScissorCoords, v2 Scissor
         
         v2 Scissor = v2(ScissorCoords.x, ScissorCoords.y + ScissorDim.y);
         
-        Push(RenderGroup, v3(X, Y, 100.0f), 
-             v2((real32)NextChar->Tex.mWidth, (real32)NextChar->Tex.mHeight), 
+        Push(v3(X, Y, 100.0f), 
+             v2((real32)NextChar->Width, (real32)NextChar->Height), 
              Scissor, ScissorDim,
-             &NextChar->Tex, 0, BlendMode::gl_src_alpha);
+             &NextChar->Tex, 0, blend_mode::gl_src_alpha);
         
         XCoord += FontString->Advances[i];
     }

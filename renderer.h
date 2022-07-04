@@ -11,143 +11,66 @@
 #pragma message ("renderer.h requires image.h")
 #endif
 
-
-template<typename T>
-struct Attribute
+struct render_attribute
 {
-    unsigned int mHandle;
-    unsigned int mCount;
-    
-    void Init();
-    void Destroy();
-    unsigned int Count();
-    unsigned int GetHandle();
-    void Set(T* inputArray, unsigned int arrayLength);
-    void Set(DynArray<T> &input);
-    void SetAttribPointer(unsigned int s);
-    void BindTo(unsigned int slot);
-    void UnBindFrom(unsigned int slot);
+    u32 Handle;
+    u32 Count;
 };
 
-template<typename T>
-struct Uniform
+struct render_uniform
 {
-    void Init();
-    void Init(const Uniform&);
-    Uniform& operator=(const Uniform&);
-    void Destroy();
     
-    static void Set(unsigned int slot, const T& value);
-    static void Set(unsigned int slot, T* arr, unsigned int len);
-    static void Set(unsigned int slot, DynArray<T>& arr);
 };
 
-struct Shader
+struct render_shader
 {
-    u32 mHandle;
-    
-    Map mAttributes;
-    Map mUniforms;
-    
-    void Init();
-    void Init(const char* vertex, const char* fragment);
-    void Destroy();
-    void Bind();
-    void UnBind();
-    unsigned int GetHandle();
-    unsigned int GetAttribute(const char* name);
-    unsigned int GetUniform(const char* name);
+    u32 Handle;
+    Map Attributes;
+    Map Uniforms;
 };
 
-struct IndexBuffer
+struct render_index_buffer
 {
-    unsigned int mHandle;
-    unsigned int mCount;
-    
-    void Init();
-    void Init(const IndexBuffer& other);
-    IndexBuffer& operator=(const IndexBuffer& other);
-    void Destroy();
-    
-    void Set(unsigned int* rr, unsigned int len);
-    void Set(DynArray<unsigned int> &input);
-    
-    unsigned int Count();
-    unsigned int GetHandle();
+    u32 Handle;
+    u32 Count;
 };
 
-struct texture
+struct render_texture
 {
     unsigned int Handle;
-    loaded_bitmap ResizedBitmap;
-    loaded_bitmap OriginalBitmp;
+    int BitmapID;
 };
+typedef render_texture texture;
+inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap);
 
-struct Texture
+enum struct render_draw_mode
 {
-    const char* ID;
-    unsigned int mHandle;
-    bool Initialized;
-    
-    unsigned int mWidth;
-    unsigned int mHeight;
-    unsigned int mChannels;
-    unsigned char* data;
-    
-    Image og;
-    
-    void Init();
-    void Init(unsigned char*);
-    void Init(Image* image);
-    void Init(const char* path);
-    void Init(const Texture& other);
-    //Texture& operator=(const Texture& other);
-    void Destroy();
-    
-    void Set(unsigned int uniform, unsigned int texIndex);
-    void UnSet(unsigned int textureIndex);
-    unsigned int GetHandle();
+    points,
+    line_strip,
+    line_loop,
+    lines,
+    triangles,
+    triangle_strip,
+    triangle_fan
 };
 
-enum struct
-DrawMode
-{
-    Points,
-    LineStrip,
-    LineLoop,
-    Lines,
-    Triangles,
-    TriangleStrip,
-    TriangleFan
-};
-
-enum struct
-BlendMode
+enum struct render_blend_mode
 {
     gl_one,
     gl_src_alpha,
 };
+typedef render_blend_mode blend_mode;
 
-struct Camera
+struct render_camera
 {
     v3 Position;
     v3 Target;
     v3 Up;
     
-    float inAspectRatio;
-    float FOV;
-    platform_window_dimension Dimension;
-};
-
-void glDraw(unsigned int vertexCount, DrawMode mode);
-void glDraw(IndexBuffer& inIndexBuffer, DrawMode mode);
-void glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances);
-void glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instanceCount);
-
-void DrawRect(int x, int y, int width, int height, uint32 color);
-void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
-void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode);
-void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode Mode);
+    real32 inAspectRatio;
+    real32 FOV;
+    v2 WindowDim;
+} typedef camera;
 
 enum struct render_piece_type
 {
@@ -158,102 +81,93 @@ enum struct render_piece_type
 struct render_piece
 {
     render_piece_type Type;
-};
-
-struct render_piece_group
-{
     
-};
-
-struct Piece
-{
     v3 Coords;
     v2 Dim;
     real32 Rotation;
-    BlendMode BMode;
+    render_blend_mode BlendMode;
     
     v2 ScissorCoords;
     v2 ScissorDim;
     
-    enum type
-    {
-        ColorRect,
-        TextureRect,
-    };
-    type Type;
-    
     uint32 Color;
-    Texture *Tex;
+    render_texture *Texture;
     
-    inline Piece() {}
-    inline Piece(v3 _Coords, 
-                 v2 _Dim,
-                 Texture *_Tex,
-                 real32 _Rotation,
-                 BlendMode _BMode) : 
-    Coords(_Coords), 
-    Dim(_Dim), 
-    ScissorCoords(0), 
-    ScissorDim(0), 
-    Tex(_Tex), 
-    Rotation(_Rotation), 
-    BMode(_BMode) 
-    { Type = Piece::type::TextureRect; }
-    
-    inline Piece(v3 _Coords, v2 _Dim, v2 _ScissorCoords, v2 _ScissorDim, Texture *_Tex, real32 _Rotation, BlendMode _BMode) : Coords(_Coords), Dim(_Dim), ScissorCoords(_ScissorCoords), ScissorDim(_ScissorDim), Tex(_Tex), Rotation(_Rotation), BMode(_BMode) {Type = Piece::type::TextureRect;}
-    inline Piece(v3 _Coords, v2 _Dim, uint32 _Color, real32 _Rotation) : Coords(_Coords), Dim(_Dim), Color(_Color), Rotation(_Rotation) {Type = Piece::type::ColorRect;}
+    inline render_piece() {}
+    inline render_piece(render_piece_type _Type,
+                        v3 _Coords,
+                        v2 _Dim,
+                        real32 _Rotation,
+                        render_blend_mode _BlendMode,
+                        v2 _ScissorCoords,
+                        v2 _ScissorDim,
+                        uint32 _Color,
+                        render_texture *_Texture) :
+    Type(_Type),
+    Coords(_Coords),
+    Dim(_Dim),
+    Rotation(_Rotation),
+    BlendMode(_BlendMode),
+    ScissorCoords(_ScissorCoords),
+    ScissorDim(_ScissorDim),
+    Color(_Color),
+    Texture(_Texture)
+    {}
 };
-struct PieceGroup
+
+#define RENDER_PIECE_GROUP_MAX_SIZE 1000
+struct render_piece_group
 {
-    Piece Buffer[1000];
-    int Size = 0;
-    int MaxSize = 1000;
+    render_piece Pieces[RENDER_PIECE_GROUP_MAX_SIZE];
+    uint32 Size = 0;
+    uint32 MaxSize = RENDER_PIECE_GROUP_MAX_SIZE;
     
-    void Push(Piece NewRect)
-    {
-        Buffer[Size] = NewRect;
-        Size++;
-    }
-    
-    void Clear()
-    {
-        memset(Buffer, 0, MaxSize * sizeof(Piece));
-        Size = 0;
-    }
-    
-    Piece* operator[](int i)
-    {
-        return &Buffer[i];
-    }
+    render_piece* operator[](int i) { return &Pieces[i]; }
 };
-inline void Push(PieceGroup &Group, Piece p)
-{ 
-    *Group[Group.Size] = p;
-    Group.Size++; 
-}
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, Texture *Tex, real32 Rotation, BlendMode BMode) 
-{ 
-    Push(Group, Piece(Coords, Dim, Tex, Rotation, BMode));
-}
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode BMode)
-{ 
-    Push(Group, Piece(Coords, Dim, ScissorCoords, ScissorDim, Tex, Rotation, BMode));
-}
-inline void Push(PieceGroup &Group, v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
+global_variable  render_piece_group RenderPieceGroup2 = {};
+inline void Push(render_piece Piece)
 {
-    Push(Group, Piece(Coords, Dim , Color, Rotation)); 
+    *RenderPieceGroup2[RenderPieceGroup2.Size++] = Piece;
+}
+inline void Push(v3 Coords, v2 Dim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
+{
+    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, Texture));
+}
+inline void Push(v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
+{
+    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, ScissorCoords, ScissorDim, 0, Texture));
+}
+inline void Push(v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
+{
+    Push(render_piece(render_piece_type::color_rect, Coords, Dim, Rotation, render_blend_mode::gl_one, 0, 0, Color, 0));
 }
 
+inline void ClearPieceGroup(render_piece_group *Group)
+{
+    memset(Group->Pieces, 0, Group->MaxSize * sizeof(render_piece));
+    Group->Size = 0;
+}
+
+void glDraw(u32 vertexCount, render_draw_mode DrawMode);
+void glDraw(render_index_buffer& IndexBuffer, render_draw_mode DrawMode);
+void glDrawInstanced(u32 VertexCount, render_draw_mode DrawMode, u32 NumInstances);
+void glDrawInstanced(render_index_buffer& IndexBuffer,  render_draw_mode DrawMode, u32 InstanceCount);
+
+void DrawRect(int x, int y, int width, int height, uint32 color);
+void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
+void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode);
+void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode);
+
 internal void
-RenderPieceGroup(PieceGroup &Group)
+RenderPieceGroup(render_piece_group &Group)
 {
     // Z-Sort using Insertion Sort
     {
-        int i = 1;
+        uint32 i = 1;
         while (i < Group.Size) {
             int j = i;
             while (j > 0 && Group[j-1]->Coords.z > Group[j]->Coords.z) {
-                Piece Temp = *Group[j];
+                render_piece Temp = *Group[j];
                 *Group[j] = *Group[j-1];
                 *Group[j-1] = Temp;
                 j = j - 1;
@@ -262,20 +176,19 @@ RenderPieceGroup(PieceGroup &Group)
         }
     }
     
-    for (int i = 0; i < Group.Size; i++) {
-        Piece *p = Group[i];
-        if (p->Type == Piece::type::TextureRect)
-            DrawRect(p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Tex, p->Rotation, p->BMode);
-        else if (p->Type == Piece::type::ColorRect)
+    for (uint32 i = 0; i < Group.Size; i++) {
+        render_piece *p = Group[i];
+        if (p->Type == render_piece_type::texture_rect)
+            DrawRect(p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Texture, p->Rotation, p->BlendMode);
+        else if (p->Type == render_piece_type::color_rect)
             DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
     }
     
-    Group.Clear();
+    ClearPieceGroup(&Group);
 }
 
 // handle to the global opengl Vertex Array Object (VAO)
 global_variable GLuint gVertexArrayObject = 0;
-global_variable PieceGroup RenderGroup = {};
 
 //
 // Animation

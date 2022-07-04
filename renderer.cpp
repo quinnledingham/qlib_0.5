@@ -3,69 +3,62 @@
 #endif
 
 //
-// SHADER 
+// render_shader
 //
 
-void
-Shader::Init()
+internal void
+ShaderInit(render_shader *Shader, const char *VertexFileName, const char *FragmentFileName)
 {
-    mHandle = glCreateProgram();
-}
-
-void
-Shader::Init(const char* vertex, const char* fragment)
-{
-    // Init
-    mHandle = glCreateProgram();
+    Shader->Handle = glCreateProgram();
     
-    mAttributes.Init();
-    mUniforms.Init();
+    Shader->Attributes.Init();
+    Shader->Uniforms.Init();
     
     // Load
-    entire_file vertFile = ReadEntireFile(vertex);
-    entire_file fragFile = ReadEntireFile(fragment);
+    entire_file VertFile = ReadEntireFile(VertexFileName);
+    entire_file FragFile = ReadEntireFile(FragmentFileName);
     
-    Assert(vertFile.Contents != 0);
-    Assert(fragFile.Contents != 0);
+    Assert(VertFile.Contents != 0);
+    Assert(FragFile.Contents != 0);
     
-    strinq v_source = NewStrinq(&vertFile);
-    strinq f_source = NewStrinq(&fragFile);
+    strinq V_Source = NewStrinq(&VertFile);
+    strinq F_Source = NewStrinq(&FragFile);
     
     // Compile Vertex Shader
-    u32 v_shader = glCreateShader(GL_VERTEX_SHADER);
-    const char* v = v_source.Data; // v_source needs to be 0 terminated
-    glShaderSource(v_shader, 1, &v, NULL);
-    glCompileShader(v_shader);
+    u32 V_Shader = glCreateShader(GL_VERTEX_SHADER);
+    const char* v = V_Source.Data; // v_source needs to be 0 terminated
+    glShaderSource(V_Shader, 1, &v, NULL);
+    glCompileShader(V_Shader);
     
     int GotVertexShader = 0;
-    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &GotVertexShader);
+    glGetShaderiv(V_Shader, GL_COMPILE_STATUS, &GotVertexShader);
     if (GotVertexShader)
     {
-        unsigned vert = v_shader;
+        unsigned Vert = V_Shader;
         
         // Compile Fragment Shader
-        u32 f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        const char* f = f_source.Data;  // f_source needs to be 0 terminated
-        glShaderSource(f_shader, 1, &f, NULL);
-        glCompileShader(f_shader);
+        u32 F_Shader = glCreateShader(GL_FRAGMENT_SHADER);
+        const char* f = F_Source.Data;  // f_source needs to be 0 terminated
+        glShaderSource(F_Shader, 1, &f, NULL);
+        glCompileShader(F_Shader);
         
         int GotFragmentShader = 0;
-        glGetShaderiv(f_shader, GL_COMPILE_STATUS, &GotFragmentShader);
+        glGetShaderiv(F_Shader, GL_COMPILE_STATUS, &GotFragmentShader);
         if (GotFragmentShader)
         {
-            unsigned int frag = f_shader;
+            unsigned int Frag = F_Shader;
             
             // Link
-            glAttachShader(mHandle, vert);
-            glAttachShader(mHandle, frag);
-            glLinkProgram(mHandle);
+            glAttachShader(Shader->Handle, Vert);
+            glAttachShader(Shader->Handle, Frag);
+            glLinkProgram(Shader->Handle);
             
             int GotProgram = 0;
-            glGetProgramiv(mHandle, GL_LINK_STATUS, &GotProgram);
+            glGetProgramiv(Shader->Handle, GL_LINK_STATUS, &GotProgram);
             if (GotProgram)
             {
-                glDeleteShader(vert);
-                glDeleteShader(frag);
+                glDeleteShader(Vert);
+                glDeleteShader(Frag);
                 
                 // Populate Attributes
                 {
@@ -75,17 +68,17 @@ Shader::Init(const char* vertex, const char* fragment)
                     int size;
                     GLenum type;
                     
-                    glUseProgram(mHandle);
-                    glGetProgramiv(mHandle, GL_ACTIVE_ATTRIBUTES, &count);
+                    glUseProgram(Shader->Handle);
+                    glGetProgramiv(Shader->Handle, GL_ACTIVE_ATTRIBUTES, &count);
                     
                     for (int i = 0; i < count; ++i)
                     {
                         memset(name, 0, sizeof(char) * 128);
-                        glGetActiveAttrib(mHandle, (GLuint)i, 128, &length, &size, &type, name);
-                        int attrib = glGetAttribLocation(mHandle, name);
+                        glGetActiveAttrib(Shader->Handle, (GLuint)i, 128, &length, &size, &type, name);
+                        int attrib = glGetAttribLocation(Shader->Handle, name);
                         if (attrib >= 0)
                         {
-                            mAttributes[name] = attrib;
+                            Shader->Attributes[name] = attrib;
                         }
                     }
                     
@@ -101,14 +94,14 @@ Shader::Init(const char* vertex, const char* fragment)
                     GLenum type;
                     char testName[256];
                     
-                    glUseProgram(mHandle);
-                    glGetProgramiv(mHandle, GL_ACTIVE_UNIFORMS, &count);
+                    glUseProgram(Shader->Handle);
+                    glGetProgramiv(Shader->Handle, GL_ACTIVE_UNIFORMS, &count);
                     
                     for (int i = 0; i < count; ++i)
                     {
                         memset(name, 0, sizeof(char) * 128);
-                        glGetActiveUniform(mHandle, (GLuint)i, 128, &length, &size, &type, name);
-                        int uniform = glGetUniformLocation(mHandle, name);
+                        glGetActiveUniform(Shader->Handle, (GLuint)i, 128, &length, &size, &type, name);
+                        int uniform = glGetUniformLocation(Shader->Handle, name);
                         if (uniform >= 0)
                         {
                             // Is uniform valid?
@@ -126,18 +119,18 @@ Shader::Init(const char* vertex, const char* fragment)
                                     
                                     strinq n = S() + uniformName + "[" + uniformIndex++ + "]";
                                     CopyBuffer(testName, n.Data, n.Length);
-                                    int uniformLocation = glGetUniformLocation(mHandle, testName);
+                                    int uniformLocation = glGetUniformLocation(Shader->Handle, testName);
                                     
                                     if (uniformLocation < 0)
                                     {
                                         break;
                                     }
                                     
-                                    mUniforms[testName] = uniformLocation;
+                                    Shader->Uniforms[testName] = uniformLocation;
                                 }
                             }
                             
-                            mUniforms[uniformName] = uniform;
+                            Shader->Uniforms[uniformName] = uniform;
                             DestroyStrinq(&uniformName);
                         }
                     }
@@ -149,214 +142,100 @@ Shader::Init(const char* vertex, const char* fragment)
             else // !GotProgram
             {
                 char infoLog[512];
-                glGetProgramInfoLog(mHandle, 512, NULL, infoLog);
+                glGetProgramInfoLog(Shader->Handle, 512, NULL, infoLog);
                 PrintqDebug("ERROR: Shader linking failed.\n");
                 PrintqDebug(S() + "\t" + infoLog + "\n");
-                glDeleteShader(vert);
-                glDeleteShader(frag);
+                glDeleteShader(Vert);
+                glDeleteShader(Frag);
             }
         }
         else // !GotFragmentShader
         {
             char infoLog[512];
-            glGetShaderInfoLog(f_shader, 512, NULL, infoLog);
+            glGetShaderInfoLog(F_Shader, 512, NULL, infoLog);
             PrintqDebug("Fragment compilation failed.\n");
             PrintqDebug(S() + "\t" + infoLog + "\n");
-            glDeleteShader(f_shader);
+            glDeleteShader(F_Shader);
             return;
         }
     }
     else // !GotVertexShader
     {
         char infoLog[512];
-        glGetShaderInfoLog(v_shader, 512, NULL, infoLog);
+        glGetShaderInfoLog(V_Shader, 512, NULL, infoLog);
         PrintqDebug("Vertex compilation failed.\n");
         PrintqDebug(S() + "\t" + infoLog + "\n");
         
-        glDeleteShader(v_shader);
+        glDeleteShader(V_Shader);
     }
     
-    DestroyStrinq(&v_source);
-    DestroyStrinq(&f_source);
-    DestroyEntireFile(vertFile);
-    DestroyEntireFile(fragFile);
+    DestroyStrinq(&V_Source);
+    DestroyStrinq(&F_Source);
+    DestroyEntireFile(VertFile);
+    DestroyEntireFile(FragFile);
 }
 
-void
-Shader::Destroy()
+inline void ShaderDestroy(render_shader *Shader) { glDeleteProgram(Shader->Handle); }
+inline void ShaderBind(render_shader *Shader) { glUseProgram(Shader->Handle); }
+inline void ShaderUnBind(render_shader *Shader) { glUseProgram(0); }
+inline u32 ShaderGetAttribute(render_shader *Shader, const char *Name) { return Shader->Attributes.MapFind(Name); }
+inline u32 ShaderGetUniform(render_shader *Shader, const char *Name) { return Shader->Uniforms.MapFind(Name); }
+
+//
+// render_attribute
+//
+
+inline void
+AttributeInit(render_attribute *Attribute)
 {
-    glDeleteProgram(mHandle);
+    glGenBuffers(1, &Attribute->Handle);
+    Attribute->Count = 0;
 }
+inline void AttributeDestroy(render_attribute *Attribute) { glDeleteBuffers(1, &Attribute->Handle); }
 
-void
-Shader::Bind()
+internal void
+AttributeSet(render_attribute *Attribute, void *Data, u32 TypeSize, u32 ArrayLength)
 {
-    glUseProgram(mHandle);
-}
-
-void
-Shader::UnBind()
-{
-    glUseProgram(0);
-}
-
-unsigned int 
-Shader::GetHandle()
-{
-    return mHandle;
-}
-
-unsigned int 
-Shader::GetAttribute(const char* name)
-{
-    //Strinq Name = {};
-    //NewStrinq(Name, name);
-    unsigned int r =  mAttributes.MapFind(name);
-    //DestroyStrinq(Name);
-    
-    return r;
-}
-
-unsigned int
-Shader::GetUniform(const char* name)
-{
-    //Strinq Name = {};
-    //NewStrinq(Name, name);
-    unsigned int r =  mUniforms.MapFind(name);
-    //DestroyStrinq(Name);
-    
-    return r;
-}
-
-
-
-// ATTRIBUTE
-
-template Attribute<int>;
-template Attribute<float>;
-template Attribute<v2>;
-template Attribute<v3>;
-template Attribute<v4>;
-template Attribute<iv4>;
-template Attribute<quat>;
-
-template<typename T> void
-Attribute<T>::Init()
-{
-    glGenBuffers(1, &mHandle);
-    mCount = 0;
-}
-
-template<typename T> void 
-Attribute<T>::Destroy()
-{
-    glDeleteBuffers(1, &mHandle);
-}
-
-template<typename T> unsigned int 
-Attribute<T>::Count()
-{
-    return mCount;
-}
-
-template<typename T> unsigned int 
-Attribute<T>::GetHandle()
-{
-    return mHandle;
-}
-
-template<typename T> void
-Attribute<T>::Set(T* inputArray, unsigned int arrayLength)
-{
-    mCount = arrayLength;
-    unsigned int size = sizeof(T);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-    glBufferData(GL_ARRAY_BUFFER, size * mCount, inputArray, GL_STREAM_DRAW);
+    Attribute->Count = ArrayLength;
+    glBindBuffer(GL_ARRAY_BUFFER, Attribute->Handle);
+    glBufferData(GL_ARRAY_BUFFER, TypeSize * Attribute->Count, Data, GL_STREAM_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-template<typename T> void
-Attribute<T>::Set(DynArray<T> &input)
-{
-    Set((T*)input.GetData(), input.GetSize());
+inline void AttribSetPointerint(u32 s) { glVertexAttribIPointer(s, 1, GL_INT, 0, (void*)0); }
+inline void AttribSetPointeriv4(u32 s) { glVertexAttribIPointer(s, 4, GL_INT, 0, (void*)0); }
+inline void AttribSetPointerreal32(u32 s) { glVertexAttribPointer(s, 1, GL_FLOAT, GL_FALSE, 0, 0); }
+inline void AttribSetPointerv2(u32 s) { glVertexAttribPointer(s, 2, GL_FLOAT, GL_FALSE, 0, 0); }
+inline void AttribSetPointerv3(u32 s) { glVertexAttribPointer(s, 3, GL_FLOAT, GL_FALSE, 0, 0); }
+inline void AttribSetPointerv4(u32 s) { glVertexAttribPointer(s, 4, GL_FLOAT, GL_FALSE, 0, 0); }
+inline void AttribSetPointerquat(u32 s) { glVertexAttribPointer(s, 4, GL_FLOAT, GL_FALSE, 0, (void*)0); }
+#define AttributeSetPointer(s, t) (AttribSetPointer##t(s))
+
+inline void AttributeBindBuffer(render_attribute *Attribute, u32 Slot)
+{ 
+    glBindBuffer(GL_ARRAY_BUFFER, Attribute->Handle);
+    glEnableVertexAttribArray(Slot);
+}
+#define AttributeBindTo(t, a, s) \
+{\
+AttributeBindBuffer(a, s);\
+AttributeSetPointer(s, t);\
+glBindBuffer(GL_ARRAY_BUFFER, 0);\
 }
 
-template<> void
-Attribute<int>::SetAttribPointer(unsigned int s)
+inline void AttributeUnBindFrom(render_attribute *Attribute, u32 Slot)
 {
-    glVertexAttribIPointer(s, 1, GL_INT, 0, (void*)0);
-}
-
-template<> void
-Attribute<iv4>::SetAttribPointer(unsigned int s)
-{
-    glVertexAttribIPointer(s, 4, GL_INT, 0, (void*)0);
-}
-
-template<> void 
-Attribute<float>::SetAttribPointer(unsigned int s)
-{
-    glVertexAttribPointer(s, 1, GL_FLOAT, GL_FALSE, 0, 0);
-}
-
-template<> void
-Attribute<v2>::SetAttribPointer(unsigned int s)
-{
-    glVertexAttribPointer(s, 2, GL_FLOAT, GL_FALSE, 0, 0);
-}
-
-template<> void
-Attribute<v3>::SetAttribPointer(unsigned int s)
-{
-    glVertexAttribPointer(s, 3, GL_FLOAT, GL_FALSE, 0, 0);
-}
-
-template<> void
-Attribute<v4>::SetAttribPointer(unsigned int s)
-{
-    glVertexAttribPointer(s, 4, GL_FLOAT, GL_FALSE, 0, 0);
-}
-
-template<> void
-Attribute<quat>::SetAttribPointer(unsigned int slot) {
-	glVertexAttribPointer(slot, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
-}
-
-template<typename T> void
-Attribute<T>::BindTo(unsigned int slot)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-    glEnableVertexAttribArray(slot);
-    SetAttribPointer(slot);
+    glBindBuffer(GL_ARRAY_BUFFER, Attribute->Handle);
+    glDisableVertexAttribArray(Slot);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-template<typename T> void
-Attribute<T>::UnBindFrom(unsigned int slot)
-{
-    glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-    glDisableVertexAttribArray(slot);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
+//
+// render_uniform
+//
 
-// UNIFORM
-
-template Uniform<int>;
-template Uniform<iv4>;
-template Uniform<iv2>;
-template Uniform<float>;
-template Uniform<v2>;
-template Uniform<v3>;
-template Uniform<v4>;
-template Uniform<quat>;
-template Uniform<mat4>;
-
-#define UNIFORM_IMPL(gl_func, tType, dType) \
-template<> \
-void Uniform<tType>::Set(unsigned int slot, tType* data, unsigned int length) { \
-gl_func(slot, (GLsizei)length, (dType*)&data[0]); \
-}
+#define UNIFORM_IMPL(gl_func, tType, dType) void UniformSet##tType(unsigned int Slot, tType* Data, unsigned int Length) \
+{ gl_func(Slot, (GLsizei)Length, (dType*)&Data[0]); }
 
 UNIFORM_IMPL(glUniform1iv, int, int)
 UNIFORM_IMPL(glUniform4iv, iv4, int)
@@ -366,92 +245,67 @@ UNIFORM_IMPL(glUniform2fv, v2, float)
 UNIFORM_IMPL(glUniform3fv, v3, float)
 UNIFORM_IMPL(glUniform4fv, v4, float)
 UNIFORM_IMPL(glUniform4fv, quat, float)
-
-template<> void
-Uniform<mat4>::Set(unsigned int slot, mat4* inputArray, unsigned int arrayLength)
-{
-    glUniformMatrix4fv(slot, (GLsizei)arrayLength, false, (float*) &inputArray[0]);
+inline void UniformSetmat4(unsigned int Slot, mat4* Data, unsigned int Length) 
+{ 
+    glUniformMatrix4fv(Slot, (GLsizei)Length, false, (float*) &Data[0]); 
 }
+#define UniformSet(t, s, v) (UniformSet##t(s, &v, 1))
 
-template<typename T>  void
-Uniform<T>::Set(unsigned int slot, const T& value)
+//
+// render_index_buffer
+//
+
+inline void
+IndexBufferInit(render_index_buffer *IndexBuffer)
 {
-    Set(slot, (T*)&value, 1);
+    glGenBuffers(1, &IndexBuffer->Handle);
+    IndexBuffer->Count = 0;
 }
+inline void IndexBufferDestroy(render_index_buffer *IndexBuffer) { glDeleteBuffers(1, &IndexBuffer->Handle); }
 
-template<typename T> void
-Uniform<T>::Set(unsigned int s, DynArray<T> &v)
+inline void
+IndexBufferSet(render_index_buffer *IndexBuffer, u32 *InputArray, u32 ArrayLength)
 {
-    Set(s, (T*)v.GetData(), v.GetSize());
-}
-
-// INDEXBUFFER
-
-void
-IndexBuffer::Init()
-{
-    glGenBuffers(1, &mHandle);
-    mCount = 0;
-}
-
-void
-IndexBuffer::Destroy()
-{
-    glDeleteBuffers(1, &mHandle);
-}
-
-unsigned int
-IndexBuffer::Count()
-{
-    return mCount;
-}
-
-unsigned int
-IndexBuffer::GetHandle()
-{
-    return mHandle;
-}
-
-void
-IndexBuffer::Set(unsigned int* inputArray, unsigned int arrayLength)
-{
-    mCount = arrayLength;
-    unsigned int size = sizeof(unsigned int);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * mCount, inputArray, GL_STATIC_DRAW);
+    IndexBuffer->Count = ArrayLength;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer->Handle);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u32) * IndexBuffer->Count, InputArray, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+inline void IndexBufferSet(render_index_buffer *IndexBuffer, DynArray<u32> &Input) { IndexBufferSet(IndexBuffer, (u32*)Input.GetData(), Input.GetSize()); }
 
-void IndexBuffer::Set(DynArray<unsigned int>& input)
+//
+// render_texture
+//
+
+internal void
+TextureInitialization(render_texture *Texture, game_assets *Assets, loaded_bitmap *LoadedBitmap)
 {
-    Set((unsigned int*)input.GetData(), input.GetSize());
-}
-
-// TEXTURE
-
-void
-Texture::Init()
-{
-    mWidth = 0;
-    mHeight = 0;
-    mChannels = 0;
-    glGenTextures(1, &mHandle);
-    
-    Initialized = true;
-}
-
-void
-Texture::Init(unsigned char* Data)
-{
-    glGenTextures(1, &mHandle);
-    glBindTexture(GL_TEXTURE_2D, mHandle);
-    if (mChannels == 3) {
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)mWidth, (int)mHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    resizable_bitmap *Asset = 0;
+    loaded_bitmap *Bitmap = 0;
+    if (LoadedBitmap == 0) {
+        Asset = GetResizableBitmap(Assets, Texture->BitmapID);
+        if (Asset->Resized == 0)
+            Bitmap = Asset->Original;
+        else
+            Bitmap = Asset->Resized;
     }
-    else if (mChannels == 4)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)mWidth, (int)mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    else if (LoadedBitmap != 0) {
+        Bitmap = LoadedBitmap;
+    }
+    
+    
+    Assert(Bitmap->Width != 0 && Bitmap->Height != 0);
+    
+    glGenTextures(1, &Texture->Handle);
+    glBindTexture(GL_TEXTURE_2D, Texture->Handle);
+    
+    if (Bitmap->Channels == 3) {
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Bitmap->Width, Bitmap->Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Bitmap->Memory);
+    }
+    else if (Bitmap->Channels == 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Bitmap->Width, Bitmap->Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Bitmap->Memory);
+    
     glGenerateMipmap(GL_TEXTURE_2D);
     
     // Tile
@@ -465,214 +319,91 @@ Texture::Init(unsigned char* Data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    Initialized = true;
+}
+inline void TextureInit(render_texture *Texture, game_assets *Assets) { TextureInitialization(Texture, Assets, 0); }
+inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap) { TextureInitialization(Texture, 0, Bitmap); }
+inline void TextureInit(render_texture *Texture, game_assets *Assets, int ID) { Texture->BitmapID = ID; TextureInitialization(Texture, Assets, 0); }
+inline void TextureDestroy(render_texture *Texture) { glDeleteTextures(1, &Texture->Handle); }
+
+internal void
+TextureSet(render_texture *Texture, u32 UniformIndex, u32 TextureIndex)
+{
+    glActiveTexture(GL_TEXTURE0 + TextureIndex);
+    glBindTexture(GL_TEXTURE_2D, Texture->Handle);
+    glUniform1i(UniformIndex, TextureIndex);
 }
 
-void
-Texture::Init(Image* image)
+internal void
+TextureUnSet(render_texture *Texture, u32 TextureIndex)
 {
-    glGenTextures(1, &mHandle);
-    
-    glBindTexture(GL_TEXTURE_2D, mHandle);
-    //int width, height, channels;
-    //unsigned char* data = stbi_load(path, &width, &height, &channels, 4);
-    //unsigned char* Data = image->data;
-    //width = image->x;
-    //height = image->y;
-    //channels = image->n;
-    //data = image->data;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->x, image->y, 0, GL_RGBA, GL_UNSIGNED_BYTE, image->data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    //stbi_image_free(data);
-    
-    // Tile
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    mWidth = image->x;
-    mHeight = image->y;
-    mChannels = image->n;
-    
-    Initialized = true;
-}
-
-void
-Texture::Init(const char* path)
-{
-    Image i = LoadImage(path);
-    Init(&i);
-    stbi_image_free(i.data);
-    Initialized = true;
-}
-
-void
-Texture::Destroy()
-{
-    glDeleteTextures(1, &mHandle);
-}
-
-void
-Texture::Set(unsigned int uniformIndex, unsigned int textureIndex)
-{
-    if (!Initialized)
-        Init(data);
-    
-    glActiveTexture(GL_TEXTURE0 + textureIndex);
-    glBindTexture(GL_TEXTURE_2D, mHandle);
-    glUniform1i(uniformIndex, textureIndex);
-}
-
-void
-Texture::UnSet(unsigned int textureIndex)
-{
-    glActiveTexture(GL_TEXTURE0 + textureIndex);
+    glActiveTexture(GL_TEXTURE0 + TextureIndex);
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
 }
 
-unsigned int
-Texture::GetHandle()
-{
-    return mHandle;
-}
-
 internal void
-ResizeTexture(Texture *Tex, v2 Dim)
+TextureResize(render_texture *Texture, game_assets *Assets, iv2 Dim)
 {
-    //unsigned char* delsize = Tex->data;
-    //Tex->data = (unsigned char*)qalloc((int)Dim.x * (int)Dim.y * Tex->mChannels);
-    //stbi_image_free(Tex->data);
-    
-    if (!stbir_resize_uint8(Tex->og.data, Tex->og.x, Tex->og.y, 0, Tex->data, (int)Dim.x, (int)Dim.y, 0, Tex->mChannels))
-        PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
-    
-    Tex->mWidth = (int)Dim.x;
-    Tex->mHeight = (int)Dim.y;
-    Tex->mChannels = Tex->mChannels;
-    
-    //dalloc((void*)delsize);
-    //
-    
-    Tex->Init(Tex->data);
+    ResizeBitmap(GetResizableBitmap(Assets, Texture->BitmapID), Dim);
+    TextureInit(Texture, Assets);
 }
 
-internal Texture*
-LoadTexture(const char* FileName)
-{
-    Texture Tex = {};
-    unsigned char* data = stbi_load(FileName, (int*)&Tex.mWidth, (int*)&Tex.mHeight, (int*)&Tex.mChannels, 0);
-    Assert(Tex.mWidth != 0 && Tex.mHeight != 0);
-    Tex.data = data;
-    //Tex.data = (unsigned char*)qalloc((void*)data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
-    //stbi_image_free(data);
-    
-    Tex.og.x = Tex.mWidth;
-    Tex.og.y = Tex.mHeight;
-    Tex.og.n = Tex.mChannels;
-    Tex.og.data = (unsigned char*)qalloc((void*)Tex.data, Tex.mWidth * Tex.mHeight * Tex.mChannels);
-    
-    //Tex.Init(Tex.data);
-    return (Texture*)qalloc(&Tex, sizeof(Texture));
-}
-// End of Texture
-
+//
 // Drawing Methods
-static GLenum DrawModeToGLEnum(DrawMode input) {
-	if (input == DrawMode::Points) {
+//
+
+static GLenum DrawModeToGLEnum(render_draw_mode Input) {
+	if (Input == render_draw_mode::points)
 		return  GL_POINTS;
-	}
-	else if (input == DrawMode::LineStrip) {
+	else if (Input == render_draw_mode::line_strip)
 		return GL_LINE_STRIP;
-	}
-	else if (input == DrawMode::LineLoop) {
+	else if (Input == render_draw_mode::line_loop)
 		return  GL_LINE_LOOP;
-	}
-	else if (input == DrawMode::Lines) {
+	else if (Input == render_draw_mode::lines)
 		return  GL_LINES;
-	}
-	else if (input == DrawMode::Triangles) {
+	else if (Input == render_draw_mode::triangles)
 		return  GL_TRIANGLES;
-	}
-	else if (input == DrawMode::TriangleStrip) {
+	else if (Input == render_draw_mode::triangle_strip)
 		return  GL_TRIANGLE_STRIP;
-	}
-	else if (input == DrawMode::TriangleFan) {
+	else if (Input == render_draw_mode::triangle_fan)
 		return   GL_TRIANGLE_FAN;
-	}
     
     PrintqDebug("DrawModeToGLEnum unreachable code hit\n");
 	return 0;
 }
 
-global_variable int InMode3D = 0;
-global_variable int InMode2D = 0;
-
-void 
-glDraw(unsigned int vertexCount, DrawMode mode)
+inline void glDraw(u32 VertexCount, render_draw_mode DrawMode) { glDrawArrays(DrawModeToGLEnum(DrawMode), 0, VertexCount); }
+inline void glDraw(render_index_buffer& IndexBuffer,  render_draw_mode DrawMode)
 {
-    glDrawArrays(DrawModeToGLEnum(mode), 0, vertexCount);
-}
-
-void
-glDraw(IndexBuffer& inIndexBuffer, DrawMode mode)
-{
-    if (!InMode3D && !InMode2D)
-    {
-        PrintqDebug("Error: Trying to print while not in Mode3D\n");
-        //return;
-    }
-    
-    unsigned int handle = inIndexBuffer.GetHandle();
-    unsigned int numIndices = inIndexBuffer.Count();
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle);
-    glDrawElements(DrawModeToGLEnum(mode), numIndices, GL_UNSIGNED_INT, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer.Handle);
+    glDrawElements(DrawModeToGLEnum(DrawMode), IndexBuffer.Count, GL_UNSIGNED_INT, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
-
-void
-glDrawInstanced(unsigned int vertexCount, DrawMode node, unsigned int numInstances)
+inline void glDrawInstanced(u32 VertexCount, render_draw_mode DrawMode, u32 NumInstances) { glDrawArraysInstanced(DrawModeToGLEnum(DrawMode), 0, VertexCount, NumInstances); }
+inline void glDrawInstanced(render_index_buffer& IndexBuffer,  render_draw_mode DrawMode, u32 InstanceCount)
 {
-    glDrawArraysInstanced(DrawModeToGLEnum(node), 0, vertexCount, numInstances);
-}
-
-void
-glDrawInstanced(IndexBuffer& inIndexBuffer, DrawMode mode, unsigned int instanceCount)
-{
-    unsigned int handle = inIndexBuffer.GetHandle();
-    unsigned int numIndices = inIndexBuffer.Count();
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle);
-    glDrawElementsInstanced(DrawModeToGLEnum(mode), numIndices, GL_UNSIGNED_INT, 0, instanceCount);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBuffer.Handle);
+    glDrawElementsInstanced(DrawModeToGLEnum(DrawMode), IndexBuffer.Count, GL_UNSIGNED_INT, 0, InstanceCount);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 // Renderering Elements
 
-mat4 projection;
-mat4 view;
-v2 CameraViewDim;
-
+// Function for Software Rendering
 // Paints the screen white
-internal void
-ClearScreen()
+inline void ClearScreen()
 {
     platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
     memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
 }
 
-void BeginOpenGL(platform_window_dimension Dimension)
+mat4 Projection;
+mat4 View;
+iv2 CameraViewDim;
+
+void BeginOpenGL(iv2 WindowDim)
 {
-    glViewport(0, 0, Dimension.Width, Dimension.Height);
+    glViewport(0, 0, WindowDim.x, WindowDim.y);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_ALWAYS); 
@@ -684,47 +415,33 @@ void BeginOpenGL(platform_window_dimension Dimension)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-void BeginMode(Camera C)
+void BeginMode(camera C)
 {
 #if QLIB_OPENGL
-    BeginOpenGL(C.Dimension);
+    BeginOpenGL(C.WindowDim);
 #else
     ClearScreen();
 #endif
-    view = LookAt(C.Position, C.Target, C.Up);
+    View = LookAt(C.Position, C.Target, C.Up);
 }
 
-void
-BeginMode2D(Camera C)
+internal void
+BeginMode2D(camera C)
 {
     BeginMode(C);
-    CameraViewDim = v2((float)C.Dimension.Width, (float)C.Dimension.Height);
-    float width = (float)C.Dimension.Width;
-    float height = (float)C.Dimension.Height;
-    projection = Ortho(-width/2, width/2, -height/2, height/2, 0.1f, 1000.0f);
-    InMode2D = 1;
+    CameraViewDim = v2(C.WindowDim.x, C.WindowDim.y);
+    real32 width =  C.WindowDim.x;
+    real32 height = C.WindowDim.y;
+    Projection = Ortho(-width/2, width/2, -height/2, height/2, 0.1f, 1000.0f);
 }
 
-void
-BeginMode3D(Camera C)
+internal void
+BeginMode3D(camera C)
 {
     BeginMode(C);
-    CameraViewDim = v2((float)C.Dimension.Width, (float)C.Dimension.Height);
-    C.inAspectRatio = (float)C.Dimension.Width / (float)C.Dimension.Height;
-    projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
-    InMode3D = 1;
-}
-
-void
-EndMode3D()
-{
-    InMode3D = 0;
-}
-
-void
-EndMode2D()
-{
-    InMode2D = 0;
+    CameraViewDim = v2(C.WindowDim.x, C.WindowDim.y);
+    C.inAspectRatio = C.WindowDim.x / C.WindowDim.y;
+    Projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
 }
 
 #define NOFILL 0
@@ -734,21 +451,21 @@ EndMode2D()
 
 struct open_gl_rect
 {
-    Shader shader;
-    IndexBuffer rIndexBuffer;
-    Attribute<v3> VertexPositions;
-    Attribute<v4> Color;
+    render_shader Shader;
+    render_index_buffer IndexBuffer;
+    render_attribute VertexPositions; // v3
+    render_attribute Color; // v4
     
     bool32 Initialized;
 };
 
 struct open_gl_texture
 {
-    Shader shader;
-    Attribute<v3> VertexPositions;
-    IndexBuffer rIndexBuffer;
-    Attribute<v3> VertexNormals;
-    Attribute<v2> VertexTexCoords;
+    render_shader Shader;
+    render_attribute VertexPositions; // v3
+    render_index_buffer IndexBuffer;
+    render_attribute VertexNormals; // v3
+    render_attribute VertexTexCoords; // v2
     
     bool32 Initialized;
 };
@@ -787,25 +504,25 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 {
     if (GlobalOpenGLRect.Initialized == 0)
     {
-        GlobalOpenGLRect.shader.Init("../shaders/basic.vert", "../shaders/basic.frag");
+        ShaderInit(&GlobalOpenGLRect.Shader, "../shaders/basic.vert", "../shaders/basic.frag");
         
-        GlobalOpenGLRect.VertexPositions.Init();
+        AttributeInit(&GlobalOpenGLRect.VertexPositions);
         DynArray<v3> position = {};
         position.push_back(v3(-0.5, -0.5, 0));
         position.push_back(v3(-0.5, 0.5, 0));
         position.push_back(v3(0.5, -0.5, 0));
         position.push_back(v3(0.5, 0.5, 0));
-        GlobalOpenGLRect.VertexPositions.Set(position);
+        AttributeSet(&GlobalOpenGLRect.VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
         
-        GlobalOpenGLRect.rIndexBuffer.Init();
-        DynArray<unsigned int> indices = {};
+        IndexBufferInit(&GlobalOpenGLRect.IndexBuffer);
+        DynArray<u32> indices = {};
         indices.push_back(0);
         indices.push_back(1);
         indices.push_back(2);
         indices.push_back(2);
         indices.push_back(1);
         indices.push_back(3);
-        GlobalOpenGLRect.rIndexBuffer.Set(indices);
+        IndexBufferSet(&GlobalOpenGLRect.IndexBuffer, indices);
         
         GlobalOpenGLRect.Initialized = 1;
     }
@@ -815,25 +532,27 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     NewCoords.x = (real32)(-Coords.x - (Size.x/2));
     NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z), AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), v3(Size.x, Size.y, 1)));
+    mat4 Model = TransformToMat4(Transform(v3(NewCoords, Coords.z), AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), v3(Size.x, Size.y, 1)));
     
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    GlobalOpenGLRect.shader.Bind();
+    ShaderBind(&GlobalOpenGLRect.Shader);
     
-    Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("model"), model);
-    Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("view"), view);
-    Uniform<mat4>::Set(GlobalOpenGLRect.shader.GetUniform("projection"), projection);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "model"), Model);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "view"), View);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "projection"), Projection);
+    
     v4 c = u32toV4(color);
-    Uniform<v4>::Set(GlobalOpenGLRect.shader.GetUniform("my_color"), v4(c.x/255, c.y/255, c.z/255, c.w/255));
+    c = v4(c.x/255, c.y/255, c.z/255, c.w/255);
+    UniformSet(v4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "my_color"), c);
     
-    GlobalOpenGLRect.VertexPositions.BindTo(GlobalOpenGLRect.shader.GetAttribute("position"));
+    AttributeBindTo(v3, &GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(&GlobalOpenGLRect.Shader, "position"));
     
-    glDraw(GlobalOpenGLRect.rIndexBuffer, DrawMode::Triangles);
+    glDraw(GlobalOpenGLRect.IndexBuffer, render_draw_mode::triangles);
     
-    GlobalOpenGLRect.VertexPositions.UnBindFrom(GlobalOpenGLRect.shader.GetAttribute("position"));
+    AttributeUnBindFrom(&GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(&GlobalOpenGLRect.Shader, "position"));
     
-    GlobalOpenGLRect.shader.UnBind();
+    ShaderUnBind(&GlobalOpenGLRect.Shader);
     
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
@@ -843,42 +562,42 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 }
 
 void
-DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real32 Rotation, BlendMode Mode)
+DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
-        GlobalOpenGLTexture.shader.Init("../shaders/static.vert", "../shaders/lit.frag");
+        ShaderInit(&GlobalOpenGLTexture.Shader, "../shaders/static.vert", "../shaders/lit.frag");
         
-        GlobalOpenGLTexture.VertexPositions.Init();
+        AttributeInit(&GlobalOpenGLTexture.VertexPositions);
         DynArray<v3> position = {};
         position.push_back(v3(-0.5, -0.5, 0));
         position.push_back(v3(-0.5, 0.5, 0));
         position.push_back(v3(0.5, -0.5, 0));
         position.push_back(v3(0.5, 0.5, 0));
-        GlobalOpenGLTexture.VertexPositions.Set(position);
+        AttributeSet(&GlobalOpenGLTexture.VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
         
-        GlobalOpenGLTexture.VertexNormals.Init();
+        AttributeInit(&GlobalOpenGLTexture.VertexNormals);
         DynArray<v3> normals = {};
         normals.Resize(4, v3(0, 0, 1));
-        GlobalOpenGLTexture.VertexNormals.Set(normals);
+        AttributeSet(&GlobalOpenGLTexture.VertexNormals, normals.GetData(), sizeof(v3), normals.GetSize());
         
-        GlobalOpenGLTexture.VertexTexCoords.Init();
+        AttributeInit(&GlobalOpenGLTexture.VertexTexCoords);
         DynArray<v2> uvs = {};
         uvs.push_back(v2(1, 1));
         uvs.push_back(v2(1, 0));
         uvs.push_back(v2(0, 1));
         uvs.push_back(v2(0, 0));
-        GlobalOpenGLTexture.VertexTexCoords.Set(uvs);
+        AttributeSet(&GlobalOpenGLTexture.VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
         
-        GlobalOpenGLTexture.rIndexBuffer.Init();
-        DynArray<unsigned int> indices = {};
+        IndexBufferInit(&GlobalOpenGLTexture.IndexBuffer);
+        DynArray<u32> indices = {};
         indices.push_back(0);
         indices.push_back(1);
         indices.push_back(2);
         indices.push_back(2);
         indices.push_back(1);
         indices.push_back(3);
-        GlobalOpenGLTexture.rIndexBuffer.Set(indices);
+        IndexBufferSet(&GlobalOpenGLTexture.IndexBuffer, indices);
         
         GlobalOpenGLTexture.Initialized = 1;
     }
@@ -888,7 +607,7 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real
     NewCoords.x = (real32)(-Coords.x - (Size.x/2));
     NewCoords.y = (real32)(-Coords.y - (Size.y/2));
     
-    mat4 model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
+    mat4 Model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
                                            v3(Size.x, Size.y, 1)));
     
@@ -901,33 +620,34 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real
         glEnable(GL_SCISSOR_TEST);
     }
     
-    if (Mode == BlendMode::gl_one)
+    if (BlendMode == render_blend_mode::gl_one)
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    else if (Mode == BlendMode::gl_src_alpha)
+    else if (BlendMode == render_blend_mode::gl_src_alpha)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    GlobalOpenGLTexture.shader.Bind();
+    ShaderBind(&GlobalOpenGLTexture.Shader);
     
-    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("view"), view);
-    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("projection"), projection);
-    Uniform<v3>::Set(GlobalOpenGLTexture.shader.GetUniform("light"), v3(0, 0, 1));
-    Uniform<mat4>::Set(GlobalOpenGLTexture.shader.GetUniform("model"), model);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "model"), Model);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "view"), View);
+    v3 Light = v3(0, 0, 1);
+    UniformSet(v3, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "light"), Light);
+    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "projection"), Projection);
     
-    GlobalOpenGLTexture.VertexPositions.BindTo(GlobalOpenGLTexture.shader.GetAttribute("position"));
-    GlobalOpenGLTexture.VertexNormals.BindTo(GlobalOpenGLTexture.shader.GetAttribute("normal"));
-    GlobalOpenGLTexture.VertexTexCoords.BindTo(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
+    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
+    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
+    AttributeBindTo(v2, &GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
     
-    Tex->Set(GlobalOpenGLTexture.shader.GetUniform("tex0"), 0);
+    TextureSet(Texture, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "tex0"), 0);
     
-    glDraw(GlobalOpenGLTexture.rIndexBuffer, DrawMode::Triangles);
+    glDraw(GlobalOpenGLTexture.IndexBuffer, render_draw_mode::triangles);
     
-    Tex->UnSet(0);
+    TextureUnSet(Texture, 0);
     
-    GlobalOpenGLTexture.VertexPositions.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("position"));
-    GlobalOpenGLTexture.VertexNormals.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("normal"));
-    GlobalOpenGLTexture.VertexTexCoords.UnBindFrom(GlobalOpenGLTexture.shader.GetAttribute("texCoord"));
+    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
+    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
+    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
     
-    GlobalOpenGLTexture.shader.UnBind();
+    ShaderUnBind(&GlobalOpenGLTexture.Shader);
     
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
@@ -939,9 +659,9 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, Texture *Tex, real
         glDisable(GL_SCISSOR_TEST);
     
 }
-inline void DrawRect(v3 Coords, v2 Size, Texture *Tex, real32 Rotation, BlendMode Mode)
+inline void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotation, blend_mode BlendMode)
 {
-    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Tex, Rotation, Mode);
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Texture, Rotation, BlendMode);
 }
 
 #else // !QLIB_OPENGL

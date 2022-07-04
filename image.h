@@ -19,11 +19,59 @@ struct loaded_bitmap
 {
     int32 Width;
     int32 Height;
-    int32 Pitch; //Channels
+    int32 Pitch;
+    int32 Channels;
     void *Memory;
     
     void *Free;
 };
+
+struct resizable_bitmap
+{
+    loaded_bitmap *Original;
+    loaded_bitmap *Resized;
+};
+
+internal loaded_bitmap*
+LoadBitmap(const char *FileName)
+{
+    loaded_bitmap Bitmap = {};
+    unsigned char* Data = stbi_load(FileName, &Bitmap.Width, &Bitmap.Height, &Bitmap.Channels, 0);
+    Bitmap.Memory = (void*)Data;
+    
+    Assert(Bitmap.Width != 0);
+    
+    return (loaded_bitmap*)qalloc(&Bitmap, sizeof(loaded_bitmap));
+}
+
+internal resizable_bitmap*
+LoadResizableBitmap(const char *FileName)
+{
+    resizable_bitmap Bitmap = {};
+    Bitmap.Original = LoadBitmap(FileName);
+    
+    Assert(Bitmap.Original->Width != 0);
+    
+    return (resizable_bitmap*)qalloc(&Bitmap, sizeof(resizable_bitmap));
+}
+
+internal void
+ResizeBitmap(resizable_bitmap *Bitmap, iv2 Dim)
+{
+    loaded_bitmap *Original = Bitmap->Original;
+    loaded_bitmap *Resized = Bitmap->Resized;
+    
+    if (Resized == 0) {
+        Bitmap->Resized = (loaded_bitmap*)qalloc(Original, sizeof(loaded_bitmap));
+        Resized = Bitmap->Resized;
+    }
+    
+    if (!stbir_resize_uint8((unsigned char*)Original->Memory, Original->Width, Original->Height, 0,
+                            (unsigned char*)Resized->Memory, Dim.x, Dim.y, 0, Resized->Channels))
+        PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
+    Resized->Width = Dim.x;
+    Resized->Height = Dim.y;
+}
 
 internal Image
 LoadImage(const char* FileName)

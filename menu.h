@@ -25,8 +25,8 @@ struct menu_component_button
 
 struct menu_component_logo
 {
-    Texture *Tex;
-    Texture *Alt;
+    texture Tex;
+    texture Alt;
 };
 
 struct menu_component_text
@@ -64,11 +64,11 @@ struct menu_component_checkbox
     uint32 DefaultTextColor;
     uint32 HoverTextColor;
     
-    Texture *CurrentTexture;
-    Texture *DefaultTexture;
-    Texture *ClickedTexture;
-    Texture *ActiveTexture;
-    Texture *ActiveClickedTexture;
+    texture CurrentTexture;
+    texture DefaultTexture;
+    texture ClickedTexture;
+    texture ActiveTexture;
+    texture ActiveClickedTexture;
 };
 
 //enum menu_component_id;
@@ -158,7 +158,7 @@ struct menu
     menu_component *ActiveComponents[20];
     
     uint32 BackgroundColor;
-    Texture *BackgroundTexture;
+    texture BackgroundTexture;
 };
 inline void IncrActive(menu *Menu)
 {
@@ -561,11 +561,11 @@ MenuUpdateLogoPadding(menu *Menu, menu_component *MComp)
 }
 
 internal void
-MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors)
+MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors, game_assets *Assets)
 {
     menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors.y);
-    ResizeTexture(Logo->Tex, MComp->Dim);
+    TextureResize(&Logo->Tex, Assets, MComp->Dim);
     MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
@@ -606,7 +606,7 @@ MenuGetComponent(menu_component *Cursor, int ID)
 }
 
 internal void
-MenuResizeCheckBox(menu *Menu, menu_component *MComp, v2 ResizeFactors)
+MenuResizeCheckBox(menu *Menu, menu_component *MComp, v2 ResizeFactors, game_assets *Assets)
 {
     menu_component_button *Button = (menu_component_button*)MComp->Data;
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
@@ -628,7 +628,7 @@ MenuAddCheckBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_checkb
     
     MComp->Data = ArrUseNext(Menu->CheckBoxesStorage, CheckBox, MComp->Data, menu_component_checkbox);
     //MComp->Data = qalloc((void*)CheckBox, sizeof(menu_component_checkbox));
-    MenuResizeCheckBox(Menu, MComp, 0);
+    //MenuResizeCheckBox(Menu, MComp, 0, 0);
     
     Menu->CheckBoxes = MenuAddToComponentList(Menu->CheckBoxes, MComp);
     return MComp;
@@ -698,7 +698,8 @@ MenuInit(menu *Menu)
     Menu->Texts = 0;
     Menu->Logos = 0;
     Menu->CheckBoxes = 0;
-    Menu->BackgroundTexture = 0;
+    Menu->BackgroundTexture.BitmapID = 0;
+    Menu->BackgroundTexture.Handle = 0;
     Menu->BackgroundColor = 0;
     
     Menu->Initialized = true;
@@ -831,7 +832,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
 }
 
 internal void
-ResizeMenu(menu *Menu, v2 BufferDim)
+ResizeMenu(menu *Menu, v2 BufferDim, game_assets *Assets)
 {
     Menu->ScreenDim = BufferDim;
     
@@ -847,13 +848,13 @@ ResizeMenu(menu *Menu, v2 BufferDim)
         if (MComp->Type == menu_component_type::TextBox)
             MenuResizeTextBox(Menu, MComp, ResizeFactors);
         if (MComp->Type == menu_component_type::Logo)
-            MenuResizeLogo(Menu, MComp, ResizeFactors);
+            MenuResizeLogo(Menu, MComp, ResizeFactors, Assets);
         if (MComp->Type == menu_component_type::CheckBox)
-            MenuResizeCheckBox(Menu, MComp, ResizeFactors);
+            MenuResizeCheckBox(Menu, MComp, ResizeFactors, Assets);
     }
 }
 internal void
-PaddingResizeMenu(menu *Menu)
+PaddingResizeMenu(menu *Menu, game_assets *Assets)
 {
     v2 ResizeFactors = v2(1, 1);
     Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
@@ -869,7 +870,7 @@ PaddingResizeMenu(menu *Menu)
         if (MComp->Type == menu_component_type::Logo)
             MenuUpdateLogoPadding(Menu, MComp);
         if (MComp->Type == menu_component_type::CheckBox)
-            MenuResizeCheckBox(Menu, MComp, ResizeFactors);
+            MenuResizeCheckBox(Menu, MComp, ResizeFactors, Assets);
     }
 }
 
@@ -925,9 +926,9 @@ UpdateMenu(menu *Menu)
     menu_component* C = &Menu->Components[0];
     Menu->Coords.y = C->Coords.y - (Menu->Padding);
 }
-inline void UpdateMenu(menu *Menu, v2 BufferDim) 
+inline void UpdateMenu(menu *Menu, v2 BufferDim, game_assets *Assets) 
 {
-    ResizeMenu(Menu, BufferDim);
+    ResizeMenu(Menu, BufferDim, Assets);
     UpdateMenu(Menu);
 }
 
@@ -954,14 +955,14 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
             }
             v2 SDim = FontStringGetDim(&Button->FontString);
             v2 TextCoords = MComp->Coords + ((MComp->Dim - SDim)/2);
-            Push(RenderGroup, v3(MComp->Coords - Padding, Z), MComp->Dim, Button->CurrentColor, 0.0f);
+            Push(v3(MComp->Coords - Padding, Z), MComp->Dim, Button->CurrentColor, 0.0f);
             
             FontStringPrint(&Button->FontString, TextCoords - Padding);
             
         }
         else if (MComp->Type == menu_component_type::TextBox) {
             menu_component_textbox *TextBox = (menu_component_textbox*)MComp->Data;
-            Push(RenderGroup, v3(MComp->Coords - Padding, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
+            Push(v3(MComp->Coords - Padding, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
             
             if (MComp->Active) {
                 v2 SDim = FontStringGetDim(&TextBox->FontString);
@@ -1002,7 +1003,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
-                Push(RenderGroup, v3(CursorX - Padding.x, MComp->Coords.y - Padding.y, 100.0f), v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
+                Push(v3(CursorX - Padding.x, MComp->Coords.y - Padding.y, 100.0f), v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
             }
             
             FontStringPrint(&TextBox->FontString, TextBox->TextCoords - Padding, MComp->Coords - Padding, MComp->Dim);
@@ -1016,8 +1017,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         }
         else if (MComp->Type == menu_component_type::Logo) {
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
-            Push(RenderGroup, v3(MComp->Coords - Padding, 100.0f), MComp->Dim, 
-                 Logo->Tex, 0.0f, BlendMode::gl_src_alpha);
+            Push(v3(MComp->Coords - Padding, 100.0f), MComp->Dim, &Logo->Tex, 0.0f, blend_mode::gl_src_alpha);
         }
         else if (MComp->Type == menu_component_type::CheckBox) {
             menu_component_checkbox *CheckBox = (menu_component_checkbox*)MComp->Data;
@@ -1039,13 +1039,12 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 CheckBox->CurrentTexture = CheckBox->DefaultTexture;
             }
             
-            Push(RenderGroup, v3(MComp->Coords - Padding, 100.0f), MComp->Dim, 
-                 CheckBox->CurrentTexture, 0.0f, BlendMode::gl_src_alpha);
+            Push(v3(MComp->Coords - Padding, 100.0f), MComp->Dim, &CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
         }
     }
     
-    if (Menu->BackgroundTexture == 0)
-        Push(RenderGroup, v3(Menu->Coords, 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
+    if (Menu->BackgroundTexture.BitmapID == 0)
+        Push(v3(Menu->Coords, 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
     else {
         v2 BackgroundCoords = TopLeftCornerCoords - 5;
         v2 BackgroundDim = 0;
@@ -1056,7 +1055,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         
         BackgroundCoords.y -= ((BackgroundDim.y - (PlatformDim.y + 5)) / 2);
         
-        Push(RenderGroup, v3(BackgroundCoords, 0.0f), BackgroundDim, Menu->BackgroundTexture, 0, BlendMode::gl_src_alpha);
+        Push(v3(BackgroundCoords, 0.0f), BackgroundDim, &Menu->BackgroundTexture, 0, blend_mode::gl_src_alpha);
         //DrawBackground(Menu->BackgroundTexture, TopLeftCornerCoords, PlatformDim, 0.0f);
     }
 }
@@ -1270,7 +1269,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int
                 if (Equal(Token->ID,  "BackgroundColor"))
                     Menu->BackgroundColor = StringHex2Int(Token->Value);
                 else if (Equal(Token->ID,  "BackgroundTexture"))
-                    Menu->BackgroundTexture = GetTexture(Assets, Token->Value);
+                    TextureInit(&Menu->BackgroundTexture, Assets, GetBitmapID(Assets, Token->Value));
                 else if (Equal(Token->ID,  "DefaultDim"))
                     Menu->DefaultDim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "DefaultPadding"))
@@ -1286,7 +1285,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int
             {
                 menu_token *Token = &Collection->Tokens[j];
                 if (Equal(Token->ID,  "Texture"))
-                    Logo.Tex = GetTexture(Assets, Token->Value);
+                    Logo.Tex.BitmapID = GetBitmapID(Assets, Token->Value);
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 
@@ -1402,13 +1401,13 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int
                 if (Equal(Token->ID,  "ID")) 
                     ID = GetInt(IDs, NumOfIDs, Token->Value);
                 else if (Equal(Token->ID,  "DefaultTexture"))
-                    CheckBox.DefaultTexture = GetTexture(Assets, Token->Value);
+                    TextureInit(&CheckBox.DefaultTexture, Assets, GetBitmapID(Assets, Token->Value));
                 else if (Equal(Token->ID,  "ActiveTexture"))
-                    CheckBox.ActiveTexture = GetTexture(Assets, Token->Value);
+                    TextureInit(&CheckBox.ActiveTexture, Assets, GetBitmapID(Assets, Token->Value));
                 else if (Equal(Token->ID,  "ClickedTexture"))
-                    CheckBox.ClickedTexture = GetTexture(Assets, Token->Value);
+                    TextureInit(&CheckBox.ClickedTexture, Assets, GetBitmapID(Assets, Token->Value));
                 else if (Equal(Token->ID,  "ActiveClickedTexture"))
-                    CheckBox.ActiveClickedTexture = GetTexture(Assets, Token->Value);
+                    TextureInit(&CheckBox.ActiveClickedTexture, Assets, GetBitmapID(Assets, Token->Value));
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 
@@ -1461,7 +1460,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, game_assets *Assets, qlib_
         MenuInit(Menu);
         ReadMenuFromFile(Menu, FileName, Assets, IDs, NumOfIDs);
         
-        PaddingResizeMenu(Menu);
+        PaddingResizeMenu(Menu, Assets);
         UpdateMenu(Menu);
         return false;
     }
@@ -1470,7 +1469,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, game_assets *Assets, qlib_
         HandleMenuEvents(Menu, &p->Input);
         
         if (Menu->ScreenDim != GetDim(p)) 
-            UpdateMenu(Menu, GetDim(p));
+            UpdateMenu(Menu, GetDim(p), Assets);
         
         return true;
     }

@@ -29,7 +29,6 @@ OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuf
 }
 */
 
-
 internal void
 PlaySound(audio_state *AudioState, loaded_sound *LoadedSound)
 {
