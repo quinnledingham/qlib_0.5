@@ -278,7 +278,7 @@ inline void IndexBufferSet(render_index_buffer *IndexBuffer, DynArray<u32> &Inpu
 //
 
 internal void
-TextureInitialization(render_texture *Texture, game_assets *Assets, loaded_bitmap *LoadedBitmap)
+TextureInitialization(render_texture *Texture, assets *Assets, loaded_bitmap *LoadedBitmap)
 {
     resizable_bitmap *Asset = 0;
     loaded_bitmap *Bitmap = 0;
@@ -320,9 +320,9 @@ TextureInitialization(render_texture *Texture, game_assets *Assets, loaded_bitma
     
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-inline void TextureInit(render_texture *Texture, game_assets *Assets) { TextureInitialization(Texture, Assets, 0); }
+inline void TextureInit(render_texture *Texture, assets *Assets) { TextureInitialization(Texture, Assets, 0); }
 inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap) { TextureInitialization(Texture, 0, Bitmap); }
-inline void TextureInit(render_texture *Texture, game_assets *Assets, int ID) { Texture->BitmapID = ID; TextureInitialization(Texture, Assets, 0); }
+inline void TextureInit(render_texture *Texture, assets *Assets, int ID) { Texture->BitmapID = ID; TextureInitialization(Texture, Assets, 0); }
 inline void TextureDestroy(render_texture *Texture) { glDeleteTextures(1, &Texture->Handle); }
 
 internal void
@@ -342,7 +342,7 @@ TextureUnSet(render_texture *Texture, u32 TextureIndex)
 }
 
 internal void
-TextureResize(render_texture *Texture, game_assets *Assets, iv2 Dim)
+TextureResize(render_texture *Texture, assets *Assets, iv2 Dim)
 {
     ResizeBitmap(GetResizableBitmap(Assets, Texture->BitmapID), Dim);
     TextureDestroy(Texture);
@@ -712,9 +712,6 @@ DrawRect(int x, int y, int width, int height, uint32 color)
     }
 }
 
-inline unsigned long createRGBA(int r, int g, int b, int a) { return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));}
-inline unsigned long createRGB(int r, int g, int b) { return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); }
-
 void
 DrawRect(int x, int y, int width, int height, Texture texture)
 {
@@ -1009,7 +1006,7 @@ DrawFPS(real32 Seconds, v2 ScreenDim, font *Font)
         strinq FPS = S() + (int)fps;
         
         font_string FontString = {};
-        FontStringInit(&FontString, Font, FPS.Data, 50, 0xFFFFFF00);
+        FontStringInit(&FontString, Font, FPS.Data, 50, 0xFF0000FF);
         v2 SDim = FontStringGetDim(&FontString);
         FontStringPrint(&FontString, v2((ScreenDim.x/2)-(int)SDim.x-10, -ScreenDim.y/2 + 10));
     }

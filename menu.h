@@ -86,6 +86,7 @@ struct menu_component
     //char* ID;
     
     v2 Coords;
+    v2 DefaultCoords;
     v2 GridCoords;
     v2 Dim;
     v2 DefaultDim;
@@ -108,6 +109,7 @@ struct menu_events
     int ButtonClicked;
     int CheckBoxClicked;
     int TextBoxClicked;
+    bool MenuClicked;
     bool ButtonHoverFlag;
 };
 
@@ -125,7 +127,8 @@ struct menu
     
     menu_grid_row Rows[10];
     
-    v2 Coords;
+    v2 Coords; // Default at origin. Used for moving around menu
+    v2 DefaultCoords; // Default top left coords for background color
     v2 Dim;
     
     v2 DefaultDim;
@@ -134,6 +137,7 @@ struct menu
     int Padding;
     int DefaultPadding;
     int OldPadding;
+    v2 LastMouseCoords;
     
     int NumOfComponents;
     int MaxNumOfComponents;
@@ -281,7 +285,7 @@ MenuButtonClicked(menu *Menu, v2 MouseCoords)
 {
     menu_component* Cursor = Menu->Buttons;
     while(Cursor != 0) {
-        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->PaddingDim)) {
+        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->Dim)) {
             return Cursor->ID;
         }
         Cursor = Cursor->NextSameType;
@@ -297,7 +301,7 @@ MenuButtonHovered(menu *Menu, v2 MouseCoords)
     menu_component* Cursor = Menu->Buttons;
     while(Cursor != 0) {
         menu_component_button *Button = (menu_component_button*)Cursor->Data;
-        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->PaddingDim)) {
+        if (CoordsInRect(MouseCoords, Cursor->Coords, Cursor->Dim)) {
             //Button->CurrentColor = Button->HoverColor;
             //Button->FontString.Color = Button->HoverTextColor;
             Cursor->Active = true;
@@ -561,7 +565,7 @@ MenuUpdateLogoPadding(menu *Menu, menu_component *MComp)
 }
 
 internal void
-MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors, game_assets *Assets)
+MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors, assets *Assets)
 {
     menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors.y);
@@ -606,7 +610,7 @@ MenuGetComponent(menu_component *Cursor, int ID)
 }
 
 internal void
-MenuResizeCheckBox(menu *Menu, menu_component *MComp, v2 ResizeFactors, game_assets *Assets)
+MenuResizeCheckBox(menu *Menu, menu_component *MComp, v2 ResizeFactors, assets *Assets)
 {
     menu_component_button *Button = (menu_component_button*)MComp->Data;
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors);
@@ -635,6 +639,14 @@ MenuAddCheckBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_checkb
 }
 
 // menu
+internal bool
+MenuMenuClicked(menu *Menu, v2 MouseCoords)
+{
+    if (CoordsInRect(MouseCoords, Menu->Coords - (Menu->Dim/2 + Menu->Padding), Menu->Dim + (Menu->Padding * 2))) 
+        return true;
+    return false;
+}
+
 internal void
 MenuSortActiveComponents(menu *Menu)
 {
@@ -794,6 +806,25 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
             Menu->Events.ButtonClicked = MenuButtonClicked(Menu, MouseCoords);
             Menu->Events.TextBoxClicked = MenuTextBoxClicked(Menu, MouseCoords);
             UpdateActiveIndex(Menu);
+            if (Menu->Events.ButtonClicked == -1 && Menu->Events.TextBoxClicked -1) {
+                Menu->Events.MenuClicked = MenuMenuClicked(Menu, MouseCoords);
+                Menu->LastMouseCoords = MouseCoords;
+            }
+            else
+                Menu->Events.MenuClicked = false;
+        }
+        
+        if (KeyDown(&Input->Mouse.Left)) {
+            if (Menu->Events.MenuClicked) {
+                v2 MouseChange = MouseCoords - Menu->LastMouseCoords;
+                Menu->Coords = Menu->Coords + MouseChange;
+                Menu->LastMouseCoords = MouseCoords;
+                
+                PrintqDebug(S() + "Menu Active\n");
+                //PrintqDebug(S() + "MenuX: " + (int)Menu->Coords.x + " MenuY: " + (int)Menu->Coords.y + 
+                //"MouseX: " + (int)MouseCoords.x + " MouseY: " + (int)MouseCoords.y + 
+                //"\n");
+            }
         }
         
         if (MenuButtonHovered(Menu, v2(Input->Mouse.X, Input->Mouse.Y)))
@@ -832,7 +863,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
 }
 
 internal void
-ResizeMenu(menu *Menu, v2 BufferDim, game_assets *Assets)
+ResizeMenu(menu *Menu, v2 BufferDim, assets *Assets)
 {
     Menu->ScreenDim = BufferDim;
     
@@ -854,7 +885,7 @@ ResizeMenu(menu *Menu, v2 BufferDim, game_assets *Assets)
     }
 }
 internal void
-PaddingResizeMenu(menu *Menu, game_assets *Assets)
+PaddingResizeMenu(menu *Menu, assets *Assets)
 {
     v2 ResizeFactors = v2(1, 1);
     Menu->Padding = (int)ResizeEquivalentAmount((real32)Menu->DefaultPadding, ResizeFactors.y);
@@ -906,27 +937,27 @@ UpdateMenu(menu *Menu)
         menu_grid_row *R = &Menu->Rows[(int)C->GridCoords.y];
         
         // Calculate column location to center
-        C->Coords.x = (-R->Dim.x)/2;
+        C->DefaultCoords.x = (-R->Dim.x)/2;
         for (int  i = 0; i < C->GridCoords.x; i++)
-            C->Coords.x += Menu->Rows[(int)C->GridCoords.y].MenuGridColumnWidth[i];
+            C->DefaultCoords.x += Menu->Rows[(int)C->GridCoords.y].MenuGridColumnWidth[i];
         
         // Find biggest row
         if (Menu->Dim.x < R->Dim.x) {
             Menu->Dim.x = R->Dim.x;
-            Menu->Coords.x = C->Coords.x - (Menu->Padding);
+            Menu->DefaultCoords.x = C->DefaultCoords.x - (Menu->Padding);
         }
         // Calculate row location to center
-        C->Coords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2);
+        C->DefaultCoords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2);
         for (int i = 0; i < C->GridCoords.y; i++) {
             menu_grid_row* tempR = &Menu->Rows[i];
-            C->Coords.y += tempR->Dim.y;
+            C->DefaultCoords.y += tempR->Dim.y;
         }
     }
     
     menu_component* C = &Menu->Components[0];
-    Menu->Coords.y = C->Coords.y - (Menu->Padding);
+    Menu->DefaultCoords.y = C->DefaultCoords.y - (Menu->Padding);
 }
-inline void UpdateMenu(menu *Menu, v2 BufferDim, game_assets *Assets) 
+inline void UpdateMenu(menu *Menu, v2 BufferDim, assets *Assets) 
 {
     ResizeMenu(Menu, BufferDim, Assets);
     UpdateMenu(Menu);
@@ -937,8 +968,9 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
 {
     for (int i = 0; i < Menu->NumOfComponents; i++) {
         menu_component *MComp = &Menu->Components[i];
-        
         v2 Padding = (MComp->Dim - MComp->PaddingDim)/2;
+        MComp->Coords = MComp->DefaultCoords - Padding + Menu->Coords;
+        v2 CompCoords = MComp->Coords;
         
         if (MComp->Type == menu_component_type::Button) {
             
@@ -954,19 +986,19 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 Button->FontString.Color = Button->DefaultTextColor;
             }
             v2 SDim = FontStringGetDim(&Button->FontString);
-            v2 TextCoords = MComp->Coords + ((MComp->Dim - SDim)/2);
-            Push(v3(MComp->Coords - Padding, Z), MComp->Dim, Button->CurrentColor, 0.0f);
+            v2 TextCoords = CompCoords + ((MComp->Dim - SDim)/2);
             
-            FontStringPrint(&Button->FontString, TextCoords - Padding);
+            Push(v3(CompCoords, Z), MComp->Dim, Button->CurrentColor, 0.0f);
+            FontStringPrint(&Button->FontString, TextCoords);
             
         }
         else if (MComp->Type == menu_component_type::TextBox) {
             menu_component_textbox *TextBox = (menu_component_textbox*)MComp->Data;
-            Push(v3(MComp->Coords - Padding, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
+            Push(v3(CompCoords, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
             
             if (MComp->Active) {
                 v2 SDim = FontStringGetDim(&TextBox->FontString);
-                TextBox->TextCoords = MComp->Coords;
+                TextBox->TextCoords = CompCoords;
                 TextBox->TextCoords.y += (MComp->Dim.y - SDim.y)/2;
                 real32 CursorPadding = (MComp->Dim.y)/4;
                 real32 CursorX = 0;
@@ -1003,10 +1035,11 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
-                Push(v3(CursorX - Padding.x, MComp->Coords.y - Padding.y, 100.0f), v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
+                Push(v3(CursorX, MComp->Coords.y - Padding.y + Menu->Coords.y, 100.0f),
+                     v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
             }
             
-            FontStringPrint(&TextBox->FontString, TextBox->TextCoords - Padding, MComp->Coords - Padding, MComp->Dim);
+            FontStringPrint(&TextBox->FontString, TextBox->TextCoords, MComp->Coords - Padding, MComp->Dim);
         }
         else if (MComp->Type == menu_component_type::Text) {
             menu_component_text *Text = (menu_component_text*)MComp->Data;
@@ -1017,7 +1050,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         }
         else if (MComp->Type == menu_component_type::Logo) {
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
-            Push(v3(MComp->Coords - Padding, 100.0f), MComp->Dim, &Logo->Tex, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, &Logo->Tex, 0.0f, blend_mode::gl_src_alpha);
         }
         else if (MComp->Type == menu_component_type::CheckBox) {
             menu_component_checkbox *CheckBox = (menu_component_checkbox*)MComp->Data;
@@ -1039,12 +1072,12 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 CheckBox->CurrentTexture = CheckBox->DefaultTexture;
             }
             
-            Push(v3(MComp->Coords - Padding, 100.0f), MComp->Dim, &CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, &CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
         }
     }
     
     if (Menu->BackgroundTexture.BitmapID == 0)
-        Push(v3(Menu->Coords, 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
+        Push(v3(Menu->Coords - (Menu->Dim/2 + Menu->Padding), 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
     else {
         v2 BackgroundCoords = TopLeftCornerCoords - 5;
         v2 BackgroundDim = 0;
@@ -1151,7 +1184,7 @@ GetGridCoords(char *Input, int *X, int *Y)
 }
 
 internal void
-ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int_string *IDs, int NumOfIDs)
+ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_string *IDs, int NumOfIDs)
 {
     entire_file EntireFile = ReadEntireFile(FileName);
     const char* Cursor = (const char*)EntireFile.Contents;
@@ -1430,7 +1463,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, game_assets *Assets, pair_int
 
 // Returns true if events should be processed
 internal bool
-DoMenu(menu *Menu, const char *FileName, platform *p, game_assets *Assets, qlib_bool *EditMenu, pair_int_string *IDs, int NumOfIDs)
+DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool *EditMenu, pair_int_string *IDs, int NumOfIDs)
 {
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
     if (OnKeyDown(&Keyboard->F6))
@@ -1452,7 +1485,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, game_assets *Assets, qlib_
     {
         font_string EditMenuString = {};
         const char* EM = "Edit Menu";
-        FontStringInit(&EditMenuString, GetFont(Assets, GAFI_Rubik), EM, 50, 0xFFFFFFFF);
+        FontStringInit(&EditMenuString, GetFont(Assets, Rubik), EM, 50, 0xFFFFFFFF);
         v2 SDim = FontStringGetDim(&EditMenuString);
         FontStringPrint(&EditMenuString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
         

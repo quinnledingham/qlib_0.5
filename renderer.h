@@ -112,7 +112,7 @@ struct render_piece
     {}
 };
 
-#define RENDER_PIECE_GROUP_MAX_SIZE 1000
+#define RENDER_PIECE_GROUP_MAX_SIZE 10000
 struct render_piece_group
 {
     render_piece Pieces[RENDER_PIECE_GROUP_MAX_SIZE];
@@ -121,10 +121,10 @@ struct render_piece_group
     
     render_piece* operator[](int i) { return &Pieces[i]; }
 };
-global_variable  render_piece_group RenderPieceGroup2 = {};
+global_variable  render_piece_group RPGroup = {};
 inline void Push(render_piece Piece)
 {
-    *RenderPieceGroup2[RenderPieceGroup2.Size++] = Piece;
+    *RPGroup[RPGroup.Size++] = Piece;
 }
 inline void Push(v3 Coords, v2 Dim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
 {
@@ -156,8 +156,10 @@ void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotation, rend
 void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode);
 
 internal void
-RenderPieceGroup(render_piece_group &Group)
+RenderPieceGroup()
 {
+    render_piece_group &Group = RPGroup;
+    
     // Z-Sort using Insertion Sort
     {
         uint32 i = 1;

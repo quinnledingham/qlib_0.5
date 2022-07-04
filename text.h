@@ -316,6 +316,33 @@ LoadFontFromHeaderFile(Font* LoadFont,
     }
 }
 */
+
+internal void
+ChangeBitmapColor(loaded_bitmap Bitmap, uint32 Color)
+{
+    u8 *C = (u8*)&Color;
+    int R = *C++;
+    int G = *C++;
+    int B = *C++;
+    int A = *C++;
+    unsigned long NewColor = createRGBA(R, G, B, A);
+    
+    u8 *DestRow = (u8 *)Bitmap.Memory;
+    for(s32 Y = 0; Y < Bitmap.Height; ++Y)
+    {
+        u32 *Dest = (u32 *)DestRow;
+        for(s32 X = 0; X < Bitmap.Width; ++X)
+        {
+            u32 Gray = *Dest;
+            NewColor &= 0x00FFFFFF;
+            Gray &= 0xFF000000;
+            NewColor += Gray;
+            *Dest++ = NewColor;
+        }
+        DestRow += Bitmap.Pitch;
+    }
+}
+
 internal loaded_bitmap
 LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
 {
@@ -339,12 +366,19 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
             u32 *Dest = (u32 *)DestRow;
             for(s32 X = 0; X < Width; ++X)
             {
+                /*
                 u8 Gray = *Source++;
                 u32 Alpha = ((Gray << 24) | (Gray << 16) | (Gray <<  8) | (Gray << 0));
                 Color &= 0x00FFFFFF;
                 Alpha &= 0xFF000000;
                 Color += Alpha;
                 *Dest++ = Color;
+                */
+                u8 Alpha = *Source++;
+                *Dest++ = ((Alpha << 24) |
+                           (Alpha << 16) |
+                           (Alpha <<  8) |
+                           (Alpha <<  0));
             }
             
             DestRow += Result.Pitch;
@@ -352,6 +386,8 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
         
         stbtt_FreeBitmap(MonoBitmap, 0);
     }
+    
+    ChangeBitmapColor(Result, Color);
     
     return (Result);
 }

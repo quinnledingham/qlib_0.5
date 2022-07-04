@@ -547,10 +547,9 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
     return(Result);
 }
 
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-    SetCurrentDirectory("../game/data");
+    SetCurrentDirectory(CurrentDirectory);
     
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
@@ -564,27 +563,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     WindowClass.cbWndExtra = 0;
     WindowClass.hInstance = hInstance;
     
-    WindowClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-    WindowClass.hIconSm = (HICON)LoadImage(hInstance, "icon.ico", IMAGE_ICON, 100, 100, 
-                                           LR_LOADFROMFILE | LR_LOADTRANSPARENT);
+    WindowClass.hIcon = LoadIcon(hInstance, IDI_ERROR);
+    WindowClass.hIconSm = (HICON)LoadImage(hInstance, IconFileName, IMAGE_ICON, 100, 100, LR_LOADFROMFILE | LR_LOADTRANSPARENT);
     
     //WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     WindowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     WindowClass.lpszMenuName = 0;
-    WindowClass.lpszClassName = "Win32 Game Window";
+    WindowClass.lpszClassName = WindowName;
     RegisterClassEx(&WindowClass);
     
     // Center window on screen
-    int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
-    int ClientHeight = ScreenHeight - 200;
-    int ClientWidth = ClientHeight;
     RECT WindowRect;
-    SetRect(&WindowRect,
-            (ScreenWidth / 2) - (ClientWidth / 2),
-            (ScreenHeight / 2) - (ClientHeight / 2),
-            (ScreenWidth / 2) + (ClientWidth / 2),
-            (ScreenHeight / 2) + (ClientHeight / 2));
+    SetRect(&WindowRect, (ScreenWidth / 2) - (ClientWidth / 2), (ScreenHeight / 2) - (ClientHeight / 2), 
+            (ScreenWidth / 2) + (ClientWidth / 2), (ScreenHeight / 2) + (ClientHeight / 2));
     
     Win32LoadXInput();
     
@@ -595,7 +586,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     AdjustWindowRectEx(&WindowRect, Style, FALSE, 0);
     HWND hwnd = CreateWindowEx(0, WindowClass.lpszClassName,
-                               "Coffee Cow", Style, WindowRect.left,
+                               WindowName, Style, WindowRect.left,
                                WindowRect.top, WindowRect.right -
                                WindowRect.left, WindowRect.bottom -
                                WindowRect.top, NULL, NULL,
@@ -729,9 +720,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     LPVOID BaseAddress = 0;
 #endif
     
-    p.Memory.PermanentStorageSize = Megabytes(126);
+    p.Memory.PermanentStorageSize = Permanent_Storage_Size;
+    p.Memory.TransientStorageSize = Transient_Storage_Size;
     //p.Memory.PermanentStorageSize = Gigabytes(1);
-    p.Memory.TransientStorageSize = Megabytes(1);
     //p.Memory.PermanentStorageSize = Megabytes(256);
     //p.Memory.TransientStorageSize = Gigabytes(1);
     
@@ -1001,7 +992,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 
                 //game_state *GameState = (game_state *)p.Memory.PermanentStorage;
                 
-                PlayLoadedSound(&p.AudioState, &SoundBuffer);
+                if (p.AudioState.Paused.Value)
+                    PlayLoadedSound(&p.AudioState, &SoundBuffer);
                 //OutputTestSineWave(GameState, &SoundBuffer,256);
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }
@@ -1089,10 +1081,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     return(0);
 }
+
 #endif // QLIB_WINDOW_APPLICATION
 
 #ifdef QLIB_CONSOLE_APPLICATION
+
 #pragma comment(linker, "/subsystem:console")
+
 int main(int argc, const char** argv)
 {
     platform p = {};
@@ -1133,4 +1128,8 @@ int main(int argc, const char** argv)
 }
 #endif // QLIB_CONSOLE_APPLICATION
 
-
+#ifndef QLIB_WINDOW_APPLICATION
+#ifndef QLIB_CONSOLE_APPLICATION
+#pragma message ("Define type of application (Such as QLIB_WINDOW_APPLICATION)")
+#endif
+#endif

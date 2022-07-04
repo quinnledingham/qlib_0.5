@@ -31,8 +31,12 @@ struct audio_state
     playing_sound *FirstFreePlayingSound;
     
     v2 MasterVolume;
+    
+    qlib_bool Paused;
 };
 
-
+//internal void PlaySound(audio_state *AudioState, loaded_sound *LoadedSound);
+//internal void PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuffer);
+//internal loaded_sound LoadWAV(char *FileName);
 
 #endif //AUDIO_H
