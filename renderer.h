@@ -17,10 +17,7 @@ struct render_attribute
     u32 Count;
 };
 
-struct render_uniform
-{
-    
-};
+struct render_uniform {};
 
 struct render_shader
 {

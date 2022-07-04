@@ -345,6 +345,7 @@ internal void
 TextureResize(render_texture *Texture, game_assets *Assets, iv2 Dim)
 {
     ResizeBitmap(GetResizableBitmap(Assets, Texture->BitmapID), Dim);
+    TextureDestroy(Texture);
     TextureInit(Texture, Assets);
 }
 
@@ -504,7 +505,7 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 {
     if (GlobalOpenGLRect.Initialized == 0)
     {
-        ShaderInit(&GlobalOpenGLRect.Shader, "../shaders/basic.vert", "../shaders/basic.frag");
+        ShaderInit(&GlobalOpenGLRect.Shader, "shaders/basic.vert", "shaders/basic.frag");
         
         AttributeInit(&GlobalOpenGLRect.VertexPositions);
         DynArray<v3> position = {};
@@ -566,7 +567,7 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Te
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
-        ShaderInit(&GlobalOpenGLTexture.Shader, "../shaders/static.vert", "../shaders/lit.frag");
+        ShaderInit(&GlobalOpenGLTexture.Shader, "shaders/static.vert", "shaders/lit.frag");
         
         AttributeInit(&GlobalOpenGLTexture.VertexPositions);
         DynArray<v3> position = {};
