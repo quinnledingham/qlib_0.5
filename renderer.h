@@ -32,14 +32,6 @@ struct render_index_buffer
     u32 Count;
 };
 
-struct render_texture
-{
-    unsigned int Handle;
-    int BitmapID;
-};
-typedef render_texture texture;
-inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap);
-
 enum struct render_draw_mode
 {
     points,
@@ -73,6 +65,7 @@ enum struct render_piece_type
 {
     color_rect,
     texture_rect,
+    bitmap_rect
 };
 
 struct render_piece
@@ -90,6 +83,8 @@ struct render_piece
     uint32 Color;
     render_texture *Texture;
     
+    bitmap_id BitmapID;
+    
     inline render_piece() {}
     inline render_piece(render_piece_type _Type,
                         v3 _Coords,
@@ -99,7 +94,8 @@ struct render_piece
                         v2 _ScissorCoords,
                         v2 _ScissorDim,
                         uint32 _Color,
-                        render_texture *_Texture) :
+                        render_texture *_Texture,
+                        bitmap_id _BitmapID) :
     Type(_Type),
     Coords(_Coords),
     Dim(_Dim),
@@ -108,7 +104,8 @@ struct render_piece
     ScissorCoords(_ScissorCoords),
     ScissorDim(_ScissorDim),
     Color(_Color),
-    Texture(_Texture)
+    Texture(_Texture),
+    BitmapID(_BitmapID)
     {}
 };
 
@@ -128,15 +125,19 @@ inline void Push(render_piece Piece)
 }
 inline void Push(v3 Coords, v2 Dim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
 {
-    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, Texture));
+    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, Texture, bitmap_id()));
+}
+inline void Push(v3 Coords, v2 Dim, bitmap_id BitmapID, real32 Rotation, render_blend_mode BlendMode)
+{
+    Push(render_piece(render_piece_type::bitmap_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, 0, BitmapID));
 }
 inline void Push(v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
 {
-    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, ScissorCoords, ScissorDim, 0, Texture));
+    Push(render_piece(render_piece_type::texture_rect, Coords, Dim, Rotation, BlendMode, ScissorCoords, ScissorDim, 0, Texture, bitmap_id()));
 }
 inline void Push(v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
 {
-    Push(render_piece(render_piece_type::color_rect, Coords, Dim, Rotation, render_blend_mode::gl_one, 0, 0, Color, 0));
+    Push(render_piece(render_piece_type::color_rect, Coords, Dim, Rotation, render_blend_mode::gl_one, 0, 0, Color, 0, bitmap_id()));
 }
 
 inline void ClearPieceGroup(render_piece_group *Group)
@@ -154,9 +155,10 @@ void DrawRect(int x, int y, int width, int height, uint32 color);
 void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
 void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode);
 void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode);
+void DrawRect(debug_assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode);
 
 internal void
-RenderPieceGroup()
+RenderPieceGroup(debug_assets *Assets)
 {
     render_piece_group &Group = RPGroup;
     
@@ -177,7 +179,9 @@ RenderPieceGroup()
     
     for (uint32 i = 0; i < Group.Size; i++) {
         render_piece *p = Group[i];
-        if (p->Type == render_piece_type::texture_rect)
+        if (p->Type == render_piece_type::bitmap_rect)
+            DrawRect(Assets, p->Coords, p->Dim, p->BitmapID, p->Rotation, p->BlendMode);
+        else if (p->Type == render_piece_type::texture_rect)
             DrawRect(p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Texture, p->Rotation, p->BlendMode);
         else if (p->Type == render_piece_type::color_rect)
             DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);

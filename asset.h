@@ -19,6 +19,28 @@
 #define xstr(x) str(x)
 #define pairintstring(x) {x, xstr(x)}
 
+
+
+struct asset2
+{
+    u32 State;
+    //asset_memory_header *Header;
+    u32 FileIndex;
+    
+    union
+    {
+        loaded_bitmap Bitmap;
+        loaded_sound Sound;
+        font Font;
+    };
+};
+
+struct qlib_tag
+{
+    u32 ID; // Tag ID
+    r32 Value;
+};
+
 #define ASSET_STRING_SIZE 45
 struct asset_tag
 {
@@ -33,6 +55,14 @@ struct asset
     void *Data;
 };
 
+
+
+struct asset_type
+{
+    uint32 FirstAssetIndex;
+    uint32 OnePastLastAssetIndex;
+};
+
 inline void AssetInitTag(asset *Asset, const char *FileName, u32 ID, const char *Value)
 {
     asset *Temp = &Asset[ID];
@@ -43,13 +73,6 @@ inline void AssetInitTag(asset *Asset, const char *FileName, u32 ID, const char 
         Temp->Tag.Value[i] = Value[i];
 }
 #define AssetInitTag(a, f, i) (AssetInitTag(a, f, i, xstr(i)))
-
-struct assets
-{
-    asset Sounds[SOUND_COUNT]; // loaded_sound
-    asset Bitmaps[BITMAP_COUNT]; // resizable_bitmap
-    asset Fonts[FONT_COUNT]; // font
-};
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapAsset)
 {
@@ -67,6 +90,24 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadSoundAsset)
     loaded_sound Temp = LoadWAV(Asset->FileName);
     Asset->Data = qalloc((void*)&Temp, sizeof(loaded_sound));
 }
+
+struct assets
+{
+    asset Sounds[SOUND_COUNT]; // loaded_sound
+    asset Bitmaps[BITMAP_COUNT]; // resizable_bitmap
+    asset Fonts[FONT_COUNT]; // font
+    
+    void *Memory;
+    
+    uint32 TagCount;
+    qlib_tag *Tags;
+    
+    uint32 AssetCount;
+    asset2 *Assets;
+    
+    asset_type AssetTypes[Asset_Count];
+    
+};
 
 inline resizable_bitmap* GetResizableBitmap(assets *Assets, int ID)
 {
@@ -110,6 +151,14 @@ GetBitmapID(assets *Assets, const char *ID)
         }
     }
     return 0;
+}
+
+
+
+internal void
+AddBitmap(const char* FileName, u32 Tag)
+{
+    
 }
 
 #endif //ASSET_H

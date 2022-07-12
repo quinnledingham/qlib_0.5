@@ -563,8 +563,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     WindowClass.cbWndExtra = 0;
     WindowClass.hInstance = hInstance;
     
-    WindowClass.hIcon = LoadIcon(hInstance, IDI_ERROR);
-    WindowClass.hIconSm = (HICON)LoadImage(hInstance, IconFileName, IMAGE_ICON, 100, 100, LR_LOADFROMFILE | LR_LOADTRANSPARENT);
+    HICON Icon = (HICON)LoadImage(hInstance, IconFileName, IMAGE_ICON, 100, 100, LR_LOADFROMFILE | LR_LOADTRANSPARENT);
+    WindowClass.hIcon = Icon;
+    WindowClass.hIconSm = Icon;
     
     //WindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     WindowClass.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);

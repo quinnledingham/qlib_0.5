@@ -1035,7 +1035,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
-                Push(v3(CursorX, MComp->Coords.y - Padding.y + Menu->Coords.y, 100.0f),
+                Push(v3(CursorX, MComp->Coords.y, 100.0f),
                      v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
             }
             
@@ -1046,7 +1046,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
             v2 TextCoords = MComp->Coords;
             if (MComp->AlignWith != 0)
                 TextCoords.x = MComp->Coords.x + MComp->AlignWith->Dim.x - MComp->Dim.x;
-            FontStringPrint(&Text->FontString, TextCoords - Padding);
+            FontStringPrint(&Text->FontString, TextCoords);
         }
         else if (MComp->Type == menu_component_type::Logo) {
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
@@ -1463,7 +1463,8 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
 
 // Returns true if events should be processed
 internal bool
-DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool *EditMenu, pair_int_string *IDs, int NumOfIDs)
+DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool *EditMenu, 
+       pair_int_string *IDs, int NumOfIDs)
 {
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
     if (OnKeyDown(&Keyboard->F6))
@@ -1485,7 +1486,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool 
     {
         font_string EditMenuString = {};
         const char* EM = "Edit Menu";
-        FontStringInit(&EditMenuString, GetFont(Assets, Rubik), EM, 50, 0xFFFFFFFF);
+        FontStringInit(&EditMenuString, GetFont(Assets, GAFI_Rubik), EM, 50, 0xFFFFFFFF);
         v2 SDim = FontStringGetDim(&EditMenuString);
         FontStringPrint(&EditMenuString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
         

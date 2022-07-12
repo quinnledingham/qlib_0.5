@@ -17,13 +17,14 @@ struct Image
 #define BITMAP_BYTES_PER_PIXEL 4
 struct loaded_bitmap
 {
+    void *Memory;
+    
     int32 Width;
     int32 Height;
     int32 Pitch;
     int32 Channels;
-    void *Memory;
     
-    void *Free;
+    void *TextureHandle;
 };
 
 struct resizable_bitmap
@@ -42,6 +43,19 @@ LoadBitmap(const char *FileName)
     Assert(Bitmap.Width != 0);
     
     return (loaded_bitmap*)qalloc(&Bitmap, sizeof(loaded_bitmap));
+}
+
+internal loaded_bitmap
+LoadBitmap2(const char *FileName)
+{
+    loaded_bitmap Bitmap = {};
+    unsigned char* Data = stbi_load(FileName, &Bitmap.Width, &Bitmap.Height, &Bitmap.Channels, 0);
+    Bitmap.Memory = (void*)Data;
+    
+    Assert(Bitmap.Width != 0);
+    
+    return Bitmap;
+    //return (loaded_bitmap*)qalloc(&Bitmap, sizeof(loaded_bitmap));
 }
 
 internal resizable_bitmap*

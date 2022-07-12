@@ -64,6 +64,9 @@ typedef size_t memory_index;
 
 #define DEG2RAD 0.0174533f
 
+#define U32FromPointer(Pointer) ((u32)(memory_index)(Pointer))
+#define PointerFromU32(type, Value) (type *)((memory_index)Value)
+
 typedef struct v2
 {
     union

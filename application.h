@@ -61,8 +61,29 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "data_structures.h"
 #include "image.h"
 #include "math.h"
-#include "renderer.h"
+
+struct bitmap_id
+{
+    u32 id;
+    
+    inline bitmap_id() {}
+    inline bitmap_id(u32 _id) : id(_id) {}
+};
+typedef bitmap_id sound_id;
+
+struct render_texture
+{
+    unsigned int Handle;
+    int BitmapID;
+};
+typedef render_texture texture;
+inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap);
+
 #include "text.h"
+#include "debug_asset.h"
+#include "renderer.h"
+
+#include "text.cpp"
 #include "audio.cpp"
 
 void UpdateRender(platform* p);
@@ -76,8 +97,12 @@ void Update(platform* p);
 #include "win32_application.cpp"
 
 #include "qlib/asset.h"
+
+
 #include "qlib/renderer.cpp"
 #include "qlib/menu.h"
+#include "qlib/random.h"
+#include "qlib/socketq.h"
 #endif // _WIN32
 
 #endif //APPLICATION_H

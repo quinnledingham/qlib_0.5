@@ -123,4 +123,6 @@ inline char* BufferCC(char* Buffer, int BufferSize, void* DataToCopy, int DataTo
 
 #define MallocCopy(t, d) ((t*)MallocCpy((void*)&d, sizeof t))
 
+#define Qalloc(t) ((t*)qalloc(sizeof(t)))
+
 #endif //MEMORYMANAGER_H

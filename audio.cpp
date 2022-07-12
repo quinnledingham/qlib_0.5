@@ -236,7 +236,7 @@ GetChunkDataSize(riff_iterator Iter)
 }
 
 internal loaded_sound
-LoadWAV(char *FileName)
+LoadWAV(const char *FileName)
 {
     loaded_sound Result = {};
     
