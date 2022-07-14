@@ -101,6 +101,8 @@ void Update(platform* p);
 
 using emscripten::val;
 
+#include "types.h"
+
 #endif
 
 #endif //APPLICATION_H
