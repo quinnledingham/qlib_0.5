@@ -101,6 +101,24 @@ absol(real32 r)
 }
 
 // v3 Operations
+v4 u32toV4(uint32 input)
+{
+    //uint8 *C = (uint8*)malloc(sizeof(uint32));
+    //memcpy(C, &input, sizeof(uint32));
+    uint8 *C = (uint8*)&input;
+    uint32 B = *C++;
+    uint32 G = *C++;
+    uint32 R = *C++;
+    real32 A = *C++;
+    return v4(real32(R), real32(G), real32(B), A);
+}
+
+v3 u32toV3(uint32 input)
+{
+    v4 r = u32toV4(input);
+    return v3(r.x, r.y, r.z);
+}
+
 // Vector Addition
 inline v3
 operator+(const v3 &l, const v3 &r)

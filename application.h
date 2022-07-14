@@ -63,14 +63,6 @@ typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
 #include "image.h"
 #include "math.h"
 
-struct render_texture
-{
-    //unsigned int Handle;
-    void *Handle;
-    int BitmapID;
-};
-typedef render_texture texture;
-internal void TextureInit(render_texture *Texture, loaded_bitmap *LoadedBitmap);
 internal void TextureInit(loaded_bitmap *Bitmap);
 
 #include "text.h"
