@@ -2,6 +2,7 @@
 #define APPLICATION_H
 
 #ifdef _WIN32
+
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
@@ -94,6 +95,20 @@ void Update(platform* p);
 #include "menu.h"
 #include "random.h"
 #include "socketq.h"
+
 #endif // _WIN32
+
+#ifdef __EMSCRIPTEN__
+
+#include <SDL2/SDL.h>
+#include <stdio.h>
+#include <emscripten/emscripten.h>
+#include <string.h>
+#include <emscripten/html5.h>
+#include <emscripten/val.h>
+
+using emscripten::val;
+
+#endif
 
 #endif //APPLICATION_H
