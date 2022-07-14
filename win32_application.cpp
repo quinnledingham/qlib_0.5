@@ -49,6 +49,7 @@ global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 internal void
 Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferSize)
 {
+    int i = 0;
     // NOTE(casey): Load the library
     HMODULE DSoundLibrary = LoadLibraryA("dsound.dll");
     if(DSoundLibrary)
