@@ -307,9 +307,9 @@ TextureInitialization(void **Handle, loaded_bitmap *Source)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-inline void TextureInit(render_texture *Texture, loaded_bitmap *LoadedBitmap) { TextureInitialization(&Texture->Handle, LoadedBitmap); }
+//inline void TextureInit(render_texture *Texture, loaded_bitmap *LoadedBitmap) { TextureInitialization(&Texture->Handle, LoadedBitmap); }
 inline void TextureInit(loaded_bitmap *Bitmap) { TextureInitialization(&Bitmap->TextureHandle, Bitmap); }
-inline void TextureDestroy(render_texture *Texture) { glDeleteTextures(1, &U32FromPointer(Texture->Handle)); }
+inline void TextureDestroy(loaded_bitmap *Bitmap) { glDeleteTextures(1, &U32FromPointer(Bitmap->TextureHandle)); }
 
 internal void
 TextureSet(unsigned int Handle, u32 UniformIndex, u32 TextureIndex)
@@ -318,11 +318,12 @@ TextureSet(unsigned int Handle, u32 UniformIndex, u32 TextureIndex)
     glBindTexture(GL_TEXTURE_2D, Handle);
     glUniform1i(UniformIndex, TextureIndex);
 }
+/*
 inline void TextureSet(render_texture *Texture, u32 UniformIndex, u32 TextureIndex)
 {
     TextureSet(U32FromPointer(Texture->Handle), UniformIndex, TextureIndex);
 }
-
+*/
 internal void
 TextureUnSet(u32 TextureIndex)
 {
@@ -330,7 +331,7 @@ TextureUnSet(u32 TextureIndex)
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
 }
-inline void TextureUnSet(render_texture *Texture, u32 TextureIndex) { TextureUnSet(TextureIndex); }
+//inline void TextureUnSet(render_texture *Texture, u32 TextureIndex) { TextureUnSet(TextureIndex); }
 
 /*
 internal void
@@ -467,24 +468,6 @@ struct open_gl_texture
 global_variable open_gl_rect GlobalOpenGLRect;
 global_variable open_gl_texture GlobalOpenGLTexture;
 
-v4 u32toV4(uint32 input)
-{
-    //uint8 *C = (uint8*)malloc(sizeof(uint32));
-    //memcpy(C, &input, sizeof(uint32));
-    uint8 *C = (uint8*)&input;
-    uint32 B = *C++;
-    uint32 G = *C++;
-    uint32 R = *C++;
-    real32 A = *C++;
-    return v4(real32(R), real32(G), real32(B), A);
-}
-
-v3 u32toV3(uint32 input)
-{
-    v4 r = u32toV4(input);
-    return v3(r.x, r.y, r.z);
-}
-
 void
 DrawRect(int x, int y, int width, int height, uint32 color)
 {
@@ -553,109 +536,6 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
     {
         PrintqDebug(S() + "Opengl Error: " + (int)err + "\n");
     }
-}
-
-void
-DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, render_texture *Texture, real32 Rotation, render_blend_mode BlendMode)
-{
-    if (GlobalOpenGLTexture.Initialized == 0)
-    {
-        ShaderInit(&GlobalOpenGLTexture.Shader, "shaders/static.vert", "shaders/lit.frag");
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexPositions);
-        DynArray<v3> position = {};
-        position.push_back(v3(-0.5, -0.5, 0));
-        position.push_back(v3(-0.5, 0.5, 0));
-        position.push_back(v3(0.5, -0.5, 0));
-        position.push_back(v3(0.5, 0.5, 0));
-        AttributeSet(&GlobalOpenGLTexture.VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexNormals);
-        DynArray<v3> normals = {};
-        normals.Resize(4, v3(0, 0, 1));
-        AttributeSet(&GlobalOpenGLTexture.VertexNormals, normals.GetData(), sizeof(v3), normals.GetSize());
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexTexCoords);
-        DynArray<v2> uvs = {};
-        uvs.push_back(v2(1, 1));
-        uvs.push_back(v2(1, 0));
-        uvs.push_back(v2(0, 1));
-        uvs.push_back(v2(0, 0));
-        AttributeSet(&GlobalOpenGLTexture.VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
-        
-        IndexBufferInit(&GlobalOpenGLTexture.IndexBuffer);
-        DynArray<u32> indices = {};
-        indices.push_back(0);
-        indices.push_back(1);
-        indices.push_back(2);
-        indices.push_back(2);
-        indices.push_back(1);
-        indices.push_back(3);
-        IndexBufferSet(&GlobalOpenGLTexture.IndexBuffer, indices);
-        
-        GlobalOpenGLTexture.Initialized = 1;
-    }
-    
-    // Change to standard coordinate system
-    v2 NewCoords = {};
-    NewCoords.x = (real32)(-Coords.x - (Size.x/2));
-    NewCoords.y = (real32)(-Coords.y - (Size.y/2));
-    
-    mat4 Model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
-                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
-                                           v3(Size.x, Size.y, 1)));
-    
-    if (ScissorDim.x > 0 && ScissorDim.y > 0) {
-        glScissor((GLsizei)(ScissorCoords.x + (CameraViewDim.x/2)), 
-                  (GLsizei)(-ScissorCoords.y + (CameraViewDim.y/2)), 
-                  (GLint)ScissorDim.x,
-                  (GLint)ScissorDim.y);
-        //glScissor(500, 500, 100, 100);
-        glEnable(GL_SCISSOR_TEST);
-    }
-    
-    if (BlendMode == render_blend_mode::gl_one)
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    else if (BlendMode == render_blend_mode::gl_src_alpha)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    ShaderBind(&GlobalOpenGLTexture.Shader);
-    
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "model"), Model);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "view"), View);
-    v3 Light = v3(0, 0, 1);
-    UniformSet(v3, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "light"), Light);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "projection"), Projection);
-    
-    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
-    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
-    AttributeBindTo(v2, &GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
-    
-    TextureSet(Texture, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "tex0"), 0);
-    
-    glDraw(GlobalOpenGLTexture.IndexBuffer, render_draw_mode::triangles);
-    
-    TextureUnSet(Texture, 0);
-    
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
-    
-    ShaderUnBind(&GlobalOpenGLTexture.Shader);
-    
-    GLenum err;
-    while((err = glGetError()) != GL_NO_ERROR)
-    {
-        PrintqDebug(S() + (int)err + "\n");
-    }
-    
-    if (ScissorDim.x > 0 && ScissorDim.y > 0)
-        glDisable(GL_SCISSOR_TEST);
-    
-}
-inline void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotation, blend_mode BlendMode)
-{
-    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Texture, Rotation, BlendMode);
 }
 
 void
