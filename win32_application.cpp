@@ -991,10 +991,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
                 SoundBuffer.Samples = Samples;
                 
-                //game_state *GameState = (game_state *)p.Memory.PermanentStorage;
-                
                 if (p.AudioState.Paused.Value)
                     PlayLoadedSound(&p.AudioState, &SoundBuffer);
+                
                 //OutputTestSineWave(GameState, &SoundBuffer,256);
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }

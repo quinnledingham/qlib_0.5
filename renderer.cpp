@@ -278,24 +278,19 @@ inline void IndexBufferSet(render_index_buffer *IndexBuffer, DynArray<u32> &Inpu
 //
 
 internal void
-TextureInitialization(render_texture *Texture, loaded_bitmap *LoadedBitmap)
+TextureInitialization(void **Handle, loaded_bitmap *Source)
 {
-    //resizable_bitmap *Asset = 0;
-    loaded_bitmap *Bitmap = 0;
+    Assert(Source->Width != 0 && Source->Height != 0);
     
-    Bitmap = LoadedBitmap;
+    glGenTextures(1, &U32FromPointer(*Handle));
+    glBindTexture(GL_TEXTURE_2D, (GLuint)U32FromPointer(*Handle));
     
-    Assert(Bitmap->Width != 0 && Bitmap->Height != 0);
-    
-    glGenTextures(1, &Texture->Handle);
-    glBindTexture(GL_TEXTURE_2D, Texture->Handle);
-    
-    if (Bitmap->Channels == 3) {
+    if (Source->Channels == 3) {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Bitmap->Width, Bitmap->Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Bitmap->Memory);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Source->Width, Source->Height, 0, GL_RGB, GL_UNSIGNED_BYTE, Source->Memory);
     }
-    else if (Bitmap->Channels == 4)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Bitmap->Width, Bitmap->Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Bitmap->Memory);
+    else if (Source->Channels == 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Source->Width, Source->Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, Source->Memory);
     
     glGenerateMipmap(GL_TEXTURE_2D);
     
@@ -312,29 +307,9 @@ TextureInitialization(render_texture *Texture, loaded_bitmap *LoadedBitmap)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-internal void
-TextureInitialization(render_texture *Texture, assets *Assets, loaded_bitmap *LoadedBitmap)
-{
-    resizable_bitmap *Asset = 0;
-    loaded_bitmap *Bitmap = 0;
-    if (LoadedBitmap == 0) {
-        Asset = GetResizableBitmap(Assets, Texture->BitmapID);
-        if (Asset->Resized == 0)
-            Bitmap = Asset->Original;
-        else
-            Bitmap = Asset->Resized;
-    }
-    else if (LoadedBitmap != 0) {
-        Bitmap = LoadedBitmap;
-    }
-    
-    TextureInitialization(Texture, Bitmap);
-}
-inline void TextureInit(render_texture *Texture, assets *Assets) { TextureInitialization(Texture, Assets, 0); }
-inline void TextureInit(render_texture *Texture, loaded_bitmap *Bitmap) { TextureInitialization(Texture, 0, Bitmap); }
-inline void TextureInit(render_texture *Texture, assets *Assets, int ID) { Texture->BitmapID = ID; TextureInitialization(Texture, Assets, 0); }
-
-inline void TextureDestroy(render_texture *Texture) { glDeleteTextures(1, &Texture->Handle); }
+inline void TextureInit(render_texture *Texture, loaded_bitmap *LoadedBitmap) { TextureInitialization(&Texture->Handle, LoadedBitmap); }
+inline void TextureInit(loaded_bitmap *Bitmap) { TextureInitialization(&Bitmap->TextureHandle, Bitmap); }
+inline void TextureDestroy(render_texture *Texture) { glDeleteTextures(1, &U32FromPointer(Texture->Handle)); }
 
 internal void
 TextureSet(unsigned int Handle, u32 UniformIndex, u32 TextureIndex)
@@ -343,8 +318,10 @@ TextureSet(unsigned int Handle, u32 UniformIndex, u32 TextureIndex)
     glBindTexture(GL_TEXTURE_2D, Handle);
     glUniform1i(UniformIndex, TextureIndex);
 }
-inline void
-TextureSet(render_texture *Texture, u32 UniformIndex, u32 TextureIndex){ TextureSet(Texture->Handle, UniformIndex, TextureIndex); }
+inline void TextureSet(render_texture *Texture, u32 UniformIndex, u32 TextureIndex)
+{
+    TextureSet(U32FromPointer(Texture->Handle), UniformIndex, TextureIndex);
+}
 
 internal void
 TextureUnSet(u32 TextureIndex)
@@ -353,9 +330,9 @@ TextureUnSet(u32 TextureIndex)
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
 }
-inline void
-TextureUnSet(render_texture *Texture, u32 TextureIndex) { TextureUnSet(TextureIndex); }
+inline void TextureUnSet(render_texture *Texture, u32 TextureIndex) { TextureUnSet(TextureIndex); }
 
+/*
 internal void
 TextureResize(render_texture *Texture, assets *Assets, iv2 Dim)
 {
@@ -363,6 +340,7 @@ TextureResize(render_texture *Texture, assets *Assets, iv2 Dim)
     TextureDestroy(Texture);
     TextureInit(Texture, Assets);
 }
+*/
 
 //
 // Drawing Methods
@@ -681,7 +659,7 @@ inline void DrawRect(v3 Coords, v2 Size, render_texture *Texture, real32 Rotatio
 }
 
 void
-DrawRect(debug_assets *Assets, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, bitmap_id BitmapID, real32 Rotation, render_blend_mode BlendMode)
+DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
 {
     if (GlobalOpenGLTexture.Initialized == 0)
     {
@@ -757,7 +735,7 @@ DrawRect(debug_assets *Assets, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorD
     AttributeBindTo(v2, &GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
     
     
-    loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
+    
     
     TextureSet(U32FromPointer(Bitmap->TextureHandle), ShaderGetUniform(&GlobalOpenGLTexture.Shader, "tex0"), 0);
     
@@ -781,9 +759,14 @@ DrawRect(debug_assets *Assets, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorD
         glDisable(GL_SCISSOR_TEST);
     
 }
-inline void DrawRect(debug_assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
+inline void DrawRect(assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
 {
-    DrawRect(Assets, Coords, Size, v2(0, 0), v2(0, 0), BitmapID, Rotation, BlendMode);
+    loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+}
+inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
+{
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
 }
 
 #else // !QLIB_OPENGL

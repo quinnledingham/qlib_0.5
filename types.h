@@ -288,4 +288,15 @@ inline void SetTrue(qlib_bool *Bool)
 inline unsigned long createRGBA(int r, int g, int b, int a) { return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));}
 inline unsigned long createRGB(int r, int g, int b) { return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); }
 
+struct ID
+{
+    u32 id;
+    
+    inline ID() {}
+    inline ID(u32 _id) : id(_id) {}
+};
+typedef ID bitmap_id;
+typedef ID sound_id;
+typedef ID font_id;
+
 #endif //TYPES_H

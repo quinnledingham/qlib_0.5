@@ -14,7 +14,8 @@ struct playing_sound
     v2 dCurrentVolume;
     v2 TargetVolume;
     
-    loaded_sound *LoadedSound;
+    sound_id LoadedSound;
+    
     int32 SamplesPlayed;
     playing_sound *Next;
 };
@@ -31,6 +32,8 @@ struct audio_state
     playing_sound *FirstFreePlayingSound;
     
     v2 MasterVolume;
+    
+    void *Assets;
     
     qlib_bool Paused;
 };

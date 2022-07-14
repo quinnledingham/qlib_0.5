@@ -27,21 +27,17 @@ struct font_scale
 struct font_char
 {
     int Codepoint;
+    real32 Scale;
+    uint32 Color;
+    
     int AX;
     int LSB;
     int C_X1;
     int C_Y1;
     int C_X2;
     int C_Y2;
-    real32 Scale;
     
-    texture Tex;
-    
-    uint32 Color;
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void* Memory;
+    loaded_bitmap Bitmap;
 };
 
 #define FONTCACHEMAXSIZE 200 
@@ -62,6 +58,8 @@ typedef font loaded_font;
 struct font_string
 {
     font *Font;
+    font_id FontID;
+    
     font_char *Memory[FONT_STRING_MAX_LENGTH];
     real32 Advances[FONT_STRING_MAX_LENGTH];
     
@@ -76,5 +74,7 @@ struct font_string
     real32 OldScale;
     uint32 Color;
 };
+
+internal font LoadFont2(const char *FileName);
 
 #endif //TEXT_H

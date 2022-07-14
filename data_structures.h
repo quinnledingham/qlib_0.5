@@ -663,6 +663,53 @@ int GetInt(pair_int_string *IDs, int NumOf, const char *String)
 
 // End of pair_int_string
 
+// linked_list
 
+struct linked_list_node
+{
+    void *Data;
+    linked_list_node *Next;
+};
+
+struct linked_list
+{
+    u32 NodeCount;
+    linked_list_node *I;
+    linked_list_node *Head;
+};
+
+internal void
+LinkedListAddNode(linked_list *List, void *Data)
+{
+    linked_list_node *Node = (linked_list_node*)qalloc(sizeof(linked_list_node));
+    Node->Data = Data;
+    if (List->Head != 0) {
+        linked_list_node *Last = List->Head;
+        for (u32 i = 1; i < List->NodeCount; i++)
+            Last = Last->Next;
+        Last->Next = Node;
+    }
+    else {
+        List->Head = Node;
+    }
+    
+    List->NodeCount++;
+}
+
+internal void*
+LinkedListIGetNext(linked_list *List)
+{
+    linked_list_node *Ret = List->I;
+    if (List->I->Next != 0)
+        List->I = List->I->Next;
+    else
+        List->I = List->Head;
+    
+    return Ret->Data;
+    
+}
+inline void LinkedListIReset(linked_list *List) { List->I = List->Head; }
+
+// End of linked_list
 
 #endif //DATA_STRUCTURES_H

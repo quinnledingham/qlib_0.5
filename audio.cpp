@@ -30,7 +30,7 @@ OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuf
 */
 
 internal void
-PlaySound(audio_state *AudioState, loaded_sound *LoadedSound)
+PlaySound(audio_state *AudioState, sound_id LoadedSound)
 {
     playing_sound *Sound = &AudioState->PlayingSounds[AudioState->NumOfSounds++];
     Sound->SamplesPlayed = 0;
@@ -89,7 +89,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
         playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
         if (PlayingSound != 0)
         {
-            loaded_sound *LoadedSound = PlayingSound->LoadedSound;
+            loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound);
             u32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
             if (SamplesRemainingInSound > (uint32)SoundBuffer->SampleCount)
                 SamplesRemainingInSound = (uint32)SoundBuffer->SampleCount;

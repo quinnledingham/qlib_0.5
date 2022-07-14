@@ -350,6 +350,15 @@ LoadFont(const char *FileName)
     return F;
 }
 
+internal font
+LoadFont2(const char *FileName)
+{
+    font F = {};
+    F.TTFFile = ReadEntireFile(FileName);
+    stbtt_InitFont(&F.Info, (u8 *)F.TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)F.TTFFile.Contents, 0));
+    return F;
+}
+
 internal font_char*
 LoadFontChar(font* Font, int Codepoint, real32 Scale, uint32 Color)
 {
@@ -383,15 +392,10 @@ LoadFontChar(font* Font, int Codepoint, real32 Scale, uint32 Color)
                                 &FontChar->C_X1, &FontChar->C_Y1, &FontChar->C_X2, &FontChar->C_Y2);
     
     // render character
-    loaded_bitmap Temp = LoadGlyphBitmap(Font, Codepoint, Scale, Color);
-    FontChar->Width = Temp.Width;
-    FontChar->Height = Temp.Height;
-    FontChar->Pitch = Temp.Pitch;
-    FontChar->Memory = Temp.Memory;
+    FontChar->Bitmap = LoadGlyphBitmap(Font, Codepoint, Scale, Color);
     
 #if QLIB_OPENGL
-    if (Temp.Width != 0 && Temp.Height != 0)
-        TextureInit(&FontChar->Tex, &Temp);
+    TextureInit(&FontChar->Bitmap);
 #endif
     
     return FontChar;
@@ -512,10 +516,8 @@ FontStringPrint(font_string *FontString, v2 Coords, v2 ScissorCoords, v2 Scissor
         
         v2 Scissor = v2(ScissorCoords.x, ScissorCoords.y + ScissorDim.y);
         
-        Push(v3(X, Y, 100.0f), 
-             v2((real32)NextChar->Width, (real32)NextChar->Height), 
-             Scissor, ScissorDim,
-             &NextChar->Tex, 0, blend_mode::gl_src_alpha);
+        Push(v3(X, Y, 100.0f), v2((real32)NextChar->Bitmap.Width, (real32)NextChar->Bitmap.Height), 
+             Scissor, ScissorDim, &NextChar->Bitmap, 0, blend_mode::gl_src_alpha);
         
         XCoord += FontString->Advances[i];
     }

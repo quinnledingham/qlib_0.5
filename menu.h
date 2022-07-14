@@ -25,8 +25,8 @@ struct menu_component_button
 
 struct menu_component_logo
 {
-    texture Tex;
-    texture Alt;
+    bitmap_id Regular;
+    bitmap_id Alternative;
 };
 
 struct menu_component_text
@@ -64,11 +64,12 @@ struct menu_component_checkbox
     uint32 DefaultTextColor;
     uint32 HoverTextColor;
     
-    texture CurrentTexture;
-    texture DefaultTexture;
-    texture ClickedTexture;
-    texture ActiveTexture;
-    texture ActiveClickedTexture;
+    bitmap_id CurrentTexture;
+    
+    bitmap_id DefaultTexture;
+    bitmap_id ClickedTexture;
+    bitmap_id ActiveTexture;
+    bitmap_id ActiveClickedTexture;
 };
 
 //enum menu_component_id;
@@ -162,7 +163,7 @@ struct menu
     menu_component *ActiveComponents[20];
     
     uint32 BackgroundColor;
-    texture BackgroundTexture;
+    bitmap_id BackgroundBitmap;
 };
 inline void IncrActive(menu *Menu)
 {
@@ -569,7 +570,7 @@ MenuResizeLogo(menu *Menu, menu_component *MComp, v2 ResizeFactors, assets *Asse
 {
     menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
     MComp->Dim = ResizeEquivalentAmount(MComp->DefaultDim, ResizeFactors.y);
-    TextureResize(&Logo->Tex, Assets, MComp->Dim);
+    //TextureResize(&Logo->Tex, Assets, MComp->Dim);
     MComp->PaddingDim = MComp->Dim + (Menu->Padding * 2);
 }
 
@@ -710,8 +711,7 @@ MenuInit(menu *Menu)
     Menu->Texts = 0;
     Menu->Logos = 0;
     Menu->CheckBoxes = 0;
-    Menu->BackgroundTexture.BitmapID = 0;
-    Menu->BackgroundTexture.Handle = 0;
+    Menu->BackgroundBitmap = 0;
     Menu->BackgroundColor = 0;
     
     Menu->Initialized = true;
@@ -1050,7 +1050,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         }
         else if (MComp->Type == menu_component_type::Logo) {
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
-            Push(v3(CompCoords, 100.0f), MComp->Dim, &Logo->Tex, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, Logo->Regular, 0.0f, blend_mode::gl_src_alpha);
         }
         else if (MComp->Type == menu_component_type::CheckBox) {
             menu_component_checkbox *CheckBox = (menu_component_checkbox*)MComp->Data;
@@ -1072,11 +1072,11 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 CheckBox->CurrentTexture = CheckBox->DefaultTexture;
             }
             
-            Push(v3(CompCoords, 100.0f), MComp->Dim, &CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
         }
     }
     
-    if (Menu->BackgroundTexture.BitmapID == 0)
+    if (Menu->BackgroundBitmap.id == 0)
         Push(v3(Menu->Coords - (Menu->Dim/2 + Menu->Padding), 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
     else {
         v2 BackgroundCoords = TopLeftCornerCoords - 5;
@@ -1088,8 +1088,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         
         BackgroundCoords.y -= ((BackgroundDim.y - (PlatformDim.y + 5)) / 2);
         
-        Push(v3(BackgroundCoords, 0.0f), BackgroundDim, &Menu->BackgroundTexture, 0, blend_mode::gl_src_alpha);
-        //DrawBackground(Menu->BackgroundTexture, TopLeftCornerCoords, PlatformDim, 0.0f);
+        Push(v3(BackgroundCoords, 0.0f), BackgroundDim, Menu->BackgroundBitmap, 0, blend_mode::gl_src_alpha);
     }
 }
 inline void DrawMenu(menu *Menu, real32 Z) { DrawMenu(Menu, 0,0, Z); }
@@ -1302,7 +1301,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 if (Equal(Token->ID,  "BackgroundColor"))
                     Menu->BackgroundColor = StringHex2Int(Token->Value);
                 else if (Equal(Token->ID,  "BackgroundTexture"))
-                    TextureInit(&Menu->BackgroundTexture, Assets, GetBitmapID(Assets, Token->Value));
+                    Menu->BackgroundBitmap = GetIndexBitmap(Assets, Asset_MenuBackground, 0);
                 else if (Equal(Token->ID,  "DefaultDim"))
                     Menu->DefaultDim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "DefaultPadding"))
@@ -1318,7 +1317,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
             {
                 menu_token *Token = &Collection->Tokens[j];
                 if (Equal(Token->ID,  "Texture"))
-                    Logo.Tex.BitmapID = GetBitmapID(Assets, Token->Value);
+                    Logo.Regular = GetIndexBitmap(Assets, Asset_Logo, atoi(Token->Value));
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 
@@ -1349,7 +1348,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 else if (Equal(Token->ID,  "Text"))
                     FontStringSetText(&Button.FontString, Token->Value);
                 else if (Equal(Token->ID,  "Font"))
-                    Button.FontString.Font = GetFont(Assets, Token->Value);
+                    Button.FontString.Font = GetFont(Assets, GetFirstFont(Assets, Asset_Font));
                 else if (Equal(Token->ID,  "PixelHeight"))
                     Button.FontString.PixelHeight = (real32)atoi(Token->Value);
                 else if (Equal(Token->ID,  "Dim")) 
@@ -1378,7 +1377,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 else if (Equal(Token->ID,  "Text"))
                     FontStringSetText(&Text.FontString, Token->Value);
                 else if (Equal(Token->ID,  "Font"))
-                    Text.FontString.Font = GetFont(Assets, Token->Value);
+                    Text.FontString.Font = GetFont(Assets, GetFirstFont(Assets, Asset_Font));
                 else if (Equal(Token->ID,  "PixelHeight"))
                     Text.FontString.PixelHeight = (real32)atoi(Token->Value);
                 else if (Equal(Token->ID,  "Dim")) 
@@ -1410,7 +1409,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 else if (Equal(Token->ID,  "Text"))
                     FontStringSetText(&TextBox.FontString, Token->Value);
                 else if (Equal(Token->ID,  "Font"))
-                    TextBox.FontString.Font = GetFont(Assets, Token->Value);
+                    TextBox.FontString.Font = GetFont(Assets, GetFirstFont(Assets, Asset_Font));
                 else if (Equal(Token->ID,  "PixelHeight"))
                     TextBox.FontString.PixelHeight = (real32)atoi(Token->Value);
                 else if (Equal(Token->ID,  "Dim")) 
@@ -1434,13 +1433,13 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 if (Equal(Token->ID,  "ID")) 
                     ID = GetInt(IDs, NumOfIDs, Token->Value);
                 else if (Equal(Token->ID,  "DefaultTexture"))
-                    TextureInit(&CheckBox.DefaultTexture, Assets, GetBitmapID(Assets, Token->Value));
+                    CheckBox.DefaultTexture = GetIndexBitmap(Assets, Asset_Character, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ActiveTexture"))
-                    TextureInit(&CheckBox.ActiveTexture, Assets, GetBitmapID(Assets, Token->Value));
+                    CheckBox.ActiveTexture = GetIndexBitmap(Assets, Asset_CharacterHover, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ClickedTexture"))
-                    TextureInit(&CheckBox.ClickedTexture, Assets, GetBitmapID(Assets, Token->Value));
+                    CheckBox.ClickedTexture = GetIndexBitmap(Assets, Asset_CharacterHighlight, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ActiveClickedTexture"))
-                    TextureInit(&CheckBox.ActiveClickedTexture, Assets, GetBitmapID(Assets, Token->Value));
+                    CheckBox.ActiveClickedTexture = GetIndexBitmap(Assets, Asset_CharacterHoverHighlight, atoi(Token->Value));
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 
@@ -1463,8 +1462,8 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
 
 // Returns true if events should be processed
 internal bool
-DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool *EditMenu, 
-       pair_int_string *IDs, int NumOfIDs)
+DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets,
+       qlib_bool *EditMenu, pair_int_string *IDs, int NumOfIDs)
 {
     platform_keyboard_input *Keyboard = &p->Input.Keyboard;
     if (OnKeyDown(&Keyboard->F6))
@@ -1486,7 +1485,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets, qlib_bool 
     {
         font_string EditMenuString = {};
         const char* EM = "Edit Menu";
-        FontStringInit(&EditMenuString, GetFont(Assets, GAFI_Rubik), EM, 50, 0xFFFFFFFF);
+        FontStringInit(&EditMenuString, GetFont(Assets, GetFirstFont(Assets, Asset_Font)), EM, 50, 0xFFFFFFFF);
         v2 SDim = FontStringGetDim(&EditMenuString);
         FontStringPrint(&EditMenuString, v2((p->Dimension.Width/2)-(int)SDim.x-10, -p->Dimension.Height/2 + 10));
         
