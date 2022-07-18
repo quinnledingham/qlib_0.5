@@ -550,7 +550,12 @@ Win32MainWindowCallback(HWND Window, UINT MESSAGE, WPARAM WParam, LPARAM LParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
-    SetCurrentDirectory(CurrentDirectory);
+    PlatformSetCD(CurrentDirectory);
+    
+    memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
+    GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+    GlobalDebugBuffer.Size = 0;
+    GlobalDebugBuffer.Mutex = CreateMutex(NULL, FALSE, NULL);
     
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
@@ -575,13 +580,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     RegisterClassEx(&WindowClass);
     
     // Center window on screen
+    int Win32ScreenWidth = ScreenWidth;
+    int Win32ScreenHeight = ScreenHeight;
+    int Win32ClientWidth = (int)ClientWidth;
+    int Win32ClientHeight = (int)ClientHeight;
+    
+    if (ClientWidth < 1) Win32ClientWidth = (int)(ClientWidth * Win32ScreenWidth);
+    if (ClientHeight < 1) Win32ClientHeight = (int)(ClientHeight * Win32ScreenHeight);
+    
+    if (ClientWidth == 0) Win32ClientWidth = Win32ClientHeight;
+    if (ClientHeight == 0) Win32ClientHeight = Win32ClientWidth;
+    
     RECT WindowRect;
-    SetRect(&WindowRect, (ScreenWidth / 2) - (ClientWidth / 2), (ScreenHeight / 2) - (ClientHeight / 2), 
-            (ScreenWidth / 2) + (ClientWidth / 2), (ScreenHeight / 2) + (ClientHeight / 2));
+    SetRect(&WindowRect, 
+            (Win32ScreenWidth / 2) - (Win32ClientWidth / 2), 
+            (Win32ScreenHeight / 2) - (Win32ClientHeight / 2), 
+            (Win32ScreenWidth / 2) + (Win32ClientWidth / 2),
+            (Win32ScreenHeight / 2) + (Win32ClientHeight / 2));
     
     Win32LoadXInput();
     
-    Win32ResizeDIBSection(&GlobalBackbuffer, ClientWidth, ClientHeight);
+    Win32ResizeDIBSection(&GlobalBackbuffer, (int)ClientWidth, (int)ClientHeight);
     
     DWORD Style = (WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
     // | WS_THICKFRAME to resize
@@ -633,10 +652,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
         PrintqDebug("Could not initialize GLAD\n");
     }
     else {
-        PrintqDebug("OpenGL Version \n");//" + GLVersion.major + "." + GLVersion.minor + "\n");
-        //std::cout <<  <<
-        //GLVersion.major << "." << GLVersion.minor <<
-        //"\n";
+        PrintqDebug(S() + "OpenGL Loaded\n");
+        const char* Vendor = (const char*)glGetString(GL_VENDOR);
+        const char* Renderer = (const char*)glGetString(GL_RENDERER);
+        const char* Version = (const char*)glGetString(GL_VERSION);
+        PrintqDebug(S() + "Vendor:   " + Vendor + "\n");
+        PrintqDebug(S() + "Renderer: " + Renderer + "\n");
+        PrintqDebug(S() + "Version:  " + Version + "\n");
     }
     
     int vsynch = 0;
@@ -724,16 +746,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     
     p.Memory.PermanentStorageSize = Permanent_Storage_Size;
     p.Memory.TransientStorageSize = Transient_Storage_Size;
-    //p.Memory.PermanentStorageSize = Gigabytes(1);
-    //p.Memory.PermanentStorageSize = Megabytes(256);
-    //p.Memory.TransientStorageSize = Gigabytes(1);
     
     // TODO(casey): Handle various memory footprints (USING SYSTEM METRICS)
     uint64 TotalSize = p.Memory.PermanentStorageSize + p.Memory.TransientStorageSize;
     p.Memory.PermanentStorage = VirtualAlloc(BaseAddress, (size_t)TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     p.Memory.TransientStorage = ((uint8 *)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
-    GlobalDebugBuffer.Mutex = CreateMutex(NULL, FALSE, NULL);
     Manager.Mutex = CreateMutex(NULL, FALSE, NULL);
     
     if (p.Memory.PermanentStorage && p.Memory.TransientStorage)
@@ -763,19 +781,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             
             Win32ProcessPendingMessages(&p.Input.Keyboard, &p.Input.Mouse);
             
-#if QLIB_INTERNAL
-            switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
-            {
-                case WAIT_OBJECT_0: _try 
-                {
-                    // PrintqDebug - DebugBuffer
-                    memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
-                    GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
-                    GlobalDebugBuffer.Size = 0;
-                }
-                _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
-            }
-#endif
             platform_offscreen_buffer Buffer = {};
             Buffer.Memory = GlobalBackbuffer.Memory;
             Buffer.Width = GlobalBackbuffer.Width;
@@ -1006,8 +1011,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                 case WAIT_OBJECT_0: _try 
                 {
                     char CharBuffer[OUTPUTBUFFER_SIZE];
-                    _snprintf_s(CharBuffer, sizeof(CharBuffer), "%s", GlobalDebugBuffer.Data);
+                    memcpy(CharBuffer, GlobalDebugBuffer.Data, OUTPUTBUFFER_SIZE);
                     OutputDebugStringA(CharBuffer);
+                }
+                _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
+            }
+            
+            switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
+            {
+                case WAIT_OBJECT_0: _try 
+                {
+                    // PrintqDebug - DebugBuffer
+                    memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.MaxSize);
+                    GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+                    GlobalDebugBuffer.Size = 0;
                 }
                 _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
             }

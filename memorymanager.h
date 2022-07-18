@@ -14,7 +14,7 @@ struct MemoryManager
     FreeMemory Free[100];
     int FreeIndex = 0;
     
-    HANDLE Mutex;
+    //HANDLE Mutex;
 };
 
 global_variable MemoryManager Manager;
@@ -39,16 +39,16 @@ qalloc(void* newM, int size)
     //MemoryCopy(Manager.Next, &size, sizeof(int));
     //Manager.Next += sizeof(int);
     void *r = 0;
-    switch(WaitForSingleObject(Manager.Mutex, INFINITE))
-    {
-        case WAIT_OBJECT_0: _try 
-        {
-            MemoryCopy(Manager.Next, newM, size);
-            r = (void*)Manager.Next;
-            Manager.Next += size;
-        }
-        _finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
-    }
+    //switch(WaitForSingleObject(Manager.Mutex, INFINITE))
+    //{
+    //case WAIT_OBJECT_0: _try 
+    //{
+    MemoryCopy(Manager.Next, newM, size);
+    r = (void*)Manager.Next;
+    Manager.Next += size;
+    //}
+    //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
+    //}
     return r;
 }
 
@@ -59,15 +59,15 @@ qalloc(int size)
     //Manager.Next += sizeof(int);
     
     void* r = 0;
-    switch(WaitForSingleObject(Manager.Mutex, INFINITE))
-    {
-        case WAIT_OBJECT_0: _try 
-        {
-            r = Manager.Next;
-            Manager.Next += size;
-        }
-        _finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
-    }
+    //switch(WaitForSingleObject(Manager.Mutex, INFINITE))
+    //{
+    //case WAIT_OBJECT_0: _try 
+    //{
+    r = Manager.Next;
+    Manager.Next += size;
+    //}
+    //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
+    //}
     memset(r, 0, size);
     return r;
 }

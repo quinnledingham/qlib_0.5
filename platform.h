@@ -12,7 +12,7 @@
 struct platform_offscreen_buffer
 {
     // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
-    BITMAPINFO Info;
+    //BITMAPINFO Info;
     void *Memory;
     int Width;
     int Height;
@@ -319,7 +319,7 @@ struct platform_work_queue
     
     uint32 volatile NextEntryToWrite;
     uint32 volatile NextEntryToRead;
-    HANDLE SemaphoreHandle;
+    //HANDLE SemaphoreHandle;
     
     platform_work_queue_entry Entries[256];
 };
@@ -357,7 +357,7 @@ struct platform_debug_buffer
     char Data[OUTPUTBUFFER_SIZE];
     char* Next;
     
-    HANDLE Mutex;
+    //HANDLE Mutex;
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
 

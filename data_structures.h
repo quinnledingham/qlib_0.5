@@ -288,23 +288,28 @@ bool operator==(const strinq& L, const strinq& R)
 bool PrintqDebug(strinq Output)
 {
 #if QLIB_INTERNAL
-    switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
-    {
-        case WAIT_OBJECT_0: _try 
-        {
-            Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
-            int i = 0;
-            int j = 0;
-            while(j <= Output.Length && i < 100) {
-                GlobalDebugBuffer.Next[i] = Output.Data[j];
-                i++;
-                j++;
-            }
-            GlobalDebugBuffer.Size += Output.Length;
-            GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
-        }
-        _finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
+    //switch(WaitForSingleObject(GlobalDebugBuffer.Mutex, INFINITE))
+    //{
+    //case WAIT_OBJECT_0: _try 
+    //{
+    Assert(GlobalDebugBuffer.Size + Output.Length < GlobalDebugBuffer.MaxSize);
+    int i = 0;
+    
+    // Overwrite end of sting char
+    if (GlobalDebugBuffer.Size > 0)
+        i = -1;
+    
+    int j = 0;
+    while(j <= Output.Length && i < 100) {
+        GlobalDebugBuffer.Next[i] = Output.Data[j];
+        i++;
+        j++;
     }
+    GlobalDebugBuffer.Size += Output.Length;
+    GlobalDebugBuffer.Next = GlobalDebugBuffer.Next + i;
+    //}
+    //_finally{if(!ReleaseMutex(GlobalDebugBuffer.Mutex)){}}break;case WAIT_ABANDONED:return false;
+    //}
 #endif
     return true;
 }

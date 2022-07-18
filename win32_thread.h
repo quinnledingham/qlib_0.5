@@ -1,8 +1,6 @@
 #ifndef WIN32_THREAD_H
 #define WIN32_THREAD_H
 
-#include "platform.h"
-
 #if COMPILER_MSVC
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
 inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 New, uint32 Expected)

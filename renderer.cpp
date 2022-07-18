@@ -282,7 +282,7 @@ TextureInitialization(void **Handle, loaded_bitmap *Source)
 {
     Assert(Source->Width != 0 && Source->Height != 0);
     
-    glGenTextures(1, &U32FromPointer(*Handle));
+    glGenTextures(1, (u32*)Handle);
     glBindTexture(GL_TEXTURE_2D, (GLuint)U32FromPointer(*Handle));
     
     if (Source->Channels == 3) {
@@ -309,7 +309,7 @@ TextureInitialization(void **Handle, loaded_bitmap *Source)
 
 //inline void TextureInit(render_texture *Texture, loaded_bitmap *LoadedBitmap) { TextureInitialization(&Texture->Handle, LoadedBitmap); }
 inline void TextureInit(loaded_bitmap *Bitmap) { TextureInitialization(&Bitmap->TextureHandle, Bitmap); }
-inline void TextureDestroy(loaded_bitmap *Bitmap) { glDeleteTextures(1, &U32FromPointer(Bitmap->TextureHandle)); }
+inline void TextureDestroy(loaded_bitmap *Bitmap) { glDeleteTextures(1, (u32*)&Bitmap->TextureHandle); }
 
 internal void
 TextureSet(unsigned int Handle, u32 UniformIndex, u32 TextureIndex)
@@ -404,7 +404,7 @@ void BeginOpenGL(iv2 WindowDim)
     glDepthFunc(GL_ALWAYS); 
     glPointSize(5.0f);
     glBindVertexArray(gVertexArrayObject);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -613,9 +613,6 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bit
     AttributeBindTo(v3, &GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
     AttributeBindTo(v3, &GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
     AttributeBindTo(v2, &GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
-    
-    
-    
     
     TextureSet(U32FromPointer(Bitmap->TextureHandle), ShaderGetUniform(&GlobalOpenGLTexture.Shader, "tex0"), 0);
     
@@ -887,9 +884,9 @@ PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color
 // track
 //
 
-template track<real32, 1>;
-template track<v3, 3>;
-template track<quat, 4>;
+//template track<real32, 1>;
+//template track<v3, 3>;
+//template track<quat, 4>;
 
 // track helpers
 
@@ -947,18 +944,18 @@ TrackGetEndTime(track<T, N> *Track)
 {
     return Track->Frames[Track->Frames.GetSize() - 1].Time;
 }
-
+/*
 template<typename T, int N> T
 TrackSample(track<T, N> *Track, real32 Time, bool Looping)
 {
-    if (Track->Interpolation = interpolation::constant)
+    if (Track->Interpolation == interpolation::constant)
         return SampleConstant(Time, Looping);
-    else if (Track->Interpolation = interpolation::constant)
+    else if (Track->Interpolation == interpolation::constant)
         return SampleLinear(Time, Looping);
-    else if (Track->Interpolation = interpolation::cubic)
+    else if (Track->Interpolation == interpolation::cubic)
         return SampleCubic(Time, Looping);
 }
-
+*/
 template<typename T, int N> frame<N>&
 track<T, N>::operator[] (unsigned int Index)
 {
@@ -974,7 +971,7 @@ TrackResize(track<T, N> *Track, unsigned int Size)
 template<typename T, int N> unsigned int
 TrackGetSize(track<T, N> *Track)
 {
-    return Frames.GetSize();
+    return Track->Frames.GetSize();
 }
 
 //

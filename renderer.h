@@ -189,9 +189,6 @@ RenderPieceGroup(assets *Assets)
     ClearPieceGroup(&Group);
 }
 
-// handle to the global opengl Vertex Array Object (VAO)
-global_variable GLuint gVertexArrayObject = 0;
-
 //
 // Animation
 //

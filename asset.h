@@ -140,4 +140,3 @@ struct debug_builder_assets
 };
 
 #endif //DEBUG_ASSET_H
-

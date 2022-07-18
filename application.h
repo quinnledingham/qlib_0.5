@@ -1,40 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#ifdef _WIN32
-
-#define _CRT_SECURE_NO_WARNINGS
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_EXTRA_LEAN
-
-#ifdef QLIB_WINDOW_APPLICATION
-#include "glad/glad.h"
-#include "glad/glad.c"
-//#undef APIENTRY
-#endif
-#include <windows.h>
-#include <mmsystem.h>
-#include <dsound.h>
-#include <stdint.h>
-#include <intrin.h>
-#include <stdio.h>
-#include <xinput.h>
-
-#include "types.h"
-#include "audio.h"
-#include "platform.h"
-#include "win32_thread.h"
-
-#ifdef QLIB_WINDOW_APPLICATION
-#if QLIB_SLOW
-#pragma comment(linker, "/subsystem:console")
-int main(int argc, const char** argv) { return WinMain(GetModuleHandle(NULL), NULL, GetCommandLineA(), SW_SHOWDEFAULT); }
-#else
-#pragma comment(linker, "/subsystem:windows")
-#endif
-#pragma comment(lib, "opengl32.lib")
-
-/*
+#ifdef QLIB_DISCRETE_GRAPHICS
 // Enabling Discrete Graphics?
 extern "C" 
 {
@@ -45,8 +12,17 @@ extern "C"
 {
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
-*/
+#endif
 
+// Load OpenGL
+#ifdef QLIB_OPENGL
+
+#include "glad/glad.h"
+#include "glad/glad.c"
+
+#pragma comment(lib, "opengl32.lib")
+
+#ifndef __EMSCRIPTEN__
 // opengl declarations
 #define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
@@ -57,52 +33,119 @@ typedef HGLRC(WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC, HGLRC, const int*
 typedef const char* (WINAPI* PFNWGLGETEXTENSIONSSTRINGEXTPROC) (void);
 typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int);
 typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
+#endif 
 
+// handle to the global opengl Vertex Array Object (VAO)
+static GLuint gVertexArrayObject = 0;
+
+#endif // QLIB_OPENGL
+
+// Load Windows
+#ifdef _WIN32
+
+#define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_EXTRA_LEAN
+
+#include <windows.h>
+#include <mmsystem.h>
+#include <dsound.h>
+#include <intrin.h>
+#include <xinput.h>
+
+#include <stdint.h>
+#include <stdio.h>
+
+inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
+
+#endif // _WIN32
+
+// Load Wasm
+#ifdef __EMSCRIPTEN__
+
+#include <SDL2/SDL.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
+#include <emscripten/val.h>
+
+#include <stdio.h>
+#include <string.h>
+
+using emscripten::val;
+
+#endif // __EMSCRIPTEN__
+
+// Use SDL
+#ifdef QLIB_SDL
+
+#include "sdl-vc/include/SDL.h"
+#include "sdl-vc/include/SDL_main.h"
+#include "sdl-vc/include/SDL_video.h"
+#include "sdl-vc/include/SDL_opengl.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#pragma comment(linker, "/subsystem:console")
+#define main SDL_main
+
+#endif
+
+#ifdef QLIB_WINDOW_APPLICATION
+
+#include "types.h"
+#include "audio.h"
+#include "platform.h"
 #include "memorymanager.h"
 #include "data_structures.h"
 #include "image.h"
 #include "math.h"
-
 internal void TextureInit(loaded_bitmap *Bitmap);
-
 #include "text.h"
 #include "asset.h"
 #include "renderer.h"
+#include "random.h"
+//#include "socketq.h"
 
 #include "asset.cpp"
 #include "text.cpp"
+#include "menu.h"
 #include "audio.cpp"
+#include "renderer.cpp"
 
 void UpdateRender(platform* p);
-#endif
+
+#endif // QLIB_WINDOW_APPLICATION
 
 #ifdef QLIB_CONSOLE_APPLICATION
-void Update(platform* p);
-#endif // QLIB_CONSOLE_APPLICATION
 
-#include "win32_application.h"
-#include "win32_application.cpp"
-
-#include "renderer.cpp"
-#include "menu.h"
+#include "types.h"
+#include "audio.h"
+#include "platform.h"
+#include "win32_thread.h"
 #include "random.h"
 #include "socketq.h"
 
-#endif // _WIN32
-
-#ifdef __EMSCRIPTEN__
-
-#include <SDL2/SDL.h>
-#include <stdio.h>
-#include <emscripten/emscripten.h>
-#include <string.h>
-#include <emscripten/html5.h>
-#include <emscripten/val.h>
-
-using emscripten::val;
-
-#include "types.h"
+void Update(platform* p);
 
 #endif
+
+// Defining platform specific functions
+#ifdef QLIB_SDL
+
+#include "sdl_application.cpp"
+
+#else
+
+#if _WIN32
+
+#include "win32_thread.h"
+#include "win32_application.h"
+#include "win32_application.cpp"
+
+#endif // _WIN32
+
+#endif 
+// End of defining platform specific functions
 
 #endif //APPLICATION_H

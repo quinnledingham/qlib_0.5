@@ -1081,7 +1081,7 @@ uint32 Pow(int a, int n)
 int StringHex2Int(char *Hex)
 {
     uint32 Result = 0;
-    0xFF000000;
+    
     for (int i = 2; i < 10; i++)
     {
         int Temp = Hex2Int(Hex[i]);
