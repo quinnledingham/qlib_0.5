@@ -32,6 +32,7 @@ ShaderInit(render_shader *Shader, const char *VertexFileName, const char *Fragme
     
     int GotVertexShader = 0;
     glGetShaderiv(V_Shader, GL_COMPILE_STATUS, &GotVertexShader);
+    printf("Yhoe %d %s\n", GotVertexShader, V_Source.Data);
     if (GotVertexShader)
     {
         unsigned Vert = V_Shader;
@@ -119,8 +120,9 @@ ShaderInit(render_shader *Shader, const char *VertexFileName, const char *Fragme
                                     
                                     strinq n = S() + uniformName + "[" + uniformIndex++ + "]";
                                     CopyBuffer(testName, n.Data, n.Length);
-                                    int uniformLocation = glGetUniformLocation(Shader->Handle, testName);
                                     
+                                    int uniformLocation = glGetUniformLocation(Shader->Handle, testName);
+                                    printf("UL: %d\n", uniformLocation);
                                     if (uniformLocation < 0)
                                     {
                                         break;
@@ -247,6 +249,7 @@ UNIFORM_IMPL(glUniform4fv, v4, float)
 UNIFORM_IMPL(glUniform4fv, quat, float)
 inline void UniformSetmat4(unsigned int Slot, mat4* Data, unsigned int Length) 
 { 
+    printf("Here %d\n", Slot);
     glUniformMatrix4fv(Slot, (GLsizei)Length, false, (float*) &Data[0]); 
 }
 #define UniformSet(t, s, v) (UniformSet##t(s, &v, 1))
@@ -396,15 +399,22 @@ mat4 Projection;
 mat4 View;
 iv2 CameraViewDim;
 
+real32 i = 0;
+
 void BeginOpenGL(iv2 WindowDim)
 {
     glViewport(0, 0, WindowDim.x, WindowDim.y);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_ALWAYS); 
-    glPointSize(5.0f);
-    glBindVertexArray(gVertexArrayObject);
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    
+    //glPointSize(5.0f);
+    //glBindVertexArray(gVertexArrayObject);
+    
+    if (i > 255)
+        i = 0.0f;
+    
+    glClearColor(1.0f, i++, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

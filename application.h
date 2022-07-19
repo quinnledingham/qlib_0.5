@@ -67,6 +67,7 @@ inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #include <emscripten/val.h>
+#include <emscripten/fetch.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -77,17 +78,17 @@ using emscripten::val;
 
 // Use SDL
 #ifdef QLIB_SDL
-
+/*
 #include "sdl-vc/include/SDL.h"
 #include "sdl-vc/include/SDL_main.h"
 #include "sdl-vc/include/SDL_video.h"
 #include "sdl-vc/include/SDL_opengl.h"
-
+*/
 #include <stdio.h>
 #include <string.h>
 
-#pragma comment(linker, "/subsystem:console")
-#define main SDL_main
+//#pragma comment(linker, "/subsystem:console")
+//#define main SDL_main
 
 #endif
 
