@@ -242,7 +242,7 @@ LoadFontFromHeaderFile(Font* LoadFont,
 */
 
 internal void
-ChangeBitmapColor(loaded_bitmap Bitmap, uint32 Color)
+ChangeGlyphBitmapColor(loaded_bitmap Bitmap, uint32 Color)
 {
     u8 *C = (u8*)&Color;
     int R = *C++;
@@ -310,7 +310,7 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
         stbtt_FreeBitmap(MonoBitmap, 0);
     }
     
-    ChangeBitmapColor(Result, Color);
+    ChangeGlyphBitmapColor(Result, Color);
     
     return (Result);
 }

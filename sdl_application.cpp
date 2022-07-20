@@ -117,20 +117,15 @@ bool MainLoop()
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
         UpdateRender(&p);
         
-        printf("%s\n", GlobalDebugBuffer.Data);
+        if (GlobalDebugBuffer.Data[0] != 0)
+            printf("%s\n", GlobalDebugBuffer.Data);
         memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
         GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
-        
-        /*
-        SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
-        SDL_Rect rect = {.x = WindowWidth/2, .y = WindowHeight/2, .w = 10, .h = 10};
-        SDL_RenderFillRect(renderer, &rect);
-        */
         
 #if QLIB_OPENGL
         SDL_GL_SwapWindow(SDL.Window);
 #else
-        SDL_RenderPresent(renderer);
+        SDL_RenderPresent(SDL.Renderer);
 #endif
     }
     

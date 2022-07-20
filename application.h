@@ -43,6 +43,11 @@ static GLuint gVertexArrayObject = 0;
 // Load Windows
 #ifdef _WIN32
 
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "shell32.lib")
+
 #define _CRT_SECURE_NO_WARNINGS
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
@@ -81,6 +86,8 @@ inline void PlatformSetCD(const char* Dir) {}
 // Use SDL
 #ifdef QLIB_SDL
 
+//#pragma comment(lib, "%CD%\qlib\sdl-vc\lib\x64\SDL2main.lib")
+
 #include "sdl-vc/include/SDL.h"
 #include "sdl-vc/include/SDL_main.h"
 #include "sdl-vc/include/SDL_video.h"
@@ -112,7 +119,7 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 #include "asset.cpp"
 #include "text.cpp"
 #include "audio.cpp"
-//#include "renderer.cpp"
+#include "renderer.cpp"
 #include "menu.h"
 void UpdateRender(platform* p);
 
@@ -134,7 +141,7 @@ void Update(platform* p);
 // Defining platform specific functions
 #ifdef QLIB_SDL
 
-#include "wasm_application.cpp"
+#include "sdl_application.cpp"
 
 #else
 

@@ -70,6 +70,19 @@ LoadResizableBitmap(const char *FileName)
 }
 
 internal void
+ResizeBitmap(loaded_bitmap *Bitmap, iv2 Dim)
+{
+    if (!stbir_resize_uint8((unsigned char*)Bitmap->Memory,
+                            Bitmap->Width, Bitmap->Height, 0,
+                            (unsigned char*)Bitmap->Memory,
+                            Dim.x, Dim.y, 0, Bitmap->Channels))
+        PrintqDebug(S() + "ResizeTexture(): stbir_resize_uint8 Error\n");
+    
+    Bitmap->Width = Dim.x;
+    Bitmap->Height = Dim.y;
+}
+
+internal void
 ResizeBitmap(resizable_bitmap *Bitmap, iv2 Dim)
 {
     loaded_bitmap *Original = Bitmap->Original;

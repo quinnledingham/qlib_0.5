@@ -1,6 +1,3 @@
-#ifndef TEXT_H
-#pragma message ("renderer.h requires text.h")
-#endif
 
 #if QLIB_OPENGL
 
@@ -641,11 +638,6 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bit
         glDisable(GL_SCISSOR_TEST);
     
 }
-inline void DrawRect(assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
-{
-    loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
-    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
-}
 inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
 {
     DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
@@ -656,6 +648,8 @@ inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation,
 //
 // Software Rendering
 //
+
+inline void TextureInit(loaded_bitmap *Bitmap) {}
 
 void
 DrawRect(int x, int y, int width, int height, uint32 color)
@@ -675,8 +669,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
         for(int Y = y; Y < (y + height); ++Y)
         {
             // Check if the pixel exists
-            if((Pixel >= Buffer->Memory) &&
-               ((Pixel + 4) <= EndOfBuffer))
+            if((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
             {
                 
                 *(uint32 *)Pixel = Color;
@@ -700,30 +693,35 @@ DrawRect(int x, int y, int width, int height, uint32 color)
         }
     }
 }
+void DrawRect(v3 Coords, v2 Size, uint32 Color, real32 Rotation)
+{
+    
+}
 
-void
-DrawRect(int x, int y, int width, int height, loaded_bitmap texture)
+void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
 {
     platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
     
+    ResizeBitmap(Bitmap, Size);
+    
     Image re = {};
-    re.data = texture.data;
-    re.x = texture.mWidth;
-    re.y = texture.mHeight;
-    re.n = texture.mChannels;
+    re.data = (unsigned char*)Bitmap->Memory;
+    re.x = Bitmap->Width;
+    re.y = Bitmap->Height;
+    re.n = Bitmap->Channels;
     //RenderImage(Buffer, &re);
     
-    x += Buffer->Width / 2;
-    y += Buffer->Height / 2;
+    Coords.x += Buffer->Width / 2;
+    Coords.y += Buffer->Height / 2;
     
     uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + Buffer->Pitch*Buffer->Height;
     
-    for(int X = x; X < (x + width); ++X)
+    for(int X = (int)Coords.x; X < (int)(Coords.x + Size.Width); ++X)
     {
-        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel + y*Buffer->Pitch);
-        uint8 *Color = ((uint8 *)re.data + (X - x) * re.n);
+        uint8 *Pixel = ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel + (int)Coords.y * Buffer->Pitch);
+        uint8 *Color = ((uint8 *)re.data + (X - (int)Coords.x) * re.n);
         
-        for(int Y = y; Y < (y + height); ++Y)
+        for(int Y = (int)Coords.y; Y < (Coords.y + Size.Height); ++Y)
         {
             // Check if the pixel exists
             if((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
@@ -744,19 +742,21 @@ DrawRect(int x, int y, int width, int height, loaded_bitmap texture)
         }
     }
 }
+inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
+{
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+}
+
+
 
 internal void
 ChangeBitmapColor(loaded_bitmap Bitmap, uint32 Color)
 {
-    u8 *DestRow = (u8 *)Bitmap.Memory + (Bitmap.Height -1)*Bitmap.Pitch;
-    for(s32 Y = 0;
-        Y < Bitmap.Height;
-        ++Y)
+    u8 *DestRow = (u8*)Bitmap.Memory + (Bitmap.Height -1)*Bitmap.Pitch;
+    for(s32 Y = 0; Y < Bitmap.Height; ++Y)
     {
         u32 *Dest = (u32 *)DestRow;
-        for(s32 X = 0;
-            X < Bitmap.Width;
-            ++X)
+        for(s32 X = 0; X < Bitmap.Width; ++X)
         {
             u32 Gray = *Dest;
             Color &= 0x00FFFFFF;
@@ -834,59 +834,14 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
         SourceRow += Bitmap->Width;
     }
 }
-/*
-void
-PrintOnScreen(Font* SrcFont, char* SrcText, int InputX, int InputY, uint32 Color)
-{
-    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
-    
-    InputX += Buffer->Width / 2;
-    InputY += Buffer->Height / 2;
-    
-    int StrLength = StringLength(SrcText);
-    int BiggestY = 0;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
-        int Y = -1 *  NextChar.C_Y1;
-        if(BiggestY < Y)
-        {
-            BiggestY = Y;
-        }
-    }
-    
-    real32 X = (real32)InputX;
-    
-    for (int i = 0; i < StrLength; i++)
-    {
-        int SrcChar = SrcText[i];
-        
-        FontChar NextChar = LoadFontChar(SrcFont, SrcChar, Color);
-        
-        int Y = InputY + NextChar.C_Y1 + BiggestY;
-        
-        loaded_bitmap SrcBitmap = {};
-        SrcBitmap.Width = NextChar.Width;
-        SrcBitmap.Height = NextChar.Height;
-        SrcBitmap.Pitch = NextChar.Pitch;
-        SrcBitmap.Memory = NextChar.Memory;
-        
-        int ax;
-        int lsb;
-        stbtt_GetCodepointHMetrics(&SrcFont->Info, SrcText[i], &ax, &lsb);
-        
-        //ChangeBitmapColor(SrcBitmap, Color);
-        RenderBitmap(&SrcBitmap, X + (lsb * SrcFont->Scale) , (real32)Y);
-        
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&SrcFont->Info, SrcText[i], SrcText[i + 1]);
-        X += ((kern + ax) * SrcFont->Scale);
-    }
-}
-*/
 #endif
+
+inline void DrawRect(assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
+{
+    loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
+    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+}
+
 
 //
 // track

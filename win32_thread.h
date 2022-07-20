@@ -41,7 +41,7 @@ Win32AddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback
     _WriteBarrier();
     _mm_sfence();
     Queue->NextEntryToWrite = NewNextEntryToWrite;
-    ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
+    ReleaseSemaphore((HANDLE)Queue->SemaphoreHandle, 1, 0);
 }
 inline void
 WorkQueueAddEntry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data)
@@ -103,7 +103,7 @@ ThreadProc(LPVOID lpParameter)
     {
         if(Win32DoNextWorkQueueEntry(ThreadInfo->Queue))
         {
-            WaitForSingleObjectEx(ThreadInfo->Queue->SemaphoreHandle, INFINITE, FALSE);
+            WaitForSingleObjectEx((HANDLE)ThreadInfo->Queue->SemaphoreHandle, INFINITE, FALSE);
         }
     }
     
