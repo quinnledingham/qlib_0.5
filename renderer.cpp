@@ -2,6 +2,8 @@
 #pragma message ("renderer.h requires text.h")
 #endif
 
+#if QLIB_OPENGL
+
 //
 // render_shader
 //
@@ -384,18 +386,6 @@ inline void glDrawInstanced(render_index_buffer& IndexBuffer,  render_draw_mode 
 
 // Renderering Elements
 
-// Function for Software Rendering
-// Paints the screen white
-inline void ClearScreen()
-{
-    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
-    memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
-}
-
-mat4 Projection;
-mat4 View;
-iv2 CameraViewDim;
-
 void BeginOpenGL(iv2 WindowDim)
 {
     glViewport(0, 0, WindowDim.x, WindowDim.y);
@@ -411,6 +401,19 @@ void BeginOpenGL(iv2 WindowDim)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
+#endif
+
+// Function for Software Rendering
+// Paints the screen white
+inline void ClearScreen()
+{
+    platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
+    memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
+}
+
+mat4 Projection;
+mat4 View;
+iv2 CameraViewDim;
 
 void BeginMode(camera C)
 {
@@ -650,7 +653,10 @@ inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation,
 
 #else // !QLIB_OPENGL
 
+//
 // Software Rendering
+//
+
 void
 DrawRect(int x, int y, int width, int height, uint32 color)
 {
@@ -696,7 +702,7 @@ DrawRect(int x, int y, int width, int height, uint32 color)
 }
 
 void
-DrawRect(int x, int y, int width, int height, Texture texture)
+DrawRect(int x, int y, int width, int height, loaded_bitmap texture)
 {
     platform_offscreen_buffer *Buffer = &GlobalBackbuffer;
     

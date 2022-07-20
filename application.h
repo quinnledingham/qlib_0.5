@@ -74,6 +74,8 @@ inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
 
 using emscripten::val;
 
+inline void PlatformSetCD(const char* Dir) {}
+
 #endif // __EMSCRIPTEN__
 
 // Use SDL
@@ -93,7 +95,6 @@ using emscripten::val;
 #endif
 
 #ifdef QLIB_WINDOW_APPLICATION
-
 #include "types.h"
 #include "audio.h"
 #include "platform.h"
@@ -111,7 +112,7 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 #include "asset.cpp"
 #include "text.cpp"
 #include "audio.cpp"
-#include "renderer.cpp"
+//#include "renderer.cpp"
 #include "menu.h"
 void UpdateRender(platform* p);
 
@@ -133,7 +134,7 @@ void Update(platform* p);
 // Defining platform specific functions
 #ifdef QLIB_SDL
 
-#include "sdl_application.cpp"
+#include "wasm_application.cpp"
 
 #else
 

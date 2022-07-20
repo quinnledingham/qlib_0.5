@@ -14,7 +14,8 @@ struct MemoryManager
     FreeMemory Free[100];
     int FreeIndex = 0;
     
-    HANDLE Mutex;
+    //HANDLE Mutex;
+    u32 Mutex;
 };
 
 global_variable MemoryManager Manager;
