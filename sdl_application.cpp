@@ -13,6 +13,7 @@ struct callback_data
     sdl *SDL;
 };
 
+#ifdef __EMSCIPTEN__
 EM_BOOL emscripten_window_resized_callback(int eventType, const void *reserved, void *userData){
 	//METHOD();
     
@@ -37,6 +38,7 @@ EM_BOOL emscripten_window_resized_callback(int eventType, const void *reserved, 
 	//platform->on_window_size_changed(w, h);
 	return true;
 }
+#endif
 
 internal void
 SDLProcessPendingEvents()
@@ -75,9 +77,9 @@ SDLProcessPendingEvents()
     }
 }
 
-void MainLoop()
+bool MainLoop()
 {
-    //PlatformSetCD(CurrentDirectory);
+    PlatformSetCD(CurrentDirectory);
     
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO);
     
@@ -123,8 +125,8 @@ void MainLoop()
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
     printf("Version:  %s\n", glGetString(GL_VERSION));
     
-    //glGenVertexArrays(1, &gVertexArrayObject);
-    //glBindVertexArray(gVertexArrayObject);
+    glGenVertexArrays(1, &gVertexArrayObject);
+    glBindVertexArray(gVertexArrayObject);
     
     //SDL_GL_SetSwapInterval(1);
     
@@ -160,7 +162,6 @@ void MainLoop()
     
     while (GlobalRunning)
     {
-        printf("GlobalRunning\n");
         SDLProcessPendingEvents();
         
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
@@ -187,15 +188,18 @@ void MainLoop()
     SDL_DestroyRenderer(SDL.Renderer);
     SDL_DestroyWindow(SDL.Window);
     
+#ifdef __EMSCRIPTEN__
     emscripten_cancel_main_loop();
+#endif
+    return false;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop([]() { MainLoop(); }, 0, 1);
 #else
-    while (MainLoop(&SDL, &p));
+    while (MainLoop());
 #endif
     
     SDL_Quit();

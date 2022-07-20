@@ -78,17 +78,17 @@ using emscripten::val;
 
 // Use SDL
 #ifdef QLIB_SDL
-/*
+
 #include "sdl-vc/include/SDL.h"
 #include "sdl-vc/include/SDL_main.h"
 #include "sdl-vc/include/SDL_video.h"
 #include "sdl-vc/include/SDL_opengl.h"
-*/
+
 #include <stdio.h>
 #include <string.h>
 
-//#pragma comment(linker, "/subsystem:console")
-//#define main SDL_main
+#pragma comment(linker, "/subsystem:console")
+#define main SDL_main
 
 #endif
 
@@ -110,10 +110,9 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 
 #include "asset.cpp"
 #include "text.cpp"
-#include "menu.h"
 #include "audio.cpp"
 #include "renderer.cpp"
-
+#include "menu.h"
 void UpdateRender(platform* p);
 
 #endif // QLIB_WINDOW_APPLICATION
