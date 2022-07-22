@@ -14,52 +14,36 @@ extern "C"
 }
 #endif
 
-// Load OpenGL
-#ifdef QLIB_OPENGL
-
-#include "glad/glad.h"
-#include "glad/glad.c"
-
-#pragma comment(lib, "opengl32.lib")
-
-#ifndef __EMSCRIPTEN__
-// opengl declarations
-#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
-#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
-#define WGL_CONTEXT_FLAGS_ARB 0x2094
-#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
-#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
-typedef HGLRC(WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC, HGLRC, const int*);
-typedef const char* (WINAPI* PFNWGLGETEXTENSIONSSTRINGEXTPROC) (void);
-typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int);
-typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
-#endif 
-
-// handle to the global opengl Vertex Array Object (VAO)
-static GLuint gVertexArrayObject = 0;
-
-#endif // QLIB_OPENGL
-
 // Load Windows
 #ifdef _WIN32
+
+#define _CRT_SECURE_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_EXTRA_LEAN
+#include <windows.h>
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "shell32.lib")
 
-#define _CRT_SECURE_NO_WARNINGS
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_EXTRA_LEAN
-
-#include <windows.h>
 #include <mmsystem.h>
 #include <dsound.h>
 #include <intrin.h>
 #include <xinput.h>
 
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+
+// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
+#pragma comment (lib, "Ws2_32.lib")
+#pragma comment (lib, "Mswsock.lib")
+#pragma comment (lib, "AdvApi32.lib")
+
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
 
@@ -91,7 +75,7 @@ inline void PlatformSetCD(const char* Dir) {}
 #include "sdl-vc/include/SDL.h"
 #include "sdl-vc/include/SDL_main.h"
 #include "sdl-vc/include/SDL_video.h"
-#include "sdl-vc/include/SDL_opengl.h"
+//#include "sdl-vc/include/SDL_opengl.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -101,7 +85,35 @@ inline void PlatformSetCD(const char* Dir) {}
 
 #endif
 
+// Load OpenGL
+#ifdef QLIB_OPENGL
+
+#include "glad/glad.h"
+#include "glad/glad.c"
+
+#pragma comment(lib, "opengl32.lib")
+
+#ifndef __EMSCRIPTEN__
+// opengl declarations
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
+typedef HGLRC(WINAPI* PFNWGLCREATECONTEXTATTRIBSARBPROC) (HDC, HGLRC, const int*);
+typedef const char* (WINAPI* PFNWGLGETEXTENSIONSSTRINGEXTPROC) (void);
+typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int);
+typedef int (WINAPI* PFNWGLGETSWAPINTERVALEXTPROC) (void);
+#endif 
+
+// handle to the global opengl Vertex Array Object (VAO)
+static GLuint gVertexArrayObject = 0;
+
+#endif // QLIB_OPENGL
+
 #ifdef QLIB_WINDOW_APPLICATION
+//#pragma comment(linker, "/subsystem:windows")
+
 #include "types.h"
 #include "audio.h"
 #include "platform.h"
@@ -114,7 +126,7 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 #include "asset.h"
 #include "renderer.h"
 #include "random.h"
-//#include "socketq.h"
+#include "socketq.h"
 
 #include "asset.cpp"
 #include "text.cpp"
@@ -141,6 +153,7 @@ void Update(platform* p);
 // Defining platform specific functions
 #ifdef QLIB_SDL
 
+#include "win32_thread.h"
 #include "sdl_application.cpp"
 
 #else

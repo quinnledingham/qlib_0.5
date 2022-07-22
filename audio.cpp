@@ -89,7 +89,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
         playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
         if (PlayingSound != 0)
         {
-            loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound);
+            loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound); 
             u32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
             if (SamplesRemainingInSound > (uint32)SoundBuffer->SampleCount)
                 SamplesRemainingInSound = (uint32)SoundBuffer->SampleCount;

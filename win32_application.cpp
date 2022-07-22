@@ -706,7 +706,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     win32_sound_output SoundOutput = {};
     
     // TODO(casey): How do we reliably query on this on Windows?
-    int MonitorRefreshHz = 165;
+    int MonitorRefreshHz = 60;
     HDC RefreshDC = GetDC(hwnd);
     int Win32RefreshRate = GetDeviceCaps(RefreshDC, VREFRESH);
     ReleaseDC(hwnd, RefreshDC);

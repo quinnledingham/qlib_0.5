@@ -5,6 +5,9 @@ struct sdl
     SDL_Window *Window;
     SDL_Renderer *Renderer;
     SDL_GLContext Context;
+    
+    SDL_AudioSpec AudioSpec;
+    SDL_AudioDeviceID AudioDeviceID;
 };
 
 internal void
@@ -44,6 +47,15 @@ SDLProcessPendingEvents()
     }
 }
 
+extern void SDLAudioCallback(void *Data, uint8 *Stream, int Length)
+{
+    const uint8 *Samples = (uint8*)Data;
+    //SDL_memset(Stream, 0, Length);
+    SDL_MixAudio(Stream, Samples, Length, SDL_MIX_MAXVOLUME / 2);
+}
+
+sdl SDL = {};
+
 bool MainLoop()
 {
     PlatformSetCD(CurrentDirectory);
@@ -64,7 +76,23 @@ bool MainLoop()
     if (ClientWidth == 0) SDLClientWidth = SDLClientHeight;
     if (ClientHeight == 0) SDLClientHeight = SDLClientWidth;
     
-    sdl SDL = {};
+    
+    
+    // SDL_audio
+    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i)
+    {
+        const char *DriverName = SDL_GetAudioDriver(i);
+        
+        if (SDL_AudioInit(DriverName))
+            printf("Audio driver failed to initialize: %s\n", DriverName);
+        else
+            printf("Audio driver initialized: %s\n", DriverName);
+        
+    }
+    
+    // TODO(casey): Pool with bitmap VirtualAlloc
+    // TODO(casey): Remove MaxPossibleOverrun?
+    
     
 #if QLIB_OPENGL
     SDL_GL_LoadLibrary(NULL);
@@ -86,7 +114,7 @@ bool MainLoop()
     SDL.Context = SDL_GL_CreateContext(SDL.Window);
     
     // Check OpenGL properties
-    printf("OpenGL loaded\n");
+    printf("\nOpenGL loaded\n");
     gladLoadGLLoader(SDL_GL_GetProcAddress);
     printf("Vendor:   %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
@@ -110,6 +138,7 @@ bool MainLoop()
     p.Memory.PermanentStorage = SDL_malloc(TotalSize);
     p.Memory.TransientStorage = ((uint8*)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
+    
     GlobalRunning = true;
     while (GlobalRunning)
     {
@@ -131,6 +160,7 @@ bool MainLoop()
     
     SDL_DestroyRenderer(SDL.Renderer);
     SDL_DestroyWindow(SDL.Window);
+    SDL_AudioQuit();
     
     return false;
 }
