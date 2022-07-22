@@ -11,7 +11,24 @@ struct sdl
 };
 
 internal void
-SDLProcessPendingEvents()
+SDLProcessKeyboardMessage(platform_button_state *State, bool32 IsDown)
+{
+    //printf("%d\n", IsDown);
+    if (IsDown)
+    {
+        if (State->NewEndedDown == false)
+            State->NewEndedDown = true;
+        else
+            State->NewEndedDown = false;
+    }
+    else
+        State->NewEndedDown = false;
+    
+    State->EndedDown = IsDown;
+}
+
+internal void
+SDLProcessPendingEvents(platform_keyboard_input *Keyboard)
 {
     SDL_Event Event;
     
@@ -19,6 +36,22 @@ SDLProcessPendingEvents()
     {
         switch (Event.type)
         {
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+            {
+                int KeyCode = Event.key.keysym.sym;
+                bool32 IsDown = false;
+                if (Event.type == SDL_KEYDOWN)
+                    IsDown = true;
+                
+                if (KeyCode == SDLK_w)
+                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->MoveUp, IsDown);
+                else if (KeyCode == SDLK_s)
+                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->MoveDown, IsDown);
+                else if (KeyCode == SDLK_RETURN)
+                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, IsDown);
+            } break;
+            
             case SDL_QUIT:
             {
                 GlobalRunning = false;
@@ -47,18 +80,11 @@ SDLProcessPendingEvents()
     }
 }
 
-extern void SDLAudioCallback(void *Data, uint8 *Stream, int Length)
-{
-    const uint8 *Samples = (uint8*)Data;
-    //SDL_memset(Stream, 0, Length);
-    SDL_MixAudio(Stream, Samples, Length, SDL_MIX_MAXVOLUME / 2);
-}
-
-sdl SDL = {};
-
 bool MainLoop()
 {
     PlatformSetCD(CurrentDirectory);
+    
+    sdl SDL = {};
     
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO);
     
@@ -76,8 +102,7 @@ bool MainLoop()
     if (ClientWidth == 0) SDLClientWidth = SDLClientHeight;
     if (ClientHeight == 0) SDLClientHeight = SDLClientWidth;
     
-    
-    
+    /*
     // SDL_audio
     for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i)
     {
@@ -89,10 +114,17 @@ bool MainLoop()
             printf("Audio driver initialized: %s\n", DriverName);
         
     }
+    */
+    SDL.AudioSpec.freq = 48000;
+    SDL.AudioSpec.format = AUDIO_S16;
+    SDL.AudioSpec.channels = 2;
+    SDL.AudioSpec.samples = 3999;
     
-    // TODO(casey): Pool with bitmap VirtualAlloc
-    // TODO(casey): Remove MaxPossibleOverrun?
+    SDL.AudioDeviceID = SDL_OpenAudioDevice(NULL, 0, &SDL.AudioSpec, NULL, 0);
+    SDL_PauseAudioDevice(SDL.AudioDeviceID, 0);
     
+    uint8 *Samples = (uint8*)SDL_malloc(SDL.AudioSpec.samples);
+    SDL_memset(Samples, 0, SDL.AudioSpec.samples);
     
 #if QLIB_OPENGL
     SDL_GL_LoadLibrary(NULL);
@@ -138,11 +170,14 @@ bool MainLoop()
     p.Memory.PermanentStorage = SDL_malloc(TotalSize);
     p.Memory.TransientStorage = ((uint8*)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
+    p.Input.Keyboard.ControllerInput = &p.Input.Controllers[0];
+    
+    uint32 LastAudioTicks = 0;
     
     GlobalRunning = true;
     while (GlobalRunning)
     {
-        SDLProcessPendingEvents();
+        SDLProcessPendingEvents(&p.Input.Keyboard);
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
         UpdateRender(&p);
         
@@ -150,6 +185,31 @@ bool MainLoop()
             printf("%s\n", GlobalDebugBuffer.Data);
         memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
         GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
+        
+        uint32 AudioTicks = SDL_GetTicks();
+        
+        platform_sound_output_buffer SoundBuffer = {};
+        SoundBuffer.SamplesPerSecond = SDL.AudioSpec.freq;
+        
+        real32 Seconds = (real32)(AudioTicks - LastAudioTicks) / 1000;
+        if (Seconds < 1)
+            SoundBuffer.SampleCount = (int)roundf(Seconds * SoundBuffer.SamplesPerSecond);
+        else
+            SoundBuffer.SampleCount = 0;
+        
+        SoundBuffer.Samples = (int16*)Samples;
+        SoundBuffer.SampleCount += 50;
+        
+        if (p.AudioState.Paused.Value)
+            PlayLoadedSound(&p.AudioState, &SoundBuffer);
+        
+        if (SoundBuffer.SampleCount * 4 < SDL.AudioSpec.samples)
+            int success = SDL_QueueAudio(SDL.AudioDeviceID, SoundBuffer.Samples, SoundBuffer.SampleCount * 4);
+        
+        LastAudioTicks = AudioTicks;
+        
+        if (p.Input.Quit)
+            GlobalRunning = false;
         
 #if QLIB_OPENGL
         SDL_GL_SwapWindow(SDL.Window);

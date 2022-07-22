@@ -259,7 +259,7 @@ LoadWAV(const char *FileName)
                     WAVE_fmt *fmt = (WAVE_fmt *)GetChunkData(Iter);
                     Assert(fmt->wFormatTag == 1); // NOTE(casey): Only support PCM
                     Assert(fmt->nSamplesPerSec == 48000);
-                    Assert(fmt->wBitsPerSample == 16);
+                    Assert(fmt->wBitsPerSample == 8);
                     Assert(fmt->nBlockAlign == (sizeof(int16)*fmt->nChannels));
                     ChannelCount = fmt->nChannels;
                 } break;

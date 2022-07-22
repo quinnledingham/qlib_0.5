@@ -346,7 +346,7 @@ Win32ProcessPendingMessages(platform_keyboard_input *Keyboard, platform_mouse_in
                         Win32ProcessKeyboardMessage(&Keyboard->Period, IsDown);
                     else if(VKCode == VK_BACK)
                         Win32ProcessKeyboardMessage(&Keyboard->Backspace, IsDown);
-                    else if(VKCode == VK_TAB)
+                    else if(VKCode == VK_TAB) 
                         Win32ProcessKeyboardMessage(&Keyboard->Tab, IsDown);
                     else if(VKCode == VK_RETURN)
                         Win32ProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, IsDown);
@@ -1001,6 +1001,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
                     PlayLoadedSound(&p.AudioState, &SoundBuffer);
                 
                 //OutputTestSineWave(GameState, &SoundBuffer,256);
+                PrintqDebug(S() + "SampleCount: " + SoundBuffer.SampleCount + "\n");
                 Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
             }
             END_BLOCK(AudioUpdate);
@@ -1030,9 +1031,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
             }
 #endif
             if (p.Input.Quit)
-            {
                 GlobalRunning = false;
-            }
             
 #if QLIB_OPENGL
             SwapBuffers(hdc);
