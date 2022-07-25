@@ -64,7 +64,8 @@ inline bool KeyDown(platform_button_state *Button)
 inline bool OnKeyDown(platform_button_state *Button)
 {
     if (Button->NewEndedDown) {
-        Button->NewEndedDown = false;
+        printf("OnKeyDown\n");
+        //Button->NewEndedDown = false;
         return true;
     }
     return false;
@@ -151,9 +152,14 @@ struct platform_keyboard_input
     
     union
     {
-        platform_button_state Buttons[20];
+        platform_button_state Buttons[24];
         struct
         {
+            platform_button_state W;
+            platform_button_state A;
+            platform_button_state S;
+            platform_button_state D;
+            
             platform_button_state CtrlV;
             platform_button_state Escape;
             platform_button_state Period;

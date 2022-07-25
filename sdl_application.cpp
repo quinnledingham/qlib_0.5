@@ -10,25 +10,36 @@ struct sdl
     SDL_AudioDeviceID AudioDeviceID;
 };
 
-internal void
-SDLProcessKeyboardMessage(platform_button_state *State, bool32 IsDown)
+internal real32
+SDLGetSeconds(uint32 *LastTicksCount)
 {
-    //printf("%d\n", IsDown);
-    if (IsDown)
-    {
-        if (State->NewEndedDown == false)
-            State->NewEndedDown = true;
-        else
-            State->NewEndedDown = false;
-    }
-    else
-        State->NewEndedDown = false;
-    
-    State->EndedDown = IsDown;
+    uint32 CurrentTicksCount = SDL_GetTicks();
+    real32 ret = (real32)(CurrentTicksCount - *LastTicksCount) / 1000;
+    *LastTicksCount = CurrentTicksCount;
+    return ret; 
 }
 
 internal void
-SDLProcessPendingEvents(platform_keyboard_input *Keyboard)
+SDLProcessKeyboardMessage(platform_button_state *State, uint8 IsDown, uint8 Repeat)
+{
+    if (IsDown == SDL_PRESSED) {
+        if (!Repeat)
+            State->NewEndedDown = true;
+        else
+            State->NewEndedDown = false;
+        
+        State->EndedDown = true;
+    }
+    else if (IsDown == SDL_RELEASED) {
+        State->NewEndedDown = false;
+        State->EndedDown = false;
+    }
+    
+    printf("ProcessKey: NewEndedDown: %d, IsDown: %d, Repeat: %d\n", State->NewEndedDown, IsDown, Repeat);
+}
+
+internal void
+SDLProcessPendingEvents(platform_keyboard_input *Keyboard, platform_mouse_input *Mouse)
 {
     SDL_Event Event;
     
@@ -39,17 +50,38 @@ SDLProcessPendingEvents(platform_keyboard_input *Keyboard)
             case SDL_KEYUP:
             case SDL_KEYDOWN:
             {
-                int KeyCode = Event.key.keysym.sym;
-                bool32 IsDown = false;
+                uint32 KeyCode = Event.key.keysym.sym;
+                uint8 Repeat = Event.key.repeat;
+                uint8 IsDown = Event.key.state;
                 if (Event.type == SDL_KEYDOWN)
                     IsDown = true;
                 
                 if (KeyCode == SDLK_w)
-                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->MoveUp, IsDown);
+                    SDLProcessKeyboardMessage(&Keyboard->W, IsDown, Repeat);
+                else if (KeyCode == SDLK_a)
+                    SDLProcessKeyboardMessage(&Keyboard->A, IsDown, Repeat);
                 else if (KeyCode == SDLK_s)
-                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->MoveDown, IsDown);
+                    SDLProcessKeyboardMessage(&Keyboard->S, IsDown, Repeat);
+                else if (KeyCode == SDLK_d)
+                    SDLProcessKeyboardMessage(&Keyboard->D, IsDown, Repeat);
                 else if (KeyCode == SDLK_RETURN)
-                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, IsDown);
+                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, IsDown, Repeat);
+            } break;
+            
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+            {
+                uint32 Type = Event.button.button;
+                uint8 IsDown = Event.button.state;
+                if (Type == SDL_BUTTON_LEFT)
+                    SDLProcessKeyboardMessage(&Mouse->Left, IsDown, 0);
+            } break;
+            
+            case SDL_MOUSEMOTION:
+            {
+                Mouse->X = Event.motion.x;
+                Mouse->Y = Event.motion.y;
+                Mouse->Moved = true;
             } break;
             
             case SDL_QUIT:
@@ -172,26 +204,36 @@ bool MainLoop()
     
     p.Input.Keyboard.ControllerInput = &p.Input.Controllers[0];
     
+    uint32 LastFrameTicks = 0;
     uint32 LastAudioTicks = 0;
     
     GlobalRunning = true;
     while (GlobalRunning)
     {
-        SDLProcessPendingEvents(&p.Input.Keyboard);
+        SDL_memset(&p.Input.Keyboard, 0, sizeof(platform_keyboard_input));
+        p.Input.Mouse.Moved = false;
+        SDLProcessPendingEvents(&p.Input.Keyboard, &p.Input.Mouse);
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
+        
+        if (p.Input.Mouse.Moved) {
+            p.Input.Mouse.X -= (p.Dimension.Width / 2);
+            p.Input.Mouse.Y -= (p.Dimension.Height / 2);
+        }
+        
+        p.Input.WorkSecondsElapsed = SDLGetSeconds(&LastFrameTicks);
+        
         UpdateRender(&p);
         
         if (GlobalDebugBuffer.Data[0] != 0)
             printf("%s\n", GlobalDebugBuffer.Data);
         memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+        GlobalDebugBuffer.Size = 0;
         GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
-        
-        uint32 AudioTicks = SDL_GetTicks();
         
         platform_sound_output_buffer SoundBuffer = {};
         SoundBuffer.SamplesPerSecond = SDL.AudioSpec.freq;
         
-        real32 Seconds = (real32)(AudioTicks - LastAudioTicks) / 1000;
+        real32 Seconds = SDLGetSeconds(&LastAudioTicks);
         if (Seconds < 1)
             SoundBuffer.SampleCount = (int)roundf(Seconds * SoundBuffer.SamplesPerSecond);
         else
@@ -205,8 +247,6 @@ bool MainLoop()
         
         if (SoundBuffer.SampleCount * 4 < SDL.AudioSpec.samples)
             int success = SDL_QueueAudio(SDL.AudioDeviceID, SoundBuffer.Samples, SoundBuffer.SampleCount * 4);
-        
-        LastAudioTicks = AudioTicks;
         
         if (p.Input.Quit)
             GlobalRunning = false;
