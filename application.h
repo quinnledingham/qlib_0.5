@@ -116,8 +116,9 @@ static GLuint gVertexArrayObject = 0;
 
 #include "types.h"
 #include "audio.h"
-#include "platform.h"
 #include "memorymanager.h"
+#include "arr.h"
+#include "platform.h"
 #include "data_structures.h"
 #include "image.h"
 #include "math.h"

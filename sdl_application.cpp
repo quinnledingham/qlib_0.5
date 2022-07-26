@@ -10,6 +10,34 @@ struct sdl
     SDL_AudioDeviceID AudioDeviceID;
 };
 
+struct sdl_button_message
+{
+    uint8 IsDown;
+    uint8 Repeat;
+    arr *NewEndedDownButtons;
+};
+
+void
+SDLPrintAudioSpec(SDL_AudioSpec *AudioSpec)
+{
+    printf("\nAudioSpec\n");
+    printf("freq %d\n", AudioSpec->freq);
+    printf("format %d\n", AudioSpec->format);
+    printf("channels %d\n", AudioSpec->channels);
+    printf("silence %d\n", AudioSpec->silence);
+    printf("samples %d\n", AudioSpec->samples);
+    printf("size %d\n", AudioSpec->size);
+}
+
+void
+SDLPrintKeyMessage(platform_button_state *State, sdl_button_message Msg)
+{
+    printf("\nKeyMsg\n");
+    printf("EndedDown %d\n", State->EndedDown);
+    printf("NewEndedDown %d\n", State->NewEndedDown);
+    printf("Repeat %d\n", Msg.Repeat);
+}
+
 internal real32
 SDLGetSeconds(uint32 *LastTicksCount)
 {
@@ -20,61 +48,67 @@ SDLGetSeconds(uint32 *LastTicksCount)
 }
 
 internal void
-SDLProcessKeyboardMessage(platform_button_state *State, uint8 IsDown, uint8 Repeat)
+SDLProcessKeyboardMessage(platform_button_state *State, sdl_button_message Msg)
 {
-    if (IsDown == SDL_PRESSED) {
-        if (!Repeat)
+    if (Msg.IsDown == SDL_PRESSED) {
+        if (!Msg.Repeat) {
             State->NewEndedDown = true;
+            ArrPushPointer(Msg.NewEndedDownButtons, State, sizeof(platform_button_state*));
+        }
         else
             State->NewEndedDown = false;
         
         State->EndedDown = true;
     }
-    else if (IsDown == SDL_RELEASED) {
+    else if (Msg.IsDown == SDL_RELEASED) {
         State->NewEndedDown = false;
         State->EndedDown = false;
     }
-    
-    printf("ProcessKey: NewEndedDown: %d, IsDown: %d, Repeat: %d\n", State->NewEndedDown, IsDown, Repeat);
 }
 
 internal void
-SDLProcessPendingEvents(platform_keyboard_input *Keyboard, platform_mouse_input *Mouse)
+SDLProcessPendingEvents(platform_keyboard_input *Keyboard, 
+                        platform_mouse_input *Mouse,
+                        arr *NewEndedDownButtons)
 {
     SDL_Event Event;
     
     while (SDL_PollEvent(&Event))
     {
+        sdl_button_message Msg = {};
+        Msg.NewEndedDownButtons = NewEndedDownButtons;
+        
         switch (Event.type)
         {
             case SDL_KEYUP:
             case SDL_KEYDOWN:
             {
                 uint32 KeyCode = Event.key.keysym.sym;
-                uint8 Repeat = Event.key.repeat;
-                uint8 IsDown = Event.key.state;
+                Msg.Repeat = Event.key.repeat;
+                Msg.IsDown = Event.key.state;
+                
                 if (Event.type == SDL_KEYDOWN)
-                    IsDown = true;
+                    Msg.IsDown = true;
                 
                 if (KeyCode == SDLK_w)
-                    SDLProcessKeyboardMessage(&Keyboard->W, IsDown, Repeat);
+                    SDLProcessKeyboardMessage(&Keyboard->W, Msg);
                 else if (KeyCode == SDLK_a)
-                    SDLProcessKeyboardMessage(&Keyboard->A, IsDown, Repeat);
+                    SDLProcessKeyboardMessage(&Keyboard->A, Msg);
                 else if (KeyCode == SDLK_s)
-                    SDLProcessKeyboardMessage(&Keyboard->S, IsDown, Repeat);
+                    SDLProcessKeyboardMessage(&Keyboard->S, Msg);
                 else if (KeyCode == SDLK_d)
-                    SDLProcessKeyboardMessage(&Keyboard->D, IsDown, Repeat);
+                    SDLProcessKeyboardMessage(&Keyboard->D, Msg);
                 else if (KeyCode == SDLK_RETURN)
-                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, IsDown, Repeat);
+                    SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, Msg);
             } break;
             
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
             {
                 uint32 Type = Event.button.button;
-                uint8 IsDown = Event.button.state;
+                Msg.IsDown = Event.button.state;
                 if (Type == SDL_BUTTON_LEFT)
-                    SDLProcessKeyboardMessage(&Mouse->Left, IsDown, 0);
+                    SDLProcessKeyboardMessage(&Mouse->Left, Msg);
             } break;
             
             case SDL_MOUSEMOTION:
@@ -202,6 +236,11 @@ bool MainLoop()
     p.Memory.PermanentStorage = SDL_malloc(TotalSize);
     p.Memory.TransientStorage = ((uint8*)p.Memory.PermanentStorage + p.Memory.PermanentStorageSize);
     
+    // Initing Memory Manager. Moving beginning past this input arr.
+    Manager.Next = (char*)p.Memory.PermanentStorage;
+    ArrInit(&p.Input.NewEndedDownButtons, 10, sizeof(platform_button_state*));
+    Manager.Start = Manager.Next;
+    
     p.Input.Keyboard.ControllerInput = &p.Input.Controllers[0];
     
     uint32 LastFrameTicks = 0;
@@ -210,9 +249,8 @@ bool MainLoop()
     GlobalRunning = true;
     while (GlobalRunning)
     {
-        SDL_memset(&p.Input.Keyboard, 0, sizeof(platform_keyboard_input));
         p.Input.Mouse.Moved = false;
-        SDLProcessPendingEvents(&p.Input.Keyboard, &p.Input.Mouse);
+        SDLProcessPendingEvents(&p.Input.Keyboard, &p.Input.Mouse, &p.Input.NewEndedDownButtons);
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
         
         if (p.Input.Mouse.Moved) {
@@ -224,12 +262,19 @@ bool MainLoop()
         
         UpdateRender(&p);
         
+        if (p.Input.Quit) {
+            GlobalRunning = false;
+            continue;
+        }
+        
         if (GlobalDebugBuffer.Data[0] != 0)
             printf("%s\n", GlobalDebugBuffer.Data);
         memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
         GlobalDebugBuffer.Size = 0;
         GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
         
+        
+        // Audio
         platform_sound_output_buffer SoundBuffer = {};
         SoundBuffer.SamplesPerSecond = SDL.AudioSpec.freq;
         
@@ -247,9 +292,26 @@ bool MainLoop()
         
         if (SoundBuffer.SampleCount * 4 < SDL.AudioSpec.samples)
             int success = SDL_QueueAudio(SDL.AudioDeviceID, SoundBuffer.Samples, SoundBuffer.SampleCount * 4);
+        // End of Audio
         
-        if (p.Input.Quit)
-            GlobalRunning = false;
+        // Clearing Input NewEndedDowns
+        if (p.Input.NewEndedDownButtons.CurrentSize != p.Input.NewEndedDownButtons.MaxSize)
+        {
+            for (int i = 0; i < p.Input.NewEndedDownButtons.CurrentSize; i++) {
+                platform_button_state **Button = (platform_button_state**)p.Input.NewEndedDownButtons[i];
+                (*Button)->NewEndedDown = false;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < ArrayCount(p.Input.Keyboard.Buttons); i++)
+                p.Input.Keyboard.Buttons[i].NewEndedDown = false;
+            
+            for (int i = 0; i < ArrayCount(p.Input.Mouse.Buttons); i++) 
+                p.Input.Mouse.Buttons[i].NewEndedDown = false;
+        }
+        ArrClear(&p.Input.NewEndedDownButtons, sizeof(platform_button_state*));
+        // End of Clearing Input NewEndedDowns
         
 #if QLIB_OPENGL
         SDL_GL_SwapWindow(SDL.Window);

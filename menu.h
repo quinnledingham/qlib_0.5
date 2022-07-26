@@ -1317,7 +1317,7 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
             {
                 menu_token *Token = &Collection->Tokens[j];
                 if (Equal(Token->ID,  "Texture"))
-                    Logo.Regular = GetIndexBitmap(Assets, Asset_Logo, atoi(Token->Value));
+                    Logo.Regular = GetIndexBitmap(Assets, Asset_MenuLogo, atoi(Token->Value));
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 
@@ -1433,13 +1433,13 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
                 if (Equal(Token->ID,  "ID")) 
                     ID = GetInt(IDs, NumOfIDs, Token->Value);
                 else if (Equal(Token->ID,  "DefaultTexture"))
-                    CheckBox.DefaultTexture = GetIndexBitmap(Assets, Asset_Character, atoi(Token->Value));
+                    CheckBox.DefaultTexture = GetIndexBitmap(Assets, Asset_DefaultCheckBox, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ActiveTexture"))
-                    CheckBox.ActiveTexture = GetIndexBitmap(Assets, Asset_CharacterHover, atoi(Token->Value));
+                    CheckBox.ActiveTexture = GetIndexBitmap(Assets, Asset_ActiveCheckBox, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ClickedTexture"))
-                    CheckBox.ClickedTexture = GetIndexBitmap(Assets, Asset_CharacterHighlight, atoi(Token->Value));
+                    CheckBox.ClickedTexture = GetIndexBitmap(Assets, Asset_HighlightCheckBox, atoi(Token->Value));
                 else if (Equal(Token->ID,  "ActiveClickedTexture"))
-                    CheckBox.ActiveClickedTexture = GetIndexBitmap(Assets, Asset_CharacterHoverHighlight, atoi(Token->Value));
+                    CheckBox.ActiveClickedTexture = GetIndexBitmap(Assets, Asset_ActiveHighlightCheckBox, atoi(Token->Value));
                 else if (Equal(Token->ID,  "Dim")) 
                     Dim = GetCoordsFromChar(Token->Value);
                 else if (Equal(Token->ID,  "GridCoords")) 

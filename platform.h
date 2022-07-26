@@ -221,6 +221,8 @@ platform_input
     platform_keyboard_input Keyboard;
     platform_mouse_input Mouse;
     
+    arr NewEndedDownButtons;
+    
     union
     {
         platform_input_info InputInfo[2];
@@ -335,8 +337,6 @@ struct platform_work_queue
 struct
 platform
 {
-    bool32 Initialized;
-    
     platform_input Input;
     platform_sound_output_buffer SoundOutputBuffer;
     

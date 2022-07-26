@@ -9,6 +9,9 @@ struct FreeMemory
 
 struct MemoryManager
 {
+    bool32 StartInitialized;
+    char *Start;
+    
     char* Next;
     
     FreeMemory Free[100];
@@ -33,6 +36,20 @@ MemoryCopy(void* Dest, void* Source, int Size)
         CharDest[i] = CharSource[i];
     }
 }
+
+// Function that allocates state at beginning of memory
+inline void*
+GetMemoryStart(int Size)
+{
+    if (!Manager.StartInitialized)
+    {
+        qalloc(Size);
+        Manager.StartInitialized = true;
+    }
+    
+    return Manager.Start;
+}
+#define MemStart(t) ((t*)GetMemoryStart(sizeof(t)))
 
 internal void*
 qalloc(void* newM, int size)
