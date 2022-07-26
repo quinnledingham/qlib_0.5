@@ -820,7 +820,7 @@ HandleMenuEvents(menu *Menu, platform_input *Input)
                 Menu->Coords = Menu->Coords + MouseChange;
                 Menu->LastMouseCoords = MouseCoords;
                 
-                PrintqDebug(S() + "Menu Active\n");
+                //PrintqDebug(S() + "Menu Active\n");
                 //PrintqDebug(S() + "MenuX: " + (int)Menu->Coords.x + " MenuY: " + (int)Menu->Coords.y + 
                 //"MouseX: " + (int)MouseCoords.x + " MouseY: " + (int)MouseCoords.y + 
                 //"\n");

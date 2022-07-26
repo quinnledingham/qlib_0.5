@@ -1,14 +1,6 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
-/*
-  NOTE(casey): Services that the game provides to the platform layer.
-  (this may expand in the future - sound on separate thread, etc.)
-*/
 
-// FOUR THINGS - timing, controller/keyboard input, bitmap buffer to use, sound buffer to use
-
-// Start Possible Win32
-// TODO(casey): In the future, rendering _specifically_ will become a three-tiered abstraction!!!
 struct platform_offscreen_buffer
 {
     // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
@@ -36,7 +28,6 @@ platform_memory
     uint64 TransientStorageSize;
     void *TransientStorage; // REQUIRED to be cleared to zero at startup
 };
-// End Win32
 
 struct platform_sound_output_buffer
 {
@@ -44,40 +35,14 @@ struct platform_sound_output_buffer
     int SampleCount;
     int16 *Samples;
 };
-// NOTE(casey): At the moment, this has to be a very fast function, it cannot be
-// more than a millisecond or so.
-// TODO(casey): Reduce the pressure on this function's performance by measuring it
-// or asking about it, etc.
-#define PLATFORM_GET_SOUND_SAMPLES(name) void name(platform_memory *Memory, platform_sound_output_buffer *SoundBuffer)
-typedef PLATFORM_GET_SOUND_SAMPLES(platform_get_sound_samples);
 
 struct platform_button_state
 {
     bool32 EndedDown;
     bool32 NewEndedDown;
-    bool32 NewEndedUp;
 };
-inline bool KeyDown(platform_button_state *Button)
-{
-    return Button->EndedDown;
-}
-inline bool OnKeyDown(platform_button_state *Button)
-{
-    if (Button->NewEndedDown) {
-        printf("OnKeyDown\n");
-        //Button->NewEndedDown = false;
-        return true;
-    }
-    return false;
-}
-inline bool OnKeyUp(platform_button_state *Button)
-{
-    if (Button->NewEndedUp) {
-        Button->NewEndedUp = false;
-        return true;
-    }
-    return false;
-}
+inline bool KeyDown(platform_button_state *Button) { return Button->EndedDown; }
+inline bool OnKeyDown(platform_button_state *Button) { return Button->NewEndedDown; }
 
 enum struct
 platform_cursor_mode
@@ -85,6 +50,7 @@ platform_cursor_mode
     Arrow,
     Hand,
 };
+
 struct
 platform_mouse_input
 {
@@ -242,11 +208,6 @@ inline platform_controller_input *GetController(platform_input *Input, int unsig
     platform_controller_input *Result = &Input->Controllers[ControllerIndex];
     return(Result);
 }
-inline platform_keyboard_input *GetKeyboard(platform_input *Input, int unsigned KeyboardIndex)
-{
-    platform_keyboard_input *Result = &Input->Keyboard;
-    return Result;
-}
 inline void PlatformSetCursorMode(platform_mouse_input *Mouse, platform_cursor_mode CursorMode)
 {
     if (Mouse->Cursor != CursorMode) {
@@ -295,7 +256,6 @@ inline bool KeyPressed(platform_button_state *Button, platform_input *Input)
         return true;
     }
     else if (KeyDown(Button)) {
-        //fprintf(stderr, "%d %d %f\n", Button->EndedDown, Button->HalfTransitionCount, Input->TriggerCount);
         Input->TriggerCount += Input->WorkSecondsElapsed;
         if (Input->TriggerCount >= 0.05f) {
             Input->TriggerCount = 0.0f;
@@ -368,8 +328,5 @@ struct platform_debug_buffer
     //u32 Mutex;
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
-
-#define BEGIN_BLOCK(Name)
-#define END_BLOCK(Name)
 
 #endif //PLATFORM_H

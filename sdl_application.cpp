@@ -98,6 +98,8 @@ SDLProcessPendingEvents(platform_keyboard_input *Keyboard,
                     SDLProcessKeyboardMessage(&Keyboard->S, Msg);
                 else if (KeyCode == SDLK_d)
                     SDLProcessKeyboardMessage(&Keyboard->D, Msg);
+                else if (KeyCode == SDLK_F5)
+                    SDLProcessKeyboardMessage(&Keyboard->F5, Msg);
                 else if (KeyCode == SDLK_RETURN)
                     SDLProcessKeyboardMessage(&Keyboard->ControllerInput->Enter, Msg);
             } break;
@@ -168,19 +170,7 @@ bool MainLoop()
     if (ClientWidth == 0) SDLClientWidth = SDLClientHeight;
     if (ClientHeight == 0) SDLClientHeight = SDLClientWidth;
     
-    /*
-    // SDL_audio
-    for (int i = 0; i < SDL_GetNumAudioDrivers(); ++i)
-    {
-        const char *DriverName = SDL_GetAudioDriver(i);
-        
-        if (SDL_AudioInit(DriverName))
-            printf("Audio driver failed to initialize: %s\n", DriverName);
-        else
-            printf("Audio driver initialized: %s\n", DriverName);
-        
-    }
-    */
+    
     SDL.AudioSpec.freq = 48000;
     SDL.AudioSpec.format = AUDIO_S16;
     SDL.AudioSpec.channels = 2;
@@ -221,7 +211,7 @@ bool MainLoop()
     glGenVertexArrays(1, &gVertexArrayObject);
     glBindVertexArray(gVertexArrayObject);
     
-    //SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(0);
     
 #else // QLIB_OPENGL
     SDL.Renderer = SDL_CreateRenderer(SDL.Window, -1,
@@ -273,19 +263,18 @@ bool MainLoop()
         GlobalDebugBuffer.Size = 0;
         GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
         
-        
         // Audio
         platform_sound_output_buffer SoundBuffer = {};
         SoundBuffer.SamplesPerSecond = SDL.AudioSpec.freq;
         
         real32 Seconds = SDLGetSeconds(&LastAudioTicks);
         if (Seconds < 1)
-            SoundBuffer.SampleCount = (int)roundf(Seconds * SoundBuffer.SamplesPerSecond);
+            SoundBuffer.SampleCount = (int)ceil(Seconds * SoundBuffer.SamplesPerSecond);
         else
             SoundBuffer.SampleCount = 0;
         
         SoundBuffer.Samples = (int16*)Samples;
-        SoundBuffer.SampleCount += 50;
+        //SoundBuffer.SampleCount += 5;
         
         if (p.AudioState.Paused.Value)
             PlayLoadedSound(&p.AudioState, &SoundBuffer);
