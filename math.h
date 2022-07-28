@@ -76,6 +76,14 @@ operator!=(const v2 &l, const v2 &r)
     return true;
 }
 
+inline bool
+operator!=(const iv2 &l, const iv2 &r)
+{
+    if (l.x == r.x && l.y == r.y)
+        return false;
+    return true;
+}
+
 inline v2
 abso(const v2 &v)
 {
@@ -623,11 +631,8 @@ quat AngleAxis(float angle, const v3& axis)
     v3 norm = Normalized(axis);
     float s = sinf(angle * 0.5f);
     
-    return quat(norm.x * s,
-                norm.y * s,
-                norm.z * s,
-                cosf(angle * 0.5f)
-                );
+    return quat(norm.x * s, norm.y * s, norm.z * s,
+                cosf(angle * 0.5f));
 }
 
 // Returns a quat which contains the rotation between two vectors.

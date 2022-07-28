@@ -101,6 +101,11 @@ struct iv2
             int32 x;
             int32 y;
         };
+        struct
+        {
+            int32 Width;
+            int32 Height;
+        };
         int32 v[2];
     };
     inline iv2() : x(0), y(0) {}
@@ -265,17 +270,17 @@ struct Transform
 
 struct qlib_bool
 {
-    bool Value;
-    bool New;
+    bool32 Value;
+    bool32 New;
 };
 inline void Toggle(qlib_bool *Bool)
 {
     Bool->Value = !Bool->Value;
     Bool->New = true;
 }
-inline bool GetNew(qlib_bool *Bool)
+inline bool32 GetNew(qlib_bool *Bool)
 {
-    bool Ret = Bool->New;
+    bool32 Ret = Bool->New;
     Bool->New = false;
     return Ret;
 }
@@ -284,12 +289,16 @@ inline void SetTrue(qlib_bool *Bool)
     Bool->Value = true;
     Bool->New = true;
 }
+inline bool32 QlibBoolTrue(qlib_bool *Bool)
+{
+    return Bool->Value;
+}
 
 inline unsigned long createRGBA(int r, int g, int b, int a) { return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));}
 inline unsigned long createRGB(int r, int g, int b) { return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); }
 
 struct ID
-{
+{ 
     u32 id;
     
     inline ID() {}

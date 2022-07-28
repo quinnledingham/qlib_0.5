@@ -383,21 +383,63 @@ inline void glDrawInstanced(render_index_buffer& IndexBuffer,  render_draw_mode 
 
 // Renderering Elements
 
-void BeginOpenGL(iv2 WindowDim)
+struct open_gl_rect
 {
-    glViewport(0, 0, WindowDim.x, WindowDim.y);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glDepthFunc(GL_ALWAYS); 
+    render_index_buffer IndexBuffer;
+    render_attribute VertexPositions; // v3
+    render_attribute VertexNormals; // v3
+    render_attribute VertexTexCoords; // v2
+};
+
+internal void
+OpenGLRectInit(open_gl_rect *OpenGLRect)
+{
+    AttributeInit(&OpenGLRect->VertexPositions);
+    DynArray<v3> position = {};
+    /*
+    position.push_back(v3(0, 0, 0));
+    position.push_back(v3(0, -1.0f, 0));
+    position.push_back(v3(-1.0f, 0, 0));
+    position.push_back(v3(-1.0f, -1.0f, 0));
+*/
+    position.push_back(v3(-1.0f, -1.0f, 0));
+    position.push_back(v3(-1.0f, 0, 0));
+    position.push_back(v3(0, -1.0f, 0));
+    position.push_back(v3(0, 0, 0));
     
-    glPointSize(5.0f);
-    glBindVertexArray(gVertexArrayObject);
+    AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
     
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    AttributeInit(&OpenGLRect->VertexNormals);
+    DynArray<v3> normals = {};
+    normals.Resize(4, v3(0, 0, 1));
+    AttributeSet(&OpenGLRect->VertexNormals, normals.GetData(), sizeof(v3), normals.GetSize());
+    
+    AttributeInit(&OpenGLRect->VertexTexCoords);
+    DynArray<v2> uvs = {};
+    
+    uvs.push_back(v2(1, 1));
+    uvs.push_back(v2(1, 0));
+    uvs.push_back(v2(0, 1));
+    uvs.push_back(v2(0, 0));
+    
+    AttributeSet(&OpenGLRect->VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
+    
+    IndexBufferInit(&OpenGLRect->IndexBuffer);
+    DynArray<u32> indices = {};
+    indices.push_back(0);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(2);
+    indices.push_back(1);
+    indices.push_back(3);
+    IndexBufferSet(&OpenGLRect->IndexBuffer, indices);
 }
+
+global_variable render_shader BasicShader;
+global_variable render_shader StaticShader;
+
+global_variable open_gl_rect GlobalOpenGLRect;
+
 #endif
 
 // Function for Software Rendering
@@ -408,37 +450,53 @@ inline void ClearScreen()
     memset(Buffer->Memory, 0xFF, (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel);
 }
 
-mat4 Projection;
-mat4 View;
-iv2 CameraViewDim;
-
-void BeginMode(camera C)
+void BeginRenderer(camera *C)
 {
+    if (C->WindowDim != C->PlatformDim) {
+        C->WindowDim = C->PlatformDim;
+        
 #if QLIB_OPENGL
-    BeginOpenGL(C.WindowDim);
+        glViewport(0, 0, C->WindowDim.x, C->WindowDim.y);
+#endif
+        
+        if (!C->Mode3D) {
+            C->Projection = Ortho(-(real32)C->WindowDim.x/2, (real32)C->WindowDim.x/2, 
+                                  -(real32)C->WindowDim.y/2, (real32)C->WindowDim.y/2, 
+                                  0.1f, 1000.0f);
+        }
+        else if (C->Mode3D) {
+            C->inAspectRatio = (real32)C->WindowDim.x / (real32)C->WindowDim.y;
+            C->Projection = Perspective(C->FOV, C->inAspectRatio, 0.01f, 1000.0f);
+        }
+    }
+    
+#if QLIB_OPENGL
+    if (!C->OpenGLInitialized) {
+        ShaderInit(&BasicShader, "shaders/basic.vert", "shaders/basic.frag");
+        ShaderInit(&StaticShader, "shaders/static.vert", "shaders/lit.frag");
+        
+        OpenGLRectInit(&GlobalOpenGLRect);
+        
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glDepthFunc(GL_ALWAYS); 
+        
+        glPointSize(5.0f);
+        glBindVertexArray(gVertexArrayObject);
+        
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        C->OpenGLInitialized = true;
+    }
 #else
     ClearScreen();
 #endif
-    View = LookAt(C.Position, C.Target, C.Up);
-}
-
-internal void
-BeginMode2D(camera C)
-{
-    BeginMode(C);
-    CameraViewDim = v2(C.WindowDim.x, C.WindowDim.y);
-    real32 width =  C.WindowDim.x;
-    real32 height = C.WindowDim.y;
-    Projection = Ortho(-width/2, width/2, -height/2, height/2, 0.1f, 1000.0f);
-}
-
-internal void
-BeginMode3D(camera C)
-{
-    BeginMode(C);
-    CameraViewDim = v2(C.WindowDim.x, C.WindowDim.y);
-    C.inAspectRatio = C.WindowDim.x / C.WindowDim.y;
-    Projection = Perspective(C.FOV, C.inAspectRatio, 0.01f, 1000.0f);
+    
+    C->View = LookAt(C->Position, C->Target, C->Up);
 }
 
 #define NOFILL 0
@@ -446,92 +504,21 @@ BeginMode3D(camera C)
 
 #if QLIB_OPENGL
 
-struct open_gl_rect
+void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, real32 Rotation)
 {
-    render_shader Shader;
-    render_index_buffer IndexBuffer;
-    render_attribute VertexPositions; // v3
-    render_attribute Color; // v4
+    mat4 Model = TransformToMat4(Transform(v3(-Coords.x, -Coords.y, Coords.z), 
+                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), 
+                                           v3(Size.x, Size.y, 1)));
     
-    bool32 Initialized;
-};
-
-struct open_gl_texture
-{
-    render_shader Shader;
-    render_attribute VertexPositions; // v3
-    render_index_buffer IndexBuffer;
-    render_attribute VertexNormals; // v3
-    render_attribute VertexTexCoords; // v2
+    UniformSet(mat4, ShaderGetUniform(Shader, "model"), Model);
+    UniformSet(mat4, ShaderGetUniform(Shader, "view"), Camera->View);
+    UniformSet(mat4, ShaderGetUniform(Shader, "projection"), Camera->Projection);
     
-    bool32 Initialized;
-};
-
-global_variable open_gl_rect GlobalOpenGLRect;
-global_variable open_gl_texture GlobalOpenGLTexture;
-
-void
-DrawRect(int x, int y, int width, int height, uint32 color)
-{
-    v3 Coords = v3((real32)x, (real32)y, 1);
-    v2 Size = v2((real32)width, (real32)height);
-    DrawRect(Coords, Size, color, 0);
-}
-
-void
-DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
-{
-    if (GlobalOpenGLRect.Initialized == 0)
-    {
-        ShaderInit(&GlobalOpenGLRect.Shader, "shaders/basic.vert", "shaders/basic.frag");
-        
-        AttributeInit(&GlobalOpenGLRect.VertexPositions);
-        DynArray<v3> position = {};
-        position.push_back(v3(-0.5, -0.5, 0));
-        position.push_back(v3(-0.5, 0.5, 0));
-        position.push_back(v3(0.5, -0.5, 0));
-        position.push_back(v3(0.5, 0.5, 0));
-        AttributeSet(&GlobalOpenGLRect.VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
-        
-        IndexBufferInit(&GlobalOpenGLRect.IndexBuffer);
-        DynArray<u32> indices = {};
-        indices.push_back(0);
-        indices.push_back(1);
-        indices.push_back(2);
-        indices.push_back(2);
-        indices.push_back(1);
-        indices.push_back(3);
-        IndexBufferSet(&GlobalOpenGLRect.IndexBuffer, indices);
-        
-        GlobalOpenGLRect.Initialized = 1;
-    }
-    
-    // Change to standard coordinate system
-    v2 NewCoords = {};
-    NewCoords.x = (real32)(-Coords.x - (Size.x/2));
-    NewCoords.y = (real32)(-Coords.y - (Size.y/2));
-    
-    mat4 Model = TransformToMat4(Transform(v3(NewCoords, Coords.z), AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), v3(Size.x, Size.y, 1)));
-    
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    ShaderBind(&GlobalOpenGLRect.Shader);
-    
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "model"), Model);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "view"), View);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "projection"), Projection);
-    
-    v4 c = u32toV4(color);
-    c = v4(c.x/255, c.y/255, c.z/255, c.w/255);
-    UniformSet(v4, ShaderGetUniform(&GlobalOpenGLRect.Shader, "my_color"), c);
-    
-    AttributeBindTo(v3, &GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(&GlobalOpenGLRect.Shader, "position"));
+    AttributeBindTo(v3, &GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(Shader, "position"));
     
     glDraw(GlobalOpenGLRect.IndexBuffer, render_draw_mode::triangles);
     
-    AttributeUnBindFrom(&GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(&GlobalOpenGLRect.Shader, "position"));
-    
-    ShaderUnBind(&GlobalOpenGLRect.Shader);
+    AttributeUnBindFrom(&GlobalOpenGLRect.VertexPositions, ShaderGetAttribute(Shader, "position"));
     
     GLenum err;
     while((err = glGetError()) != GL_NO_ERROR)
@@ -541,61 +528,27 @@ DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation)
 }
 
 void
-DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
+DrawRect(render_camera *Camera, v3 Coords, v2 Size, uint32 color, real32 Rotation)
 {
-    if (GlobalOpenGLTexture.Initialized == 0)
-    {
-        ShaderInit(&GlobalOpenGLTexture.Shader, "shaders/static.vert", "shaders/lit.frag");
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexPositions);
-        DynArray<v3> position = {};
-        position.push_back(v3(-0.5, -0.5, 0));
-        position.push_back(v3(-0.5, 0.5, 0));
-        position.push_back(v3(0.5, -0.5, 0));
-        position.push_back(v3(0.5, 0.5, 0));
-        AttributeSet(&GlobalOpenGLTexture.VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexNormals);
-        DynArray<v3> normals = {};
-        normals.Resize(4, v3(0, 0, 1));
-        AttributeSet(&GlobalOpenGLTexture.VertexNormals, normals.GetData(), sizeof(v3), normals.GetSize());
-        
-        AttributeInit(&GlobalOpenGLTexture.VertexTexCoords);
-        DynArray<v2> uvs = {};
-        uvs.push_back(v2(1, 1));
-        uvs.push_back(v2(1, 0));
-        uvs.push_back(v2(0, 1));
-        uvs.push_back(v2(0, 0));
-        AttributeSet(&GlobalOpenGLTexture.VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
-        
-        IndexBufferInit(&GlobalOpenGLTexture.IndexBuffer);
-        DynArray<u32> indices = {};
-        indices.push_back(0);
-        indices.push_back(1);
-        indices.push_back(2);
-        indices.push_back(2);
-        indices.push_back(1);
-        indices.push_back(3);
-        IndexBufferSet(&GlobalOpenGLTexture.IndexBuffer, indices);
-        
-        GlobalOpenGLTexture.Initialized = 1;
-    }
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    ShaderBind(&BasicShader);
     
-    // Change to standard coordinate system
-    v2 NewCoords = {};
-    NewCoords.x = (real32)(-Coords.x - (Size.x/2));
-    NewCoords.y = (real32)(-Coords.y - (Size.y/2));
+    v4 c = u32toV4(color);
+    c = v4(c.x/255, c.y/255, c.z/255, c.w/255);
+    UniformSet(v4, ShaderGetUniform(&BasicShader, "my_color"), c);
     
-    mat4 Model = TransformToMat4(Transform(v3(NewCoords, Coords.z),
-                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)),
-                                           v3(Size.x, Size.y, 1)));
+    DrawRect(Camera, &BasicShader, Coords, Size, Rotation);
     
+    ShaderUnBind(&BasicShader);
+}
+
+void
+DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
+{
     if (ScissorDim.x > 0 && ScissorDim.y > 0) {
-        glScissor((GLsizei)(ScissorCoords.x + (CameraViewDim.x/2)), 
-                  (GLsizei)(-ScissorCoords.y + (CameraViewDim.y/2)), 
-                  (GLint)ScissorDim.x,
-                  (GLint)ScissorDim.y);
-        //glScissor(500, 500, 100, 100);
+        glScissor((GLsizei)(ScissorCoords.x + (Camera->WindowDim.x/2)),
+                  (GLsizei)(-ScissorCoords.y + (Camera->WindowDim.y/2)), 
+                  (GLint)ScissorDim.x, (GLint)ScissorDim.y);
         glEnable(GL_SCISSOR_TEST);
     }
     
@@ -604,43 +557,39 @@ DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bit
     else if (BlendMode == render_blend_mode::gl_src_alpha)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
-    ShaderBind(&GlobalOpenGLTexture.Shader);
+    ShaderBind(&StaticShader);
     
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "model"), Model);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "view"), View);
     v3 Light = v3(0, 0, 1);
-    UniformSet(v3, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "light"), Light);
-    UniformSet(mat4, ShaderGetUniform(&GlobalOpenGLTexture.Shader, "projection"), Projection);
+    UniformSet(v3, ShaderGetUniform(&StaticShader, "light"), Light);
     
-    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
-    AttributeBindTo(v3, &GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
-    AttributeBindTo(v2, &GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
+    AttributeBindTo(v3, &GlobalOpenGLRect.VertexNormals, ShaderGetAttribute(&StaticShader, "normal"));
+    AttributeBindTo(v2, &GlobalOpenGLRect.VertexTexCoords, ShaderGetAttribute(&StaticShader, "texCoord"));
     
-    TextureSet(U32FromPointer(Bitmap->TextureHandle), ShaderGetUniform(&GlobalOpenGLTexture.Shader, "tex0"), 0);
+    TextureSet(U32FromPointer(Bitmap->TextureHandle), ShaderGetUniform(&StaticShader, "tex0"), 0);
     
-    glDraw(GlobalOpenGLTexture.IndexBuffer, render_draw_mode::triangles);
+    DrawRect(Camera, &StaticShader, Coords, Size, Rotation);
     
     TextureUnSet(0);
     
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexPositions, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "position"));
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexNormals, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "normal"));
-    AttributeUnBindFrom(&GlobalOpenGLTexture.VertexTexCoords, ShaderGetAttribute(&GlobalOpenGLTexture.Shader, "texCoord"));
+    AttributeUnBindFrom(&GlobalOpenGLRect.VertexNormals, ShaderGetAttribute(&StaticShader, "normal"));
+    AttributeUnBindFrom(&GlobalOpenGLRect.VertexTexCoords, ShaderGetAttribute(&StaticShader, "texCoord"));
     
-    ShaderUnBind(&GlobalOpenGLTexture.Shader);
-    
-    GLenum err;
-    while((err = glGetError()) != GL_NO_ERROR)
-    {
-        PrintqDebug(S() + (int)err + "\n");
-    }
+    ShaderUnBind(&StaticShader);
     
     if (ScissorDim.x > 0 && ScissorDim.y > 0)
         glDisable(GL_SCISSOR_TEST);
     
 }
-inline void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
+
+inline void DrawRect(render_camera *Camera, v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
 {
-    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+    DrawRect(Camera, Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+}
+inline void DrawRect(render_camera *Camera, int x, int y, int width, int height, uint32 color)
+{
+    v3 Coords = v3((real32)x, (real32)y, 1);
+    v2 Size = v2((real32)width, (real32)height);
+    DrawRect(Camera, Coords, Size, color, 0);
 }
 
 #else // !QLIB_OPENGL
@@ -836,10 +785,10 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
 }
 #endif
 
-inline void DrawRect(assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
+inline void DrawRect(camera *Camera, assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
 {
     loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
-    DrawRect(Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
+    DrawRect(Camera, Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
 }
 
 

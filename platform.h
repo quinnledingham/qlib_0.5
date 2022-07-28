@@ -40,9 +40,29 @@ struct platform_button_state
 {
     bool32 EndedDown;
     bool32 NewEndedDown;
+    bool32 Repeat;
 };
 inline bool KeyDown(platform_button_state *Button) { return Button->EndedDown; }
 inline bool OnKeyDown(platform_button_state *Button) { return Button->NewEndedDown; }
+inline bool OnMessage(platform_button_state *Button) 
+{ 
+    if (!Button->NewEndedDown)
+        return Button->Repeat;
+    else
+        return Button->NewEndedDown;
+}
+inline void ClearKeyState(platform_button_state *Button)
+{
+    Button->NewEndedDown = false;
+    Button->Repeat = false;
+}
+
+struct platform_button_message
+{
+    bool32 IsDown;
+    bool32 Repeat;
+    arr *ButtonsToClear;
+};
 
 enum struct
 platform_cursor_mode
@@ -67,7 +87,6 @@ platform_mouse_input
         };
     };
     int32 X, Y, Z;
-    bool32 Moved;
     platform_cursor_mode Cursor;
     bool32 NewCursor;
 };
@@ -114,11 +133,9 @@ struct platform_keyboard_input
     bool32 IsConnected;
     char Clipboard[1000];
     
-    platform_controller_input *ControllerInput;
-    
     union
     {
-        platform_button_state Buttons[24];
+        platform_button_state Buttons[28];
         struct
         {
             platform_button_state W;
@@ -126,7 +143,11 @@ struct platform_keyboard_input
             platform_button_state S;
             platform_button_state D;
             
-            platform_button_state CtrlV;
+            platform_button_state Ctrl;
+            platform_button_state V;
+            
+            platform_button_state Enter;
+            platform_button_state Esc;
             platform_button_state Escape;
             platform_button_state Period;
             platform_button_state Backspace;
@@ -164,7 +185,6 @@ struct platform_keyboard_input
         };
     };
 };
-
 enum struct platform_input_mode
 {
     Mouse,
@@ -177,17 +197,28 @@ struct platform_input_info
     platform_controller_input *Controller;
 };
 
+enum struct platform_input_index
+{
+    keyboard,
+    mouse,
+    controller1,
+    controller2,
+    controller3,
+    controller4,
+};
+
 struct
 platform_input
 {
     real32 WorkSecondsElapsed;
     real32 TriggerCount;
+    arr ButtonsToClear;
     
-    platform_controller_input Controllers[5];
+    platform_input_index ActiveInput;
+    
     platform_keyboard_input Keyboard;
     platform_mouse_input Mouse;
-    
-    arr NewEndedDownButtons;
+    platform_controller_input Controllers[4];
     
     union
     {
@@ -216,54 +247,6 @@ inline void PlatformSetCursorMode(platform_mouse_input *Mouse, platform_cursor_m
     }
     else
         Mouse->NewCursor = false;
-}
-inline void UpdateInputInfo(platform_input *Input)
-{
-    platform_input_info InputInfo = Input->PreviousInputInfo;
-    
-    for (int i = 0; i < ArrayCount(Input->Controllers); i++) {
-        platform_controller_input *Input2 = &Input->Controllers[i];
-        for (int j = 0; j < ArrayCount(Input2->Buttons); j++) {
-            if (Input2->Buttons[j].EndedDown != 0) {
-                if (i == 0) 
-                    InputInfo.InputMode = platform_input_mode::Keyboard;
-                else 
-                    InputInfo.InputMode = platform_input_mode::Controller;
-                InputInfo.Controller = &Input->Controllers[i];
-            }
-        }
-    }
-    platform_keyboard_input *Input2 = &Input->Keyboard;
-    for (int i = 0; i < ArrayCount(Input2->Buttons); i++) {
-        if (Input2->Buttons[i].EndedDown != 0) {
-            InputInfo.InputMode = platform_input_mode::Keyboard;
-            InputInfo.Controller = &Input->Controllers[0];
-        }
-    }
-    
-    if (Input->Mouse.Moved) {
-        InputInfo.InputMode = platform_input_mode::Mouse;
-        InputInfo.Controller = &Input->Controllers[0];
-    }
-    
-    Input->PreviousInputInfo = Input->CurrentInputInfo;
-    Input->CurrentInputInfo = InputInfo;
-}
-inline bool KeyPressed(platform_button_state *Button, platform_input *Input)
-{
-    if (OnKeyDown(Button)) {
-        Input->TriggerCount = -0.2f;
-        return true;
-    }
-    else if (KeyDown(Button)) {
-        Input->TriggerCount += Input->WorkSecondsElapsed;
-        if (Input->TriggerCount >= 0.05f) {
-            Input->TriggerCount = 0.0f;
-            return true;
-        }
-    }
-    
-    return false;
 }
 
 // Multithreading

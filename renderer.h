@@ -16,20 +16,13 @@ struct render_attribute
     u32 Handle;
     u32 Count;
 };
-
-struct render_uniform {};
+typedef render_attribute render_index_buffer;
 
 struct render_shader
 {
     u32 Handle;
     Map Attributes;
     Map Uniforms;
-};
-
-struct render_index_buffer
-{
-    u32 Handle;
-    u32 Count;
 };
 
 enum struct render_draw_mode
@@ -50,15 +43,23 @@ enum struct render_blend_mode
 };
 typedef render_blend_mode blend_mode;
 
+
 struct render_camera
 {
+    bool32 Mode3D;
+    bool32 OpenGLInitialized;
+    
     v3 Position;
     v3 Target;
     v3 Up;
-    
     real32 inAspectRatio;
     real32 FOV;
-    v2 WindowDim;
+    
+    mat4 Projection;
+    mat4 View;
+    
+    iv2 PlatformDim;
+    iv2 WindowDim;
 } typedef camera;
 
 enum struct render_piece_type
@@ -145,20 +146,19 @@ inline void ClearPieceGroup(render_piece_group *Group)
     Group->Size = 0;
 }
 
-void glDraw(u32 vertexCount, render_draw_mode DrawMode);
-void glDraw(render_index_buffer& IndexBuffer, render_draw_mode DrawMode);
-void glDrawInstanced(u32 VertexCount, render_draw_mode DrawMode, u32 NumInstances);
-void glDrawInstanced(render_index_buffer& IndexBuffer,  render_draw_mode DrawMode, u32 InstanceCount);
+void DrawRect(render_camera *Camera, int x, int y, int width, int height, uint32 color);
+void DrawRect(render_camera *Camera, v3 Coords, v2 Size, uint32 color, real32 Rotation);
+void DrawRect(render_camera *Camera, v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
+void DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
+void DrawRect(render_camera *Camera, assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode);
 
-void DrawRect(int x, int y, int width, int height, uint32 color);
-void DrawRect(v3 Coords, v2 Size, uint32 color, real32 Rotation);
-void DrawRect(v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
-void DrawRect(v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
-void DrawRect(assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode);
+void BeginRenderer(camera *C);
 
 internal void
-RenderPieceGroup(assets *Assets)
+RenderPieceGroup(render_camera *Camera, assets *Assets)
 {
+    BeginRenderer(Camera);
+    
     render_piece_group &Group = RPGroup;
     
     // Z-Sort using Insertion Sort
@@ -179,11 +179,11 @@ RenderPieceGroup(assets *Assets)
     for (uint32 i = 0; i < Group.Size; i++) {
         render_piece *p = Group[i];
         if (p->Type == render_piece_type::bitmap_id_rect)
-            DrawRect(Assets, p->Coords, p->Dim, p->BitmapID, p->Rotation, p->BlendMode);
+            DrawRect(Camera, Assets, p->Coords, p->Dim, p->BitmapID, p->Rotation, p->BlendMode);
         else if (p->Type == render_piece_type::bitmap_rect)
-            DrawRect(p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Bitmap, p->Rotation, p->BlendMode);
+            DrawRect(Camera, p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Bitmap, p->Rotation, p->BlendMode);
         else if (p->Type == render_piece_type::color_rect)
-            DrawRect(p->Coords, p->Dim, p->Color, p->Rotation);
+            DrawRect(Camera, p->Coords, p->Dim, p->Color, p->Rotation);
     }
     
     ClearPieceGroup(&Group);

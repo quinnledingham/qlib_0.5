@@ -56,7 +56,7 @@ struct menu_component_textbox
 struct menu_component_checkbox
 {
     bool32 Clicked;
-    platform_controller_input *Controller;
+    int8 ControllerIndex;
     
     uint32 CurrentColor;
     uint32 DefaultColor;
@@ -112,6 +112,8 @@ struct menu_events
     int TextBoxClicked;
     bool MenuClicked;
     bool ButtonHoverFlag;
+    
+    platform_cursor_mode CursorMode;
 };
 
 struct menu_grid_row
@@ -124,7 +126,7 @@ struct menu
     bool Initialized;
     bool Reset;
     
-    bool Edit;
+    qlib_bool Edit;
     
     menu_grid_row Rows[10];
     
@@ -187,6 +189,31 @@ inline void UpdateActiveIndex(menu *Menu)
             Menu->ActiveIndex = i;
     }
 }
+
+struct menu_controller
+{
+    int8 Index;
+    bool32 IgnoreInputs;
+    bool32 MouseControls;
+    platform_button_state *Enter;
+    
+    // Controller Controls
+    platform_button_state *ForwardActive[2];
+    platform_button_state *BackwardActive;
+    
+    platform_button_state *Left;
+    platform_button_state *Right;
+    platform_button_state *Backspace;
+    platform_button_state *Period;
+    platform_button_state *Numbers[10];
+    platform_button_state *Paste;
+    char *Clipboard;
+    
+    platform_button_state *Edit;
+    
+    // Mouse Controls
+    v2 MouseCoords;
+};
 
 struct menu_token
 {
@@ -726,7 +753,7 @@ MenuReset(menu *Menu)
         if (Menu->Components[i].Type == menu_component_type::CheckBox) {
             menu_component_checkbox *CheckBox = (menu_component_checkbox*)Menu->Components[i].Data;
             CheckBox->Clicked = false;
-            CheckBox->Controller = 0;
+            CheckBox->ControllerIndex = 0;
         }
     }
     
@@ -735,128 +762,99 @@ MenuReset(menu *Menu)
 }
 
 internal menu_events*
-HandleMenuEvents(menu *Menu, platform_input *Input)
+HandleMenuEvents(menu *Menu, menu_controller *Controller)
 {
-    UpdateInputInfo(Input);
-    
-    bool KeyboardMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Keyboard;
-    bool KeyboardPreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Keyboard;
-    
-    bool ControllerMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Controller;
-    bool ControllerPreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Controller;
-    
-    bool MouseMode = Input->CurrentInputInfo.InputMode == platform_input_mode::Mouse;
-    bool MousePreviousMode = Input->PreviousInputInfo.InputMode == platform_input_mode::Mouse;
-    
-    //PrintqDebug(S() + "OnKeyDown " + Input->Controllers[0].MoveDown.EndedDown + " " + Input->Controllers[0].MoveDown.NewEndedDown + " " + KeyboardPreviousMode + "\n");
     Menu->Events.ButtonClicked = -1;
     Menu->Events.TextBoxClicked = -1;
     
-    v2 MouseCoords = v2(Input->Mouse.X, Input->Mouse.Y);
-    
-    if (KeyboardMode || ControllerMode) {
-        platform_controller_input *Controller = 0;
-        if (KeyboardMode)
-            Controller = Input->CurrentInputInfo.Controller;
-        else if (ControllerMode)
-            Controller = Input->CurrentInputInfo.Controller;
+    if (!Controller->MouseControls) {
+        if (OnKeyDown(Controller->ForwardActive[0]))
+            IncrActive(Menu);
+        if (OnKeyDown(Controller->ForwardActive[1]))
+            IncrActive(Menu);
+        if (OnKeyDown(Controller->BackwardActive))
+            DecrActive(Menu);
         
-        if (KeyboardPreviousMode || ControllerPreviousMode) {
-            if (OnKeyDown(&Controller->MoveUp))
-                DecrActive(Menu);
-            if (OnKeyDown(&Controller->MoveDown))
-                IncrActive(Menu);
-            if(OnKeyDown(&Input->Keyboard.Tab))
-                IncrActive(Menu);
-            
-            if (OnKeyDown(&Controller->Enter)) {
-                menu_component *C = Menu->ActiveComponents[Menu->ActiveIndex];
-                if (C->Type == menu_component_type::Button)
-                    Menu->Events.ButtonClicked = C->ID;
-                else if (C->Type == menu_component_type::CheckBox) {
-                    menu_component_checkbox *CheckBox = (menu_component_checkbox*)C->Data;
-                    
-                    if (CheckBox->Clicked && Controller == CheckBox->Controller) {
-                        CheckBox->Clicked = false;
-                        Controller->IgnoreInputs = false;
-                    }
-                    else if (!CheckBox->Clicked && !Controller->IgnoreInputs) {
-                        CheckBox->Controller = Controller;
-                        Controller->IgnoreInputs = true;
-                        CheckBox->Clicked = true;
-                    }
-                    Menu->Events.CheckBoxClicked = C->ID;
+        if (OnKeyDown(Controller->Enter)) {
+            menu_component *C = Menu->ActiveComponents[Menu->ActiveIndex];
+            if (C->Type == menu_component_type::Button)
+                Menu->Events.ButtonClicked = C->ID;
+            else if (C->Type == menu_component_type::CheckBox) {
+                menu_component_checkbox *CheckBox = (menu_component_checkbox*)C->Data;
+                
+                if (CheckBox->Clicked && Controller->Index == CheckBox->ControllerIndex) {
+                    CheckBox->Clicked = false;
+                    Controller->IgnoreInputs = false;
                 }
+                else if (!CheckBox->Clicked && !Controller->IgnoreInputs) {
+                    CheckBox->ControllerIndex = Controller->Index;
+                    Controller->IgnoreInputs = true;
+                    CheckBox->Clicked = true;
+                }
+                Menu->Events.CheckBoxClicked = C->ID;
             }
         }
-        else {
-            OnKeyDown(&Controller->MoveUp);
-            OnKeyDown(&Controller->MoveDown);
-            OnKeyDown(&Input->Keyboard.Tab);
-            OnKeyDown(&Controller->Enter);
+        
+        menu_component *ActiveTextBox = Menu->ActiveComponents[Menu->ActiveIndex];
+        if (ActiveTextBox->Type == menu_component_type::TextBox)
+        {
+            for (int i = 0; i < 10; i++) {
+                if (OnMessage(Controller->Numbers[i]))
+                    MenuTextBoxAddChar(ActiveTextBox, IntToString(i));
+            }
+            
+            if (OnMessage(Controller->Left))
+                MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Left);
+            
+            if (OnMessage(Controller->Right))
+                MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Right);
+            if (KeyDown(Controller->Paste))
+                MenuTextBoxReplaceText(ActiveTextBox, Controller->Clipboard);
+            
+            if (OnMessage(Controller->Backspace))
+                MenuTextBoxRemoveChar(ActiveTextBox);
+            if (OnMessage(Controller->Period))
+                MenuTextBoxAddChar(ActiveTextBox, ".");
         }
         
         Menu->ActiveComponents[Menu->ActiveIndex]->Active = true;
     }
-    else if (MouseMode) {
+    else if (Controller->MouseControls) {
         if (Menu->ActiveComponents[Menu->ActiveIndex]->Type == menu_component_type::Button)
             Menu->ActiveComponents[Menu->ActiveIndex]->Active = false;
         
-        if (OnKeyDown(&Input->Mouse.Left)) {
-            Menu->Events.ButtonClicked = MenuButtonClicked(Menu, MouseCoords);
-            Menu->Events.TextBoxClicked = MenuTextBoxClicked(Menu, MouseCoords);
+        if (OnKeyDown(Controller->Enter)) {
+            Menu->Events.ButtonClicked = MenuButtonClicked(Menu, Controller->MouseCoords);
+            Menu->Events.TextBoxClicked = MenuTextBoxClicked(Menu, Controller->MouseCoords);
             UpdateActiveIndex(Menu);
             if (Menu->Events.ButtonClicked == -1 && Menu->Events.TextBoxClicked -1) {
-                Menu->Events.MenuClicked = MenuMenuClicked(Menu, MouseCoords);
-                Menu->LastMouseCoords = MouseCoords;
+                Menu->Events.MenuClicked = MenuMenuClicked(Menu, Controller->MouseCoords);
+                Menu->LastMouseCoords = Controller->MouseCoords;
             }
             else
                 Menu->Events.MenuClicked = false;
         }
         
-        if (KeyDown(&Input->Mouse.Left)) {
+        menu_component *ActiveTextBox = Menu->ActiveComponents[Menu->ActiveIndex];
+        if (ActiveTextBox->Type == menu_component_type::TextBox)
+        {
+            if (KeyDown(Controller->Enter))
+                MenuTextBoxMouseMoveCursor(ActiveTextBox, Controller->MouseCoords);
+            
+        }
+        
+        if (KeyDown(Controller->Enter)) {
             if (Menu->Events.MenuClicked) {
-                v2 MouseChange = MouseCoords - Menu->LastMouseCoords;
+                v2 MouseChange = Controller->MouseCoords - Menu->LastMouseCoords;
                 Menu->Coords = Menu->Coords + MouseChange;
-                Menu->LastMouseCoords = MouseCoords;
-                
-                //PrintqDebug(S() + "Menu Active\n");
-                //PrintqDebug(S() + "MenuX: " + (int)Menu->Coords.x + " MenuY: " + (int)Menu->Coords.y + 
-                //"MouseX: " + (int)MouseCoords.x + " MouseY: " + (int)MouseCoords.y + 
-                //"\n");
+                Menu->LastMouseCoords = Controller->MouseCoords;
             }
         }
         
-        if (MenuButtonHovered(Menu, v2(Input->Mouse.X, Input->Mouse.Y)))
-            PlatformSetCursorMode(&Input->Mouse, platform_cursor_mode::Hand);
+        if (MenuButtonHovered(Menu, Controller->MouseCoords))
+            Menu->Events.CursorMode = platform_cursor_mode::Hand;
         else
-            PlatformSetCursorMode(&Input->Mouse, platform_cursor_mode::Arrow);
-    }
-    
-    //menu_component *ActiveTextBox = MenuTextBoxGetActive(Menu->TextBoxes);
-    menu_component *ActiveTextBox = Menu->ActiveComponents[Menu->ActiveIndex];
-    if (ActiveTextBox->Type == menu_component_type::TextBox)
-    {
-        for (int i = 0; i < 10; i++) {
-            if (OnKeyDown(&Input->Keyboard.Numbers[i]))
-                MenuTextBoxAddChar(ActiveTextBox, IntToString(i));
-        }
-        
-        if (KeyDown(&Input->Mouse.Left)) {
-            MenuTextBoxMouseMoveCursor(ActiveTextBox, MouseCoords);
-        }
-        
-        if (KeyPressed(&Input->Keyboard.Left, Input))
-            MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Left);
-        if (KeyPressed(&Input->Keyboard.Right, Input))
-            MenuTextBoxArrowKeysMoveCursor(ActiveTextBox, menu_direction::Right);
-        if (KeyDown(&Input->Keyboard.CtrlV))
-            MenuTextBoxReplaceText(ActiveTextBox, Input->Keyboard.Clipboard);
-        
-        if (KeyPressed(&Input->Keyboard.Backspace, Input))
-            MenuTextBoxRemoveChar(ActiveTextBox);
-        if (OnKeyDown(&Input->Keyboard.Period))
-            MenuTextBoxAddChar(ActiveTextBox, ".");
+            Menu->Events.CursorMode = platform_cursor_mode::Arrow;
     }
     
     return &Menu->Events;
@@ -1032,14 +1030,13 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                     TextBox->TextCoords.x -=  CursorPadding;
                 }
                 
-                
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
                 Push(v3(CursorX, MComp->Coords.y, 100.0f),
                      v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
             }
             
-            FontStringPrint(&TextBox->FontString, TextBox->TextCoords, MComp->Coords - Padding, MComp->Dim);
+            FontStringPrint(&TextBox->FontString, TextBox->TextCoords, MComp->Coords, MComp->Dim);
         }
         else if (MComp->Type == menu_component_type::Text) {
             menu_component_text *Text = (menu_component_text*)MComp->Data;
@@ -1462,12 +1459,13 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
 
 // Returns true if events should be processed
 internal bool
-DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets,
-       qlib_bool *EditMenu, pair_int_string *IDs, int NumOfIDs)
+DoMenu(menu *Menu, const char *FileName, 
+       platform *p, assets *Assets, 
+       pair_int_string *IDs, int NumOfIDs,
+       menu_controller *Controller)
 {
-    platform_keyboard_input *Keyboard = &p->Input.Keyboard;
-    if (OnKeyDown(&Keyboard->F6))
-        Toggle(EditMenu);
+    if (!Controller->MouseControls && OnKeyDown(Controller->Edit))
+        Toggle(&Menu->Edit);
     
     if (!Menu->Initialized)
     {
@@ -1481,7 +1479,7 @@ DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets,
         //MenuSortActiveComponents(Menu);
     }
     
-    if (EditMenu->Value)
+    if (QlibBoolTrue(&Menu->Edit))
     {
         font_string EditMenuString = {};
         const char* EM = "Edit Menu";
@@ -1499,7 +1497,9 @@ DoMenu(menu *Menu, const char *FileName, platform *p, assets *Assets,
     }
     else
     {
-        HandleMenuEvents(Menu, &p->Input);
+        HandleMenuEvents(Menu, Controller);
+        
+        PlatformSetCursorMode(&p->Input.Mouse, Menu->Events.CursorMode);
         
         if (Menu->ScreenDim != GetDim(p)) 
             UpdateMenu(Menu, GetDim(p), Assets);

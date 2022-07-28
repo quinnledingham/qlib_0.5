@@ -133,6 +133,7 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 #include "text.cpp"
 #include "audio.cpp"
 #include "renderer.cpp"
+#include "platform.cpp"
 #include "menu.h"
 void UpdateRender(platform* p);
 
