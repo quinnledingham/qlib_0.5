@@ -402,10 +402,10 @@ OpenGLRectInit(open_gl_rect *OpenGLRect)
     position.push_back(v3(-1.0f, 0, 0));
     position.push_back(v3(-1.0f, -1.0f, 0));
 */
-    position.push_back(v3(-1.0f, -1.0f, 0));
-    position.push_back(v3(-1.0f, 0, 0));
-    position.push_back(v3(0, -1.0f, 0));
-    position.push_back(v3(0, 0, 0));
+    position.push_back(v3(1.0f, 1.0f, 0.0f));
+    position.push_back(v3(1.0f, 0.0f, 0.0f));
+    position.push_back(v3(0.0f, 0.0f, 0.0f));
+    position.push_back(v3(0.0f, 1.0f, 0.0f));
     
     AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
     
@@ -416,11 +416,10 @@ OpenGLRectInit(open_gl_rect *OpenGLRect)
     
     AttributeInit(&OpenGLRect->VertexTexCoords);
     DynArray<v2> uvs = {};
-    
     uvs.push_back(v2(1, 1));
     uvs.push_back(v2(1, 0));
-    uvs.push_back(v2(0, 1));
     uvs.push_back(v2(0, 0));
+    uvs.push_back(v2(0, 1));
     
     AttributeSet(&OpenGLRect->VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
     
@@ -430,7 +429,7 @@ OpenGLRectInit(open_gl_rect *OpenGLRect)
     indices.push_back(1);
     indices.push_back(2);
     indices.push_back(2);
-    indices.push_back(1);
+    indices.push_back(0);
     indices.push_back(3);
     IndexBufferSet(&OpenGLRect->IndexBuffer, indices);
 }
@@ -506,7 +505,7 @@ void BeginRenderer(camera *C)
 
 void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, real32 Rotation)
 {
-    mat4 Model = TransformToMat4(Transform(v3(-Coords.x, -Coords.y, Coords.z), 
+    mat4 Model = TransformToMat4(Transform(v3(Coords.x, Coords.y, Coords.z), 
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), 
                                            v3(Size.x, Size.y, 1)));
     
