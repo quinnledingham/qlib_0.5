@@ -392,22 +392,33 @@ struct open_gl_rect
 };
 
 internal void
+OpenGLRectCenter(open_gl_rect *OpenGLRect)
+{
+    DynArray<v3> position = {};
+    position.push_back(v3(-0.5f, -0.5f, 0.0f)); // 0
+    position.push_back(v3(0.5f, -0.5f, 0.0f)); // 1
+    position.push_back(v3(0.5f, 0.5f, 0.0f)); // 2
+    position.push_back(v3(-0.5f, 0.5f, 0.0f)); // 3
+    AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
+}
+
+internal void
+OpenGLRectTopRight(open_gl_rect *OpenGLRect)
+{
+    DynArray<v3> position = {};
+    position.push_back(v3(0.0f, -1.0f, 0.0f));
+    position.push_back(v3(1.0f, -1.0f, 0.0f));
+    position.push_back(v3(1.0f, 0.0f, 0.0f));
+    position.push_back(v3(0.0f, 0.0f, 0.0f));
+    AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
+}
+
+internal void
 OpenGLRectInit(open_gl_rect *OpenGLRect)
 {
     AttributeInit(&OpenGLRect->VertexPositions);
-    DynArray<v3> position = {};
-    /*
-    position.push_back(v3(0, 0, 0));
-    position.push_back(v3(0, -1.0f, 0));
-    position.push_back(v3(-1.0f, 0, 0));
-    position.push_back(v3(-1.0f, -1.0f, 0));
-*/
-    position.push_back(v3(1.0f, 1.0f, 0.0f));
-    position.push_back(v3(1.0f, 0.0f, 0.0f));
-    position.push_back(v3(0.0f, 0.0f, 0.0f));
-    position.push_back(v3(0.0f, 1.0f, 0.0f));
-    
-    AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
+    //OpenGLRectCenter(OpenGLRect);
+    OpenGLRectTopRight(OpenGLRect);
     
     AttributeInit(&OpenGLRect->VertexNormals);
     DynArray<v3> normals = {};
@@ -416,20 +427,21 @@ OpenGLRectInit(open_gl_rect *OpenGLRect)
     
     AttributeInit(&OpenGLRect->VertexTexCoords);
     DynArray<v2> uvs = {};
+    uvs.push_back(v2(0, 1));
     uvs.push_back(v2(1, 1));
     uvs.push_back(v2(1, 0));
     uvs.push_back(v2(0, 0));
-    uvs.push_back(v2(0, 1));
-    
     AttributeSet(&OpenGLRect->VertexTexCoords, uvs.GetData(), sizeof(v2), uvs.GetSize());
     
+    // Here is where the direction of the triangle is defined.
+    // Counter clockwise definition of vertexes makes it face forward.
     IndexBufferInit(&OpenGLRect->IndexBuffer);
     DynArray<u32> indices = {};
     indices.push_back(0);
     indices.push_back(1);
     indices.push_back(2);
-    indices.push_back(2);
     indices.push_back(0);
+    indices.push_back(2);
     indices.push_back(3);
     IndexBufferSet(&OpenGLRect->IndexBuffer, indices);
 }
@@ -491,6 +503,8 @@ void BeginRenderer(camera *C)
         
         C->OpenGLInitialized = true;
     }
+    else
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #else
     ClearScreen();
 #endif
@@ -505,9 +519,12 @@ void BeginRenderer(camera *C)
 
 void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, real32 Rotation)
 {
+    
     mat4 Model = TransformToMat4(Transform(v3(Coords.x, Coords.y, Coords.z), 
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), 
                                            v3(Size.x, Size.y, 1)));
+    
+    //mat4 Model = QuatToMat4(AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)));
     
     UniformSet(mat4, ShaderGetUniform(Shader, "model"), Model);
     UniformSet(mat4, ShaderGetUniform(Shader, "view"), Camera->View);

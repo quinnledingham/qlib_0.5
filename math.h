@@ -111,14 +111,12 @@ absol(real32 r)
 // v3 Operations
 v4 u32toV4(uint32 input)
 {
-    //uint8 *C = (uint8*)malloc(sizeof(uint32));
-    //memcpy(C, &input, sizeof(uint32));
-    uint8 *C = (uint8*)&input;
-    uint32 B = *C++;
-    uint32 G = *C++;
-    uint32 R = *C++;
-    real32 A = *C++;
-    return v4(real32(R), real32(G), real32(B), A);
+    uint8 A = uint8(input >> 24);
+    uint8 B = uint8(input >> 16);
+    uint8 G = uint8(input >> 8);
+    uint8 R = uint8(input);
+    
+    return v4(real32(R), real32(G), real32(B), real32(A));
 }
 
 v3 u32toV3(uint32 input)
@@ -589,8 +587,7 @@ mat4 LookAt(const v3& position, const v3& target, const v3& up)
     }
     Normalize(r);
     v3 u = Normalized(Cross(f, r)); // Right handed
-    v3 t = v3(
-              -Dot(r, position),
+    v3 t = v3(-Dot(r, position),
               -Dot(u, position),
               -Dot(f, position)
               );
@@ -977,8 +974,7 @@ mat4 TransformToMat4(const Transform& t)
     v3 p = t.Position;
     
     // Create matrix
-    return mat4(
-                x.x, x.y, x.z, 0, // X basis (& Scale)
+    return mat4(x.x, x.y, x.z, 0, // X basis (& Scale)
                 y.x, y.y, y.z, 0, // Y basis (& Scale)
                 z.x, z.y, z.z, 0, // Z basis (& Scale)
                 p.x, p.y, p.z, 1 // Position
