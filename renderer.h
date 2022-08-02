@@ -43,7 +43,7 @@ enum struct render_blend_mode
 };
 typedef render_blend_mode blend_mode;
 
-enum struct render_coord_mode
+enum struct render_coord_system
 {
     /*
 (0, 0) = center of screen
@@ -54,7 +54,7 @@ down = -y
 towards camera = +z
 away from camera = -z
 */
-    coord_center, 
+    center, 
     
     /*
 (0, 0) = top right of screen
@@ -63,7 +63,7 @@ left = -x
 up = -y
 down = +y
 */
-    coord_top_right,
+    top_right,
 };
 
 struct render_camera
@@ -85,7 +85,7 @@ struct render_camera
     iv2 PlatformDim;
     iv2 WindowDim;
     
-    render_coord_mode CoordSystem;
+    render_coord_system CoordSystem;
 } typedef camera;
 
 enum struct render_piece_type
@@ -204,6 +204,14 @@ RenderPieceGroup(render_camera *Camera, assets *Assets)
     
     for (uint32 i = 0; i < Group.Size; i++) {
         render_piece *p = Group[i];
+        
+#if QLIB_OPENGL
+        if (p->BlendMode == render_blend_mode::gl_one)
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        else if (p->BlendMode == render_blend_mode::gl_src_alpha)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#endif
+        
         if (p->Type == render_piece_type::bitmap_id_rect)
             DrawRect(Camera, Assets, p->Coords, p->Dim, p->BitmapID, p->Rotation, p->BlendMode);
         else if (p->Type == render_piece_type::bitmap_rect)
@@ -214,6 +222,10 @@ RenderPieceGroup(render_camera *Camera, assets *Assets)
     
     ClearPieceGroup(&Group);
 }
+
+global_variable render_coord_system CoordSystem;
+#define QLIB_TOP_RIGHT render_coord_system::top_right
+#define qlibCoordSystem(i) (CoordSystem = i)
 
 //
 // Animation

@@ -964,6 +964,8 @@ inline void UpdateMenu(menu *Menu, v2 BufferDim, assets *Assets)
 internal void
 DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
 {
+    qlibCoordSystem(QLIB_TOP_RIGHT);
+    
     for (int i = 0; i < Menu->NumOfComponents; i++) {
         menu_component *MComp = &Menu->Components[i];
         v2 Padding = (MComp->Dim - MComp->PaddingDim)/2;

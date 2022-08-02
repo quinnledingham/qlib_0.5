@@ -40,6 +40,15 @@ SDLGetSeconds(uint32 *LastTicksCount)
     return ret; 
 }
 
+internal real32
+SDLGetMilliseconds(uint32 *LastTicksCount)
+{
+    uint32 CurrentTicksCount = SDL_GetTicks();
+    real32 ret = (real32)(CurrentTicksCount - *LastTicksCount);
+    *LastTicksCount = CurrentTicksCount;
+    return ret; 
+}
+
 internal void
 SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
 {
@@ -205,6 +214,7 @@ bool MainLoop()
                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
     
     SDL.Context = SDL_GL_CreateContext(SDL.Window);
+    SDL_GL_SetSwapInterval(0);
     
     // Check OpenGL properties
     printf("\nOpenGL loaded\n");
@@ -215,8 +225,6 @@ bool MainLoop()
     
     glGenVertexArrays(1, &gVertexArrayObject);
     glBindVertexArray(gVertexArrayObject);
-    
-    SDL_GL_SetSwapInterval(0);
     
 #else // QLIB_OPENGL
     SDL.Renderer = SDL_CreateRenderer(SDL.Window, -1,
@@ -237,6 +245,7 @@ bool MainLoop()
     Manager.Start = Manager.Next;
     
     uint32 LastFrameTicks = 0;
+    uint32 LastFrameTicksMilli = 0;
     uint32 LastAudioTicks = 0;
     
     GlobalRunning = true;
@@ -245,7 +254,8 @@ bool MainLoop()
         SDLProcessPendingEvents(GetDim(&p), &p.Input);
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
         
-        p.Input.WorkSecondsElapsed = SDLGetSeconds(&LastFrameTicks);
+        p.Input.MillisecondsElapsed = SDLGetMilliseconds(&LastFrameTicksMilli);
+        p.Input.WorkSecondsElapsed = p.Input.MillisecondsElapsed / 1000;
         
         UpdateRender(&p);
         

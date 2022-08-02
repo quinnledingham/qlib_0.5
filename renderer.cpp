@@ -496,15 +496,14 @@ void BeginRenderer(camera *C)
         glBindVertexArray(gVertexArrayObject);
         
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         C->OpenGLInitialized = true;
     }
-    else
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 #else
     ClearScreen();
 #endif
@@ -543,11 +542,9 @@ void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, 
 void
 DrawRect(render_camera *Camera, v3 Coords, v2 Size, uint32 color, real32 Rotation)
 {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     ShaderBind(&BasicShader);
     
     v4 c = u32toV4(color);
-    c = v4(c.x/255, c.y/255, c.z/255, c.w/255);
     UniformSet(v4, ShaderGetUniform(&BasicShader, "my_color"), c);
     
     DrawRect(Camera, &BasicShader, Coords, Size, Rotation);
@@ -564,11 +561,6 @@ DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 Scissor
                   (GLint)ScissorDim.x, (GLint)ScissorDim.y);
         glEnable(GL_SCISSOR_TEST);
     }
-    
-    if (BlendMode == render_blend_mode::gl_one)
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    else if (BlendMode == render_blend_mode::gl_src_alpha)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
     ShaderBind(&StaticShader);
     
@@ -904,11 +896,11 @@ TrackGetSize(track<T, N> *Track)
 //
 
 internal void
-DrawFPS(real32 Seconds, v2 ScreenDim, font *Font)
+DrawFPS(real32 Milliseconds, v2 ScreenDim, font *Font)
 {
     real32 fps = 0;
-    if (Seconds != 0) {
-        fps= 1 / Seconds;
+    if (Milliseconds != 0) {
+        fps = (1 / Milliseconds) * 1000;
         strinq FPS = S() + (int)fps;
         
         font_string FontString = {};

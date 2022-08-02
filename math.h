@@ -654,7 +654,7 @@ quat FromTo(const v3& from, const v3& to)
             ortho = v3(0, 0, 1); 
         }
         v3 axis = Normalized(Cross(f, ortho));
-        return quat(axis.x, axis.y, axis.z, 0);
+        return quat(axis.x, axis.y, axis.z, 0.0f);
     }
     v3 half = Normalized(f + t);
     v3 axis = Cross(f, half);

@@ -143,6 +143,11 @@ struct v4
             real32 z;
             real32 w;
         };
+        struct
+        {
+            v3 vector;
+            real32 scalar;
+        };
         real32 v[4];
     };
     inline v4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
@@ -235,6 +240,7 @@ struct mat4
     tx(_30), ty(_31), tz(_32), tw(_33) { }
 };
 
+// quat == v4 except for the default constructor
 struct quat
 {
     union

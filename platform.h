@@ -211,6 +211,7 @@ struct
 platform_input
 {
     real32 WorkSecondsElapsed;
+    real32 MillisecondsElapsed;
     real32 TriggerCount;
     arr ButtonsToClear;
     
