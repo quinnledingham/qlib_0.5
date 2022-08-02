@@ -112,9 +112,9 @@ absol(real32 r)
 v4 u32toV4(uint32 input)
 {
     uint8 A = uint8(input >> 24);
-    uint8 B = uint8(input >> 16);
+    uint8 R = uint8(input >> 16);
     uint8 G = uint8(input >> 8);
-    uint8 R = uint8(input);
+    uint8 B = uint8(input);
     
     return v4(real32(R), real32(G), real32(B), real32(A));
 }

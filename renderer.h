@@ -43,23 +43,49 @@ enum struct render_blend_mode
 };
 typedef render_blend_mode blend_mode;
 
+enum struct render_coord_mode
+{
+    /*
+(0, 0) = center of screen
+right = +x
+left = -x
+up = +y
+down = -y
+towards camera = +z
+away from camera = -z
+*/
+    coord_center, 
+    
+    /*
+(0, 0) = top right of screen
+right = +x
+left = -x
+up = -y
+down = +y
+*/
+    coord_top_right,
+};
 
 struct render_camera
 {
-    bool32 Mode3D;
-    bool32 OpenGLInitialized;
-    
+    // Camera Attributes
     v3 Position;
     v3 Target;
     v3 Up;
     real32 inAspectRatio;
     real32 FOV;
     
+    // OpenGL Info
+    bool32 Mode3D;
+    bool32 OpenGLInitialized;
+    
     mat4 Projection;
     mat4 View;
     
     iv2 PlatformDim;
     iv2 WindowDim;
+    
+    render_coord_mode CoordSystem;
 } typedef camera;
 
 enum struct render_piece_type

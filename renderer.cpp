@@ -519,12 +519,9 @@ void BeginRenderer(camera *C)
 
 void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, real32 Rotation)
 {
-    
-    mat4 Model = TransformToMat4(Transform(v3(Coords.x, Coords.y, Coords.z), 
+    mat4 Model = TransformToMat4(Transform(v3(Coords.x, -Coords.y, Coords.z), 
                                            AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), 
                                            v3(Size.x, Size.y, 1)));
-    
-    //mat4 Model = QuatToMat4(AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)));
     
     UniformSet(mat4, ShaderGetUniform(Shader, "model"), Model);
     UniformSet(mat4, ShaderGetUniform(Shader, "view"), Camera->View);
