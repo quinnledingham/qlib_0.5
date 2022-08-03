@@ -95,6 +95,14 @@ enum struct render_piece_type
     bitmap_id_rect
 };
 
+struct render_bitmap
+{
+    v2 ScissorCoords;
+    v2 ScissorDim;
+    loaded_bitmap *Bitmap;
+    bitmap_id BitmapID;
+};
+
 struct render_piece
 {
     render_piece_type Type;
@@ -103,11 +111,12 @@ struct render_piece
     v2 Dim;
     real32 Rotation;
     render_blend_mode BlendMode;
+    render_coord_system CoordSystem;
+    
+    uint32 Color;
     
     v2 ScissorCoords;
     v2 ScissorDim;
-    
-    uint32 Color;
     loaded_bitmap *Bitmap;
     bitmap_id BitmapID;
     
@@ -117,6 +126,7 @@ struct render_piece
                         v2 _Dim,
                         real32 _Rotation,
                         render_blend_mode _BlendMode,
+                        render_coord_system _CoordSystem,
                         v2 _ScissorCoords,
                         v2 _ScissorDim,
                         uint32 _Color,
@@ -127,6 +137,7 @@ struct render_piece
     Dim(_Dim),
     Rotation(_Rotation),
     BlendMode(_BlendMode),
+    CoordSystem(_CoordSystem),
     ScissorCoords(_ScissorCoords),
     ScissorDim(_ScissorDim),
     Color(_Color),
@@ -149,21 +160,53 @@ inline void Push(render_piece Piece)
 {
     *RPGroup[RPGroup.Size++] = Piece;
 }
-inline void Push(v3 Coords, v2 Dim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
-{
-    Push(render_piece(render_piece_type::bitmap_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, Bitmap, bitmap_id()));
-}
+
+global_variable render_blend_mode GlobalBlendMode;
+#define BLEND_MODE_GL_SRC_ALPHA render_blend_mode::gl_src_alpha
+#define BLEND_MODE_GL_ONE render_blend_mode::gl_one
+#define qlibBlendMode(i) (GlobalBlendMode = i)
+
+global_variable render_coord_system GlobalCoordSystem;
+#define QLIB_TOP_RIGHT render_coord_system::top_right
+#define QLIB_CENTER render_coord_system::center
+#define qlibCoordSystem(i) (GlobalCoordSystem = i)
+
+//bitmap_rect,
 inline void Push(v3 Coords, v2 Dim, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
 {
-    Push(render_piece(render_piece_type::bitmap_rect, Coords, Dim, Rotation, BlendMode, ScissorCoords, ScissorDim, 0, Bitmap, bitmap_id()));
+    Push(render_piece(render_piece_type::bitmap_rect, Coords, Dim, Rotation, BlendMode, GlobalCoordSystem, ScissorCoords, ScissorDim, 0, Bitmap, bitmap_id()));
 }
+inline void Push(v3 Coords, v2 Dim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
+{
+    Push(Coords, Dim, 0, 0, Bitmap, Rotation, BlendMode);
+}
+inline void Push(v3 Coords, v2 Dim, loaded_bitmap *Bitmap)
+{
+    Push(Coords, Dim, Bitmap, 0.0f, GlobalBlendMode);
+}
+
+//bitmap_id_rect
 inline void Push(v3 Coords, v2 Dim, bitmap_id BitmapID, real32 Rotation, render_blend_mode BlendMode)
 {
-    Push(render_piece(render_piece_type::bitmap_id_rect, Coords, Dim, Rotation, BlendMode, 0, 0, 0, 0, BitmapID));
+    Push(render_piece(render_piece_type::bitmap_id_rect, Coords, Dim, Rotation, BlendMode, GlobalCoordSystem, 0, 0, 0, 0, BitmapID));
 }
+inline void Push(v3 Coords, v2 Dim, bitmap_id BitmapID, real32 Rotation)
+{
+    Push(Coords, Dim, BitmapID, Rotation, GlobalBlendMode);
+}
+inline void Push(v3 Coords, v2 Dim, bitmap_id BitmapID)
+{
+    Push(Coords, Dim, BitmapID, 0.0f);
+}
+
+// color_rect,
 inline void Push(v3 Coords, v2 Dim, uint32 Color, real32 Rotation)
 {
-    Push(render_piece(render_piece_type::color_rect, Coords, Dim, Rotation, render_blend_mode::gl_one, 0, 0, Color, 0, bitmap_id()));
+    Push(render_piece(render_piece_type::color_rect, Coords, Dim, Rotation, render_blend_mode::gl_one, GlobalCoordSystem, 0, 0, Color, 0, bitmap_id()));
+}
+inline void Push(v3 Coords, v2 Dim, uint32 Color)
+{
+    Push(Coords, Dim, Color, 0.0f);
 }
 
 inline void ClearPieceGroup(render_piece_group *Group)
@@ -172,11 +215,10 @@ inline void ClearPieceGroup(render_piece_group *Group)
     Group->Size = 0;
 }
 
-void DrawRect(render_camera *Camera, int x, int y, int width, int height, uint32 color);
-void DrawRect(render_camera *Camera, v3 Coords, v2 Size, uint32 color, real32 Rotation);
-void DrawRect(render_camera *Camera, v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
-void DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode);
-void DrawRect(render_camera *Camera, assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode);
+void DrawRect(render_camera *Camera, render_piece *Piece, render_shader *Shader);
+void DrawRect(render_camera *Camera, render_piece *Piece);
+void DrawRect(render_camera *Camera, render_piece *Piece, loaded_bitmap *Bitmap);
+void DrawRect(render_camera *Camera, render_piece *Piece, assets *Assets);
 
 void BeginRenderer(camera *C);
 
@@ -212,20 +254,29 @@ RenderPieceGroup(render_camera *Camera, assets *Assets)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
         
+        p->Coords = p->Coords + v3(p->Dim.x/2, p->Dim.y/2, 0.0f);
+        
+        if (p->CoordSystem == render_coord_system::top_right)
+        {
+            v2 CoordsShift = v2(-(real32)Camera->WindowDim.x/2, -(real32)Camera->WindowDim.y/2);
+            p->Coords = p->Coords + v3(CoordsShift, 0);
+            p->Coords.y *= -1;
+        }
+        else if (p->CoordSystem == render_coord_system::center)
+        {
+            
+        }
+        
         if (p->Type == render_piece_type::bitmap_id_rect)
-            DrawRect(Camera, Assets, p->Coords, p->Dim, p->BitmapID, p->Rotation, p->BlendMode);
-        else if (p->Type == render_piece_type::bitmap_rect)
-            DrawRect(Camera, p->Coords, p->Dim, p->ScissorCoords, p->ScissorDim, p->Bitmap, p->Rotation, p->BlendMode);
+            DrawRect(Camera, p, Assets);
+        if (p->Type == render_piece_type::bitmap_rect)
+            DrawRect(Camera, p, p->Bitmap);
         else if (p->Type == render_piece_type::color_rect)
-            DrawRect(Camera, p->Coords, p->Dim, p->Color, p->Rotation);
+            DrawRect(Camera, p);
     }
     
     ClearPieceGroup(&Group);
 }
-
-global_variable render_coord_system CoordSystem;
-#define QLIB_TOP_RIGHT render_coord_system::top_right
-#define qlibCoordSystem(i) (CoordSystem = i)
 
 //
 // Animation

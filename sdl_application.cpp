@@ -129,8 +129,6 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
             {
                 Mouse->X = Event.motion.x;
                 Mouse->Y = Event.motion.y;
-                Mouse->X -= (PlatformDim.Width / 2);
-                Mouse->Y -= (PlatformDim.Height / 2);
                 Input->ActiveInput = platform_input_index::mouse;
             } break;
             

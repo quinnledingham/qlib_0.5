@@ -24,6 +24,12 @@ operator+(const v2 &l, const v2 &r)
 }
 
 inline v2
+operator+=(const v2 &l, const v2& r)
+{
+    return v2(l.x + r.x, l.y + r.y);
+}
+
+inline v2
 operator-(const v2 &l, const v2 &r)
 {
     return v2(l.x - r.x, l.y - r.y);
@@ -56,6 +62,12 @@ operator/(const v2 &l, float r)
 
 inline v2
 operator/(const v2 &l, const v2 &r)
+{
+    return v2(l.x / r.x, l.y / r.y);
+}
+
+inline v2
+operator/(const iv2 &l, const v2 &r)
 {
     return v2(l.x / r.x, l.y / r.y);
 }
@@ -128,6 +140,12 @@ v3 u32toV3(uint32 input)
 // Vector Addition
 inline v3
 operator+(const v3 &l, const v3 &r)
+{
+    return v3(l.x + r.x, l.y + r.y, l.z + r.z);
+}
+
+inline v3
+operator+=(const v3 &l, const v3 &r)
 {
     return v3(l.x + r.x, l.y + r.y, l.z + r.z);
 }

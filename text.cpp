@@ -516,7 +516,7 @@ FontStringPrint(font_string *FontString, v2 Coords, v2 ScissorCoords, v2 Scissor
         
         v2 Scissor = v2(ScissorCoords.x, ScissorCoords.y + ScissorDim.y);
         
-        Push(v3(X, Y, 100.0f), v2((real32)NextChar->Bitmap.Width, (real32)NextChar->Bitmap.Height), 
+        Push(v3(X, Y, 100.0f), v2((real32)NextChar->Bitmap.Width, (real32)NextChar->Bitmap.Height),
              Scissor, ScissorDim, &NextChar->Bitmap, 0, blend_mode::gl_src_alpha);
         
         XCoord += FontString->Advances[i];

@@ -257,6 +257,26 @@ struct v2_string
     };
 };
 
+//
+//  Menu Tags
+//
+
+struct menu_tag
+{
+    u32 id;
+    char *string;
+};
+
+struct menu_tags
+{
+    u32 NumOfTags;
+    menu_tag Tags[10];
+};
+
+
+
+// End of tags
+
 inline bool CoordsInRect( v2 Coords, v2 RectCoords, v2 RectDim)
 {
     if (RectCoords.x < Coords.x && Coords.x < (RectCoords.x + RectDim.x) &&
@@ -670,7 +690,9 @@ MenuAddCheckBox(menu *Menu, int ID, v2 GridCoords, v2 Dim, menu_component_checkb
 internal bool
 MenuMenuClicked(menu *Menu, v2 MouseCoords)
 {
-    if (CoordsInRect(MouseCoords, Menu->Coords - (Menu->Dim/2 + Menu->Padding), Menu->Dim + (Menu->Padding * 2))) 
+    if (CoordsInRect(MouseCoords, 
+                     Menu->Coords - (Menu->Dim/2 + Menu->Padding) + (Menu->ScreenDim/2),
+                     Menu->Dim + (Menu->Padding * 2))) 
         return true;
     return false;
 }
@@ -840,7 +862,6 @@ HandleMenuEvents(menu *Menu, menu_controller *Controller)
         {
             if (KeyDown(Controller->Enter))
                 MenuTextBoxMouseMoveCursor(ActiveTextBox, Controller->MouseCoords);
-            
         }
         
         if (KeyDown(Controller->Enter)) {
@@ -935,7 +956,7 @@ UpdateMenu(menu *Menu)
         menu_grid_row *R = &Menu->Rows[(int)C->GridCoords.y];
         
         // Calculate column location to center
-        C->DefaultCoords.x = (-R->Dim.x)/2;
+        C->DefaultCoords.x = (-R->Dim.x)/2 + (Menu->ScreenDim.x/2);
         for (int  i = 0; i < C->GridCoords.x; i++)
             C->DefaultCoords.x += Menu->Rows[(int)C->GridCoords.y].MenuGridColumnWidth[i];
         
@@ -945,7 +966,7 @@ UpdateMenu(menu *Menu)
             Menu->DefaultCoords.x = C->DefaultCoords.x - (Menu->Padding);
         }
         // Calculate row location to center
-        C->DefaultCoords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2);
+        C->DefaultCoords.y = ((-Menu->Dim.y)/2) + ((R->Dim.y - C->PaddingDim.y)/2) + (Menu->ScreenDim.y/2);
         for (int i = 0; i < C->GridCoords.y; i++) {
             menu_grid_row* tempR = &Menu->Rows[i];
             C->DefaultCoords.y += tempR->Dim.y;
@@ -965,6 +986,7 @@ internal void
 DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
 {
     qlibCoordSystem(QLIB_TOP_RIGHT);
+    qlibBlendMode(BLEND_MODE_GL_SRC_ALPHA);
     
     for (int i = 0; i < Menu->NumOfComponents; i++) {
         menu_component *MComp = &Menu->Components[i];
@@ -988,13 +1010,13 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
             v2 SDim = FontStringGetDim(&Button->FontString);
             v2 TextCoords = CompCoords + ((MComp->Dim - SDim)/2);
             
-            Push(v3(CompCoords, Z), MComp->Dim, Button->CurrentColor, 0.0f);
+            Push(v3(CompCoords, Z), MComp->Dim, Button->CurrentColor);
             FontStringPrint(&Button->FontString, TextCoords);
             
         }
         else if (MComp->Type == menu_component_type::TextBox) {
             menu_component_textbox *TextBox = (menu_component_textbox*)MComp->Data;
-            Push(v3(CompCoords, 50.0f), MComp->Dim, TextBox->CurrentColor, 0.0f);
+            Push(v3(CompCoords, 50.0f), MComp->Dim, TextBox->CurrentColor);
             
             if (MComp->Active) {
                 v2 SDim = FontStringGetDim(&TextBox->FontString);
@@ -1024,7 +1046,6 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                     TextBox->PaddingRight = false;
                 }
                 
-                
                 if (!TextBox->PaddingRight) {
                     TextBox->TextCoords.x +=  CursorPadding;
                 }
@@ -1034,11 +1055,11 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 
                 TextBox->TextCoords.x -= TextBox->DisplayLeft;
                 CursorX += TextBox->TextCoords.x;
-                Push(v3(CursorX, MComp->Coords.y, 100.0f),
-                     v2(5.0f, MComp->Dim.y), 0xFF000000, 0.0f);
+                Push(v3(CursorX, MComp->Coords.y, 100.0f), v2(5.0f, MComp->Dim.y), 0xFF000000);
             }
             
             FontStringPrint(&TextBox->FontString, TextBox->TextCoords, MComp->Coords, MComp->Dim);
+            //FontStringPrint(&TextBox->FontString, TextBox->TextCoords);
         }
         else if (MComp->Type == menu_component_type::Text) {
             menu_component_text *Text = (menu_component_text*)MComp->Data;
@@ -1049,7 +1070,7 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         }
         else if (MComp->Type == menu_component_type::Logo) {
             menu_component_logo *Logo = (menu_component_logo*)MComp->Data;
-            Push(v3(CompCoords, 100.0f), MComp->Dim, Logo->Regular, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, Logo->Regular);
         }
         else if (MComp->Type == menu_component_type::CheckBox) {
             menu_component_checkbox *CheckBox = (menu_component_checkbox*)MComp->Data;
@@ -1071,12 +1092,12 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
                 CheckBox->CurrentTexture = CheckBox->DefaultTexture;
             }
             
-            Push(v3(CompCoords, 100.0f), MComp->Dim, CheckBox->CurrentTexture, 0.0f, blend_mode::gl_src_alpha);
+            Push(v3(CompCoords, 100.0f), MComp->Dim, CheckBox->CurrentTexture);
         }
     }
     
     if (Menu->BackgroundBitmap.id == 0)
-        Push(v3(Menu->Coords - (Menu->Dim/2 + Menu->Padding), 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor, 0.0f);
+        Push(v3(Menu->Coords - (Menu->Dim/2 + Menu->Padding) + (Menu->ScreenDim/2), 50.0f), Menu->Dim + (Menu->Padding * 2), Menu->BackgroundColor);
     else {
         v2 BackgroundCoords = TopLeftCornerCoords - 5;
         v2 BackgroundDim = 0;
@@ -1087,8 +1108,10 @@ DrawMenu(menu *Menu, v2 TopLeftCornerCoords, v2 PlatformDim, real32 Z)
         
         BackgroundCoords.y -= ((BackgroundDim.y - (PlatformDim.y + 5)) / 2);
         
-        Push(v3(BackgroundCoords, 0.0f), BackgroundDim, Menu->BackgroundBitmap, 0, blend_mode::gl_src_alpha);
+        Push(v3(BackgroundCoords, 0.0f), BackgroundDim, Menu->BackgroundBitmap);
     }
+    
+    qlibCoordSystem(QLIB_CENTER);
 }
 inline void DrawMenu(menu *Menu, real32 Z) { DrawMenu(Menu, 0,0, Z); }
 
@@ -1475,7 +1498,8 @@ DoMenu(menu *Menu, const char *FileName,
         ReadMenuFromFile(Menu, FileName, Assets, IDs, NumOfIDs);
         MenuSortActiveComponents(Menu);
     }
-    else if (Menu->Reset) {
+    else if (Menu->Reset)
+    {
         PlatformSetCursorMode(&p->Input.Mouse, platform_cursor_mode::Arrow);
         MenuReset(Menu);
         //MenuSortActiveComponents(Menu);

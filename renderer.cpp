@@ -417,8 +417,8 @@ internal void
 OpenGLRectInit(open_gl_rect *OpenGLRect)
 {
     AttributeInit(&OpenGLRect->VertexPositions);
-    //OpenGLRectCenter(OpenGLRect);
-    OpenGLRectTopRight(OpenGLRect);
+    OpenGLRectCenter(OpenGLRect);
+    //OpenGLRectTopRight(OpenGLRect);
     
     AttributeInit(&OpenGLRect->VertexNormals);
     DynArray<v3> normals = {};
@@ -516,11 +516,11 @@ void BeginRenderer(camera *C)
 
 #if QLIB_OPENGL
 
-void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, real32 Rotation)
+void DrawRect(render_camera *Camera, render_piece *Piece, render_shader *Shader)
 {
-    mat4 Model = TransformToMat4(Transform(v3(Coords.x, -Coords.y, Coords.z), 
-                                           AngleAxis(Rotation * DEG2RAD, v3(0, 0, 1)), 
-                                           v3(Size.x, Size.y, 1)));
+    mat4 Model = TransformToMat4(Transform(v3(Piece->Coords.x, Piece->Coords.y, Piece->Coords.z), 
+                                           AngleAxis(Piece->Rotation * DEG2RAD, v3(0, 0, 1)), 
+                                           v3(Piece->Dim.x, Piece->Dim.y, 1)));
     
     UniformSet(mat4, ShaderGetUniform(Shader, "model"), Model);
     UniformSet(mat4, ShaderGetUniform(Shader, "view"), Camera->View);
@@ -540,25 +540,26 @@ void DrawRect(render_camera *Camera, render_shader *Shader, v3 Coords, v2 Size, 
 }
 
 void
-DrawRect(render_camera *Camera, v3 Coords, v2 Size, uint32 color, real32 Rotation)
+DrawRect(render_camera *Camera, render_piece *Piece)
 {
     ShaderBind(&BasicShader);
     
-    v4 c = u32toV4(color);
+    v4 c = u32toV4(Piece->Color);
     UniformSet(v4, ShaderGetUniform(&BasicShader, "my_color"), c);
     
-    DrawRect(Camera, &BasicShader, Coords, Size, Rotation);
+    DrawRect(Camera, Piece, &BasicShader);
     
     ShaderUnBind(&BasicShader);
 }
 
 void
-DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 ScissorDim, loaded_bitmap *Bitmap, real32 Rotation, render_blend_mode BlendMode)
+DrawRect(render_camera *Camera, render_piece *Piece, loaded_bitmap *Bitmap)
 {
-    if (ScissorDim.x > 0 && ScissorDim.y > 0) {
-        glScissor((GLsizei)(ScissorCoords.x + (Camera->WindowDim.x/2)),
-                  (GLsizei)(-ScissorCoords.y + (Camera->WindowDim.y/2)), 
-                  (GLint)ScissorDim.x, (GLint)ScissorDim.y);
+    // Only works when coord system == top_right
+    if (Piece->ScissorDim.x > 0 && Piece->ScissorDim.y > 0) {
+        glScissor((GLsizei)(Piece->ScissorCoords.x), 
+                  (GLsizei)(Camera->WindowDim.y - Piece->ScissorCoords.y), 
+                  (GLint)Piece->ScissorDim.x, (GLint)Piece->ScissorDim.y);
         glEnable(GL_SCISSOR_TEST);
     }
     
@@ -572,7 +573,7 @@ DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 Scissor
     
     TextureSet(U32FromPointer(Bitmap->TextureHandle), ShaderGetUniform(&StaticShader, "tex0"), 0);
     
-    DrawRect(Camera, &StaticShader, Coords, Size, Rotation);
+    DrawRect(Camera, Piece, &StaticShader);
     
     TextureUnSet(0);
     
@@ -581,20 +582,15 @@ DrawRect(render_camera *Camera, v3 Coords, v2 Size, v2 ScissorCoords, v2 Scissor
     
     ShaderUnBind(&StaticShader);
     
-    if (ScissorDim.x > 0 && ScissorDim.y > 0)
+    if (Piece->ScissorDim.x > 0 && Piece->ScissorDim.y > 0)
         glDisable(GL_SCISSOR_TEST);
     
 }
 
-inline void DrawRect(render_camera *Camera, v3 Coords, v2 Size, loaded_bitmap *Bitmap, real32 Rotation, blend_mode BlendMode)
+inline void DrawRect(camera *Camera, render_piece *Piece, assets *Assets)
 {
-    DrawRect(Camera, Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
-}
-inline void DrawRect(render_camera *Camera, int x, int y, int width, int height, uint32 color)
-{
-    v3 Coords = v3((real32)x, (real32)y, 1);
-    v2 Size = v2((real32)width, (real32)height);
-    DrawRect(Camera, Coords, Size, color, 0);
+    loaded_bitmap *Bitmap = GetBitmap(Assets, Piece->BitmapID);
+    DrawRect(Camera, Piece, Bitmap);
 }
 
 #else // !QLIB_OPENGL
@@ -790,13 +786,6 @@ RenderBitmap(loaded_bitmap *Bitmap, real32 RealX, real32 RealY)
 }
 #endif
 
-inline void DrawRect(camera *Camera, assets *Assets, v3 Coords, v2 Size, bitmap_id BitmapID, real32 Rotation, blend_mode BlendMode)
-{
-    loaded_bitmap *Bitmap = GetBitmap(Assets, BitmapID);
-    DrawRect(Camera, Coords, Size, v2(0, 0), v2(0, 0), Bitmap, Rotation, BlendMode);
-}
-
-
 //
 // track
 //
@@ -898,6 +887,7 @@ TrackGetSize(track<T, N> *Track)
 internal void
 DrawFPS(real32 Milliseconds, v2 ScreenDim, font *Font)
 {
+    qlibCoordSystem(QLIB_TOP_RIGHT);
     real32 fps = 0;
     if (Milliseconds != 0) {
         fps = (1 / Milliseconds) * 1000;
@@ -906,6 +896,7 @@ DrawFPS(real32 Milliseconds, v2 ScreenDim, font *Font)
         font_string FontString = {};
         FontStringInit(&FontString, Font, FPS.Data, 50, 0xFF0000FF);
         v2 SDim = FontStringGetDim(&FontString);
-        FontStringPrint(&FontString, v2((ScreenDim.x/2)-(int)SDim.x-10, -ScreenDim.y/2 + 10));
+        FontStringPrint(&FontString, v2(ScreenDim.x- SDim.x- 10.0f, 10.0f));
     }
+    qlibCoordSystem(QLIB_CENTER);
 }
