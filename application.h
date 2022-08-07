@@ -74,7 +74,7 @@ inline void PlatformSetCD(const char* Dir) {}
 
 #include "sdl-vc/include/SDL.h"
 #include "sdl-vc/include/SDL_main.h"
-#include "sdl-vc/include/SDL_video.h"
+//#include "sdl-vc/include/SDL_video.h"
 //#include "sdl-vc/include/SDL_opengl.h"
 
 #include <stdio.h>

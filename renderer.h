@@ -95,28 +95,23 @@ enum struct render_piece_type
     bitmap_id_rect
 };
 
-struct render_bitmap
-{
-    v2 ScissorCoords;
-    v2 ScissorDim;
-    loaded_bitmap *Bitmap;
-    bitmap_id BitmapID;
-};
-
 struct render_piece
 {
     render_piece_type Type;
     
+    // General
     v3 Coords;
     v2 Dim;
     real32 Rotation;
     render_blend_mode BlendMode;
     render_coord_system CoordSystem;
-    
-    uint32 Color;
-    
     v2 ScissorCoords;
     v2 ScissorDim;
+    
+    // Color Rect
+    uint32 Color;
+    
+    // Bitmap Rect
     loaded_bitmap *Bitmap;
     bitmap_id BitmapID;
     
@@ -160,6 +155,7 @@ inline void Push(render_piece Piece)
 {
     *RPGroup[RPGroup.Size++] = Piece;
 }
+typedef render_piece_group render_group;
 
 global_variable render_blend_mode GlobalBlendMode;
 #define BLEND_MODE_GL_SRC_ALPHA render_blend_mode::gl_src_alpha

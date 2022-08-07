@@ -595,7 +595,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     WindowClass.cbWndExtra = 0;
     WindowClass.hInstance = hInstance;
     
-    HICON Icon = (HICON)LoadImage(hInstance, IconFileName, IMAGE_ICON, 100, 100, LR_LOADFROMFILE | LR_LOADTRANSPARENT);
+    HICON Icon = (HICON)LoadImage(hInstance, IconFileName, IMAGE_ICON, 50, 50, LR_LOADFROMFILE | LR_LOADTRANSPARENT);
     WindowClass.hIcon = Icon;
     WindowClass.hIconSm = Icon;
     

@@ -23,8 +23,8 @@ struct playing_sound
 struct audio_state
 {
     bool32 Initialized;
-    real32 *Channel0;
-    real32 *Channel1;
+    int16 *Channel0;
+    int16 *Channel1;
     
     uint32 NumOfSounds = 0;
     playing_sound PlayingSounds[10];
@@ -41,5 +41,7 @@ struct audio_state
 //internal void PlaySound(audio_state *AudioState, loaded_sound *LoadedSound);
 //internal void PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuffer);
 internal loaded_sound LoadWAV(const char *FileName);
+
+#define AUDIO_S16_BYTES 4
 
 #endif //AUDIO_H

@@ -11,6 +11,7 @@ struct MemoryManager
 {
     bool32 StartInitialized;
     char *Start;
+    uint32 BytesUsed; // bytes from start
     
     char* Next;
     
@@ -67,6 +68,10 @@ qalloc(void* newM, int size)
     //}
     //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
     //}
+    
+    Manager.BytesUsed += size;
+    Assert(Manager.BytesUsed < Permanent_Storage_Size);
+    
     return r;
 }
 
@@ -87,6 +92,10 @@ qalloc(int size)
     //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
     //}
     memset(r, 0, size);
+    
+    Manager.BytesUsed += size;
+    Assert(Manager.BytesUsed < Permanent_Storage_Size);
+    
     return r;
 }
 

@@ -57,24 +57,27 @@ ChangeVolume(audio_state *AudioState, playing_sound *Sound, real32 FadeDurationI
 internal void
 PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuffer)
 {
+    // Can't hold all the samples if the fps is too low
+    uint32 ChannelSize = SoundBuffer->MaxSampleCount * AUDIO_S16_BYTES;
+    
     if (!AudioState->Initialized) {
-        
-        AudioState->Channel0 = (real32*)qalloc(4000);
-        AudioState->Channel1 = (real32*)qalloc(4000);
+        SDL_Log("AudioState Channel Size: %d\n", ChannelSize);
+        AudioState->Channel0 = (int16*)qalloc(ChannelSize);
+        AudioState->Channel1 = (int16*)qalloc(ChannelSize);
         AudioState->Initialized = true;
     }
     
-    if (SoundBuffer->SampleCount > 1000|| SoundBuffer->SampleCount == 0)
+    // Don't write sound if the channels can't hold all of the samples
+    if (SoundBuffer->SampleCount > SoundBuffer->MaxSampleCount || SoundBuffer->SampleCount == 0)
         return;
-    //fprintf(stderr, "%d\n", SoundBuffer->SampleCount);
     
     {
-        real32 *Dest0 = AudioState->Channel0;
-        real32 *Dest1 = AudioState->Channel1;
-        for (int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
+        int16 *Dest0 = AudioState->Channel0;
+        int16 *Dest1 = AudioState->Channel1;
+        for (uint32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
         {
-            *Dest0++ = 0.0f;
-            *Dest1++ = 0.0f;
+            *Dest0++ = 0;
+            *Dest1++ = 0;
         }
     }
     
@@ -83,8 +86,8 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     v2 dVolume = SecondsPerSample * v2(0.0f, 0.0f);
     
     for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
-        real32 *Dest0 = AudioState->Channel0;
-        real32 *Dest1 = AudioState->Channel1;
+        int16 *Dest0 = AudioState->Channel0;
+        int16 *Dest1 = AudioState->Channel1;
         
         playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
         if (PlayingSound != 0)
@@ -98,9 +101,9 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
             for (uint32 SampleIndex = 0; SampleIndex < (uint32)SoundBuffer->SampleCount; ++SampleIndex)
             {
                 uint32 TestSoundSampleIndex = (PlayingSound->SamplesPlayed + SampleIndex) % LoadedSound->SampleCount;
-                real32 SampleValue = LoadedSound->Samples[0][TestSoundSampleIndex];
-                *Dest0++ += AudioState->MasterVolume.v[0] * Volume.v[0] * SampleValue;
-                *Dest1++ += AudioState->MasterVolume.v[1] * Volume.v[1] * SampleValue;
+                int16 SampleValue = LoadedSound->Samples[0][TestSoundSampleIndex];
+                *Dest0++ += (int16)(AudioState->MasterVolume.v[0] * Volume.v[0] * SampleValue);
+                *Dest1++ += (int16)(AudioState->MasterVolume.v[1] * Volume.v[1] * SampleValue);
                 
                 Volume = Volume + dVolume;
             }
@@ -115,8 +118,8 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     }
     // NOTE(casey): Convert to 16-bit
     {
-        real32 *Source0 = AudioState->Channel0;
-        real32 *Source1 = AudioState->Channel1;
+        int16 *Source0 = AudioState->Channel0;
+        int16 *Source1 = AudioState->Channel1;
         
         int16 *SampleOut = SoundBuffer->Samples;
         for (uint32 SampleIndex = 0; SampleIndex < (uint32)SoundBuffer->SampleCount; ++SampleIndex)
@@ -136,7 +139,7 @@ InitializeAudioState(audio_state *AudioState)
 }
 
 //
-// Loading WAV Files
+// Loading WAV Files from Handemade Hero
 //
 
 struct WAVE_header
@@ -259,7 +262,7 @@ LoadWAV(const char *FileName)
                     WAVE_fmt *fmt = (WAVE_fmt *)GetChunkData(Iter);
                     Assert(fmt->wFormatTag == 1); // NOTE(casey): Only support PCM
                     Assert(fmt->nSamplesPerSec == 48000);
-                    Assert(fmt->wBitsPerSample == 8);
+                    Assert(fmt->wBitsPerSample == 16);
                     Assert(fmt->nBlockAlign == (sizeof(int16)*fmt->nChannels));
                     ChannelCount = fmt->nChannels;
                 } break;
@@ -286,19 +289,7 @@ LoadWAV(const char *FileName)
             Result.Samples[0] = SampleData;
             Result.Samples[1] = SampleData + Result.SampleCount;
             
-#if 0
-            for(uint32 SampleIndex = 0;
-                SampleIndex < Result.SampleCount;
-                ++SampleIndex)
-            {
-                SampleData[2*SampleIndex + 0] = (int16)SampleIndex;
-                SampleData[2*SampleIndex + 1] = (int16)SampleIndex;
-            }
-#endif
-            
-            for(uint32 SampleIndex = 0;
-                SampleIndex < Result.SampleCount;
-                ++SampleIndex)
+            for(uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex)
             {
                 int16 Source = SampleData[2*SampleIndex];
                 SampleData[2*SampleIndex] = SampleData[SampleIndex];

@@ -31,8 +31,9 @@ platform_memory
 
 struct platform_sound_output_buffer
 {
-    int SamplesPerSecond;
-    int SampleCount;
+    uint32 SamplesPerSecond;
+    uint32 SampleCount;
+    uint32 MaxSampleCount;
     int16 *Samples;
 };
 

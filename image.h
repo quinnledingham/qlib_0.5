@@ -52,7 +52,7 @@ LoadBitmap2(const char *FileName)
     unsigned char* Data = stbi_load(FileName, &Bitmap.Width, &Bitmap.Height, &Bitmap.Channels, 0);
     Bitmap.Memory = (void*)Data;
     
-    Assert(Bitmap.Width != 0);
+    Assert(Data != 0);
     
     return Bitmap;
     //return (loaded_bitmap*)qalloc(&Bitmap, sizeof(loaded_bitmap));

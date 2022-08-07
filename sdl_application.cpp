@@ -184,15 +184,15 @@ bool MainLoop()
     
     
     SDL.AudioSpec.freq = 48000;
-    SDL.AudioSpec.format = AUDIO_S16;
+    SDL.AudioSpec.format = AUDIO_S16; // signed 16 bit (int16)
     SDL.AudioSpec.channels = 2;
-    SDL.AudioSpec.samples = 3999;
+    SDL.AudioSpec.samples = 4000; // 12 fps
     
     SDL.AudioDeviceID = SDL_OpenAudioDevice(NULL, 0, &SDL.AudioSpec, NULL, 0);
     SDL_PauseAudioDevice(SDL.AudioDeviceID, 0);
     
-    uint8 *Samples = (uint8*)SDL_malloc(SDL.AudioSpec.samples);
-    SDL_memset(Samples, 0, SDL.AudioSpec.samples);
+    int16 *Samples = (int16*)SDL_malloc(SDL.AudioSpec.samples * AUDIO_S16_BYTES);
+    SDL_memset(Samples, 0, SDL.AudioSpec.samples * AUDIO_S16_BYTES);
     
 #if QLIB_OPENGL
     SDL_GL_LoadLibrary(NULL);
@@ -210,6 +210,16 @@ bool MainLoop()
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                   SDLClientWidth, SDLClientHeight, 
                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    
+    loaded_bitmap IconBitmap = LoadBitmap2(IconFileName);
+    ResizeBitmap(&IconBitmap, v2(72, 72));
+    SDL_Surface* Icon = SDL_CreateRGBSurfaceWithFormatFrom(IconBitmap.Memory,
+                                                           IconBitmap.Width, 
+                                                           IconBitmap.Height,
+                                                           32, 
+                                                           4 * IconBitmap.Width,
+                                                           SDL_PIXELFORMAT_RGBA32);
+    SDL_SetWindowIcon(SDL.Window, Icon);
     
     SDL.Context = SDL_GL_CreateContext(SDL.Window);
     SDL_GL_SetSwapInterval(0);
@@ -294,14 +304,15 @@ bool MainLoop()
         else
             SoundBuffer.SampleCount = 0;
         
-        SoundBuffer.Samples = (int16*)Samples;
+        SoundBuffer.Samples = Samples;
+        SoundBuffer.MaxSampleCount = SDL.AudioSpec.samples;
         //SoundBuffer.SampleCount += 5;
         
         if (p.AudioState.Paused.Value)
             PlayLoadedSound(&p.AudioState, &SoundBuffer);
         
-        if (SoundBuffer.SampleCount * 4 < SDL.AudioSpec.samples)
-            int success = SDL_QueueAudio(SDL.AudioDeviceID, SoundBuffer.Samples, SoundBuffer.SampleCount * 4);
+        if (SoundBuffer.SampleCount < SDL.AudioSpec.samples)
+            int success = SDL_QueueAudio(SDL.AudioDeviceID, SoundBuffer.Samples, SoundBuffer.SampleCount * AUDIO_S16_BYTES);
         // End of Audio
         
         PlatformClearButtons(&p.Input, &p.Input.ButtonsToClear);

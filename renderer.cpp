@@ -279,7 +279,7 @@ inline void IndexBufferSet(render_index_buffer *IndexBuffer, DynArray<u32> &Inpu
 internal void
 TextureInitialization(void **Handle, loaded_bitmap *Source)
 {
-    Assert(Source->Width != 0 && Source->Height != 0);
+    Assert(Source->Memory != 0);
     
     glGenTextures(1, (u32*)Handle);
     glBindTexture(GL_TEXTURE_2D, (GLuint)U32FromPointer(*Handle));
@@ -399,7 +399,14 @@ OpenGLRectCenter(open_gl_rect *OpenGLRect)
     position.push_back(v3(0.5f, -0.5f, 0.0f)); // 1
     position.push_back(v3(0.5f, 0.5f, 0.0f)); // 2
     position.push_back(v3(-0.5f, 0.5f, 0.0f)); // 3
-    AttributeSet(&OpenGLRect->VertexPositions, position.GetData(), sizeof(v3), position.GetSize());
+    real32 position2[] = 
+    {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5, 0.0f,
+        0.5f, 0.5f, 0.0f,
+        -0.5f, 0.5f, 0.0f
+    };
+    AttributeSet(&OpenGLRect->VertexPositions, &position2, sizeof(v3), position.GetSize());
 }
 
 internal void
