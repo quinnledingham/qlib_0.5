@@ -27,6 +27,11 @@
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
 
+// Can only use when all of the types in the union are the same.
+// t is the type that is used for all elements of the union.
+// n is the name of the struct.
+#define UnionArray(t, n, s) t n[sizeof(s) / sizeof(t)]
+
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;

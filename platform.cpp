@@ -41,3 +41,22 @@ PlatformClearButtons(platform_input *Input, arr *ButtonsToClear)
     }
     ArrClear(ButtonsToClear, sizeof(platform_button_state*));
 }
+
+// https://stackoverflow.com/questions/1735236/how-to-write-my-own-printf-in-c
+void Log(char * fmt, ...)
+{
+    va_list arg;
+    va_start(arg, fmt);
+    
+    char *Traverse;
+    for (Traverse = fmt; *Traverse != '\0'; Traverse++)
+    {
+        
+    }
+    
+#ifdef QLIB_SDL
+    SDL_Log(fmt, arg);
+#endif
+    
+    va_end(arg);
+}

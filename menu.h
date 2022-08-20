@@ -196,11 +196,13 @@ struct menu_controller
     bool32 IgnoreInputs;
     bool32 MouseControls;
     platform_button_state *Enter;
+    platform_button_state *Edit;
     
     // Controller Controls
     platform_button_state *ForwardActive[2];
     platform_button_state *BackwardActive;
     
+    // Textbox Inputting
     platform_button_state *Left;
     platform_button_state *Right;
     platform_button_state *Backspace;
@@ -208,8 +210,6 @@ struct menu_controller
     platform_button_state *Numbers[10];
     platform_button_state *Paste;
     char *Clipboard;
-    
-    platform_button_state *Edit;
     
     // Mouse Controls
     v2 MouseCoords;

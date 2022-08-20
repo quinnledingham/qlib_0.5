@@ -160,12 +160,28 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
     }
 }
 
+inline bool32
+SDLProcessControllerMessage(platform_button_state *PlatformButton,
+                            uint8 IsDown,
+                            arr *ButtonsToClear)
+{
+    platform_button_message Msg =
+    {
+        IsDown,
+        PlatformButton->EndedDown,
+        ButtonsToClear,
+    };
+    
+    PlatformProcessKeyboardMessage(PlatformButton, Msg);
+    
+    return PlatformButton->EndedDown;
+}
+
 bool MainLoop()
 {
     PlatformSetCD(CurrentDirectory);
     
     sdl SDL = {};
-    
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO);
     
     // Scuffed way of setting screen size
@@ -256,18 +272,40 @@ bool MainLoop()
     uint32 LastFrameTicksMilli = 0;
     uint32 LastAudioTicks = 0;
     
+    SDL_Log("NumJoysticks %d: %s\n", SDL_NumJoysticks(), SDL_GetError());
+    
     GlobalRunning = true;
     while (GlobalRunning)
     {
         SDLProcessPendingEvents(GetDim(&p), &p.Input);
         SDL_GetWindowSize(SDL.Window, &p.Dimension.Width, &p.Dimension.Height);
         
+        // Controller Input
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            if (SDL_IsGameController(i)) {
+                SDL_GameController *SDLController = SDL_GameControllerOpen(i);
+                if (SDLController) {
+                    platform_controller_input *Controller = GetController(&p.Input, i);
+                    if (SDLProcessControllerMessage(&Controller->DPadUp, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_UP), &p.Input.ButtonsToClear) ||
+                        SDLProcessControllerMessage(&Controller->DPadDown, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_DOWN), &p.Input.ButtonsToClear) ||
+                        SDLProcessControllerMessage(&Controller->DPadLeft, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_LEFT), &p.Input.ButtonsToClear) || 
+                        SDLProcessControllerMessage(&Controller->DPadRight, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_RIGHT), &p.Input.ButtonsToClear) ||
+                        SDLProcessControllerMessage(&Controller->Start, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_START), &p.Input.ButtonsToClear) ||
+                        SDLProcessControllerMessage(&Controller->A, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_A), &p.Input.ButtonsToClear))
+                        p.Input.ActiveInput = platform_input_index::controller1;
+                }
+                else
+                    SDL_Log("Could not open GameController %i: %s\n", i, SDL_GetError());
+            }
+        }
+        // End of Controller Input
+        
         p.Input.MillisecondsElapsed = SDLGetMilliseconds(&LastFrameTicksMilli);
         p.Input.WorkSecondsElapsed = p.Input.MillisecondsElapsed / 1000;
         
         UpdateRender(&p);
         
-        if (p.Input.Quit) {
+        if (p.Quit) {
             GlobalRunning = false;
             continue;
         }
@@ -326,7 +364,7 @@ bool MainLoop()
     
     SDL_DestroyRenderer(SDL.Renderer);
     SDL_DestroyWindow(SDL.Window);
-    SDL_AudioQuit();
+    //SDL_AudioQuit();
     
     return false;
 }

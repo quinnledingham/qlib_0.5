@@ -901,9 +901,13 @@ DrawFPS(real32 Milliseconds, v2 ScreenDim, font *Font)
         strinq FPS = S() + (int)fps;
         
         font_string FontString = {};
-        FontStringInit(&FontString, Font, FPS.Data, 50, 0xFF0000FF);
+        FontStringInit(&FontString, Font, FPS.Data, 60, 0xFFFFFFFF);
         v2 SDim = FontStringGetDim(&FontString);
-        FontStringPrint(&FontString, v2(ScreenDim.x- SDim.x- 10.0f, 10.0f));
+        FontStringPrint(&FontString, v2(ScreenDim.x- SDim.x - 10.0f, 10.0f));
+        
+        Push(v3(ScreenDim.x - SDim.x - 15.0f, 5.0f, 99.0f), 
+             v2(SDim.x + 10.0f, SDim.y + 10.0f),
+             0xFF000000);
     }
     qlibCoordSystem(QLIB_CENTER);
 }

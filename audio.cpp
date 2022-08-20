@@ -1,40 +1,25 @@
-/*
-internal void
-OutputTestSineWave(game_state *GameState, platform_sound_output_buffer *SoundBuffer, int ToneHz)
-{
-    int16 ToneVolume = 3000;
-    int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;    
-    
-    int16 *SampleOut = SoundBuffer->Samples;
-    for(int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
-    {
-        // TODO(casey): Draw this out for people
-#if 1
-        real32 SineValue = sinf(GameState->tSine);
-        int16 SampleValue = (int16)(SineValue * ToneVolume);
-#else
-        int16 SampleValue = 0;
-#endif
-        *SampleOut++ = SampleValue;
-        *SampleOut++ = SampleValue;
-        
-#if 1
-        GameState->tSine += Tau32*1.0f/(real32)WavePeriod;
-        if(GameState->tSine > Tau32)
-        {
-            GameState->tSine -= Tau32;
-        }
-#endif
-    }
-}
-*/
-
 internal void
 PlaySound(audio_state *AudioState, sound_id LoadedSound)
 {
-    playing_sound *Sound = &AudioState->PlayingSounds[AudioState->NumOfSounds++];
+    if (AudioState->NumOfSounds > ArrayCount(AudioState->PlayingSounds)) {
+        Log("Error: Too Many Sounds");
+        return;
+    }
+    
+    AudioState->NumOfSounds++;
+    
+    playing_sound *Sound = 0;
+    for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
+        playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
+        if (!PlayingSound->Playing) {
+            Sound = PlayingSound;
+            break;
+        }
+    }
+    
+    Assert(Sound != 0);
     Sound->SamplesPlayed = 0;
-    // TODO(casey): Should these default to 0.5f/0.5f for centerred?
+    Sound->Playing = true;
     Sound->CurrentVolume = Sound->TargetVolume = v2(0.5f, 0.5f);
     Sound->LoadedSound = LoadedSound;
 }
@@ -61,7 +46,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     uint32 ChannelSize = SoundBuffer->MaxSampleCount * AUDIO_S16_BYTES;
     
     if (!AudioState->Initialized) {
-        SDL_Log("AudioState Channel Size: %d\n", ChannelSize);
+        //SDL_Log("AudioState Channel Size: %d\n", ChannelSize);
         AudioState->Channel0 = (int16*)qalloc(ChannelSize);
         AudioState->Channel1 = (int16*)qalloc(ChannelSize);
         AudioState->Initialized = true;
@@ -71,6 +56,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     if (SoundBuffer->SampleCount > SoundBuffer->MaxSampleCount || SoundBuffer->SampleCount == 0)
         return;
     
+    // Clearing mixing channels
     {
         int16 *Dest0 = AudioState->Channel0;
         int16 *Dest1 = AudioState->Channel1;
@@ -85,12 +71,13 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
     v2 dVolume = SecondsPerSample * v2(0.0f, 0.0f);
     
+    // Filling in mixing channels
     for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
         int16 *Dest0 = AudioState->Channel0;
         int16 *Dest1 = AudioState->Channel1;
         
         playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
-        if (PlayingSound != 0)
+        if (PlayingSound != 0 && PlayingSound->Playing)
         {
             loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound); 
             u32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
@@ -110,13 +97,14 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
             
             PlayingSound->SamplesPlayed += (uint32)SoundBuffer->SampleCount;
             
+            //Log("Sounds: %d\n", AudioState->NumOfSounds);
+            
             if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount)
-            {
-                AudioState->NumOfSounds--;
-            }
+                PlayingSound->Playing = false;
         }
     }
-    // NOTE(casey): Convert to 16-bit
+    
+    // Filling in buffer
     {
         int16 *Source0 = AudioState->Channel0;
         int16 *Source1 = AudioState->Channel1;
@@ -130,6 +118,11 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
             *SampleOut++ = (int16)(*Source1++ + 0.5f);
         }
     }
+    
+    // Adjusting NumOfSounds
+    playing_sound *Sound = &AudioState->PlayingSounds[AudioState->NumOfSounds - 1];
+    if (!Sound->Playing)
+        AudioState->NumOfSounds--;
 }
 
 internal void

@@ -99,32 +99,26 @@ struct platform_controller_input
     real32 StickAverageX;
     real32 StickAverageY;
     
-    bool32 IgnoreInputs;
-    
     union
     {
         platform_button_state Buttons[12];
-        struct
+        struct 
         {
-            platform_button_state MoveUp;
-            platform_button_state MoveDown;
-            platform_button_state MoveLeft;
-            platform_button_state MoveRight;
+            platform_button_state DPadUp;
+            platform_button_state DPadDown;
+            platform_button_state DPadLeft;
+            platform_button_state DPadRight;
             
-            platform_button_state ActionUp;
-            platform_button_state Enter;
-            platform_button_state ActionLeft;
-            platform_button_state ActionRight;
+            platform_button_state B;
+            platform_button_state Y;
+            platform_button_state X;
+            platform_button_state A;
             
             platform_button_state LeftShoulder;
             platform_button_state RightShoulder;
             
             platform_button_state Back;
             platform_button_state Start;
-            
-            // NOTE(casey): All buttons must be added above this line
-            
-            platform_button_state Terminator;
         };
     };
 };
@@ -213,26 +207,13 @@ platform_input
 {
     real32 WorkSecondsElapsed;
     real32 MillisecondsElapsed;
-    real32 TriggerCount;
-    arr ButtonsToClear;
     
     platform_input_index ActiveInput;
-    
     platform_keyboard_input Keyboard;
     platform_mouse_input Mouse;
     platform_controller_input Controllers[4];
     
-    union
-    {
-        platform_input_info InputInfo[2];
-        struct 
-        {
-            platform_input_info CurrentInputInfo;
-            platform_input_info PreviousInputInfo;
-        };
-    };
-    
-    int Quit;
+    arr ButtonsToClear;
 };
 inline platform_controller_input *GetController(platform_input *Input, int unsigned ControllerIndex)
 {
@@ -290,6 +271,8 @@ platform
     platform_work_queue Queue;
     
     audio_state AudioState;
+    
+    bool32 Quit;
 };
 inline v2 GetDim(platform *p)
 {
@@ -313,5 +296,7 @@ struct platform_debug_buffer
     //u32 Mutex;
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
+
+void Log(char * fmt, ...);
 
 #endif //PLATFORM_H

@@ -40,11 +40,6 @@ extern "C"
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
 inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
 
 #endif // _WIN32
@@ -57,9 +52,6 @@ inline void PlatformSetCD(const char* Dir) { SetCurrentDirectory(Dir); }
 #include <emscripten/html5.h>
 #include <emscripten/val.h>
 #include <emscripten/fetch.h>
-
-#include <stdio.h>
-#include <string.h>
 
 using emscripten::val;
 
@@ -77,13 +69,20 @@ inline void PlatformSetCD(const char* Dir) {}
 //#include "sdl-vc/include/SDL_video.h"
 //#include "sdl-vc/include/SDL_opengl.h"
 
-#include <stdio.h>
-#include <string.h>
+
 
 #pragma comment(linker, "/subsystem:console")
 #define main SDL_main
 
 #endif
+
+// C Libs
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>                      
 
 // Load OpenGL
 #ifdef QLIB_OPENGL
@@ -135,6 +134,7 @@ internal void TextureInit(loaded_bitmap *Bitmap);
 #include "renderer.cpp"
 #include "platform.cpp"
 #include "menu.h"
+#include "gui.h"
 void UpdateRender(platform* p);
 
 #endif // QLIB_WINDOW_APPLICATION

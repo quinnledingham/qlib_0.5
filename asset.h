@@ -92,6 +92,12 @@ GetFirstSound(assets *Assets, asset_type_id TypeID)
     return sound_id(Assets->AssetTypes[TypeID].FirstAssetIndex);
 }
 
+inline sound_id
+GetIndexSound(assets *Assets, asset_type_id TypeID, u32 Index)
+{
+    return sound_id(Assets->AssetTypes[TypeID].FirstAssetIndex + Index);
+}
+
 // font_id
 inline font_id 
 GetFirstFont(assets *Assets, asset_type_id TypeID)
