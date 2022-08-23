@@ -72,6 +72,8 @@ platform_cursor_mode
     Hand,
 };
 
+#define ButtonIndex(c, n) (int(&c.n - &c.Buttons[0]))
+
 struct
 platform_mouse_input
 {

@@ -8,6 +8,16 @@ struct sdl
     
     SDL_AudioSpec AudioSpec;
     SDL_AudioDeviceID AudioDeviceID;
+    
+    // Cursors
+    SDL_Cursor *CursorArrow;
+    SDL_Cursor *CursorHand;
+};
+
+struct sdl_controller_button
+{
+    int PlatformControllerButton;
+    SDL_GameControllerButton SDLControllerButton;
 };
 
 void
@@ -160,23 +170,6 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
     }
 }
 
-inline bool32
-SDLProcessControllerMessage(platform_button_state *PlatformButton,
-                            uint8 IsDown,
-                            arr *ButtonsToClear)
-{
-    platform_button_message Msg =
-    {
-        IsDown,
-        PlatformButton->EndedDown,
-        ButtonsToClear,
-    };
-    
-    PlatformProcessKeyboardMessage(PlatformButton, Msg);
-    
-    return PlatformButton->EndedDown;
-}
-
 bool MainLoop()
 {
     PlatformSetCD(CurrentDirectory);
@@ -184,6 +177,7 @@ bool MainLoop()
     sdl SDL = {};
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_AUDIO);
     
+    // Setting up SDL Window
     // Scuffed way of setting screen size
     SDL_DisplayMode DM;
     SDL_GetCurrentDisplayMode(0, &DM);
@@ -198,7 +192,18 @@ bool MainLoop()
     if (ClientWidth == 0) SDLClientWidth = SDLClientHeight;
     if (ClientHeight == 0) SDLClientHeight = SDLClientWidth;
     
+    SDL.Window = SDL_CreateWindow(WindowName, 
+                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+                                  SDLClientWidth, SDLClientHeight, 
+                                  SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+    loaded_bitmap IconBitmap = LoadBitmap2(IconFileName);
+    ResizeBitmap(&IconBitmap, v2(72, 72));
+    SDL_Surface* Icon = SDL_CreateRGBSurfaceWithFormatFrom(IconBitmap.Memory, IconBitmap.Width,  IconBitmap.Height, 
+                                                           32,  4 * IconBitmap.Width, SDL_PIXELFORMAT_RGBA32);
+    SDL_SetWindowIcon(SDL.Window, Icon);
+    // End of setting up SDL Window
     
+    // Setting up SDL Audio
     SDL.AudioSpec.freq = 48000;
     SDL.AudioSpec.format = AUDIO_S16; // signed 16 bit (int16)
     SDL.AudioSpec.channels = 2;
@@ -209,6 +214,12 @@ bool MainLoop()
     
     int16 *Samples = (int16*)SDL_malloc(SDL.AudioSpec.samples * AUDIO_S16_BYTES);
     SDL_memset(Samples, 0, SDL.AudioSpec.samples * AUDIO_S16_BYTES);
+    // End of setting up SDL audio
+    
+    // Setting up SDL Cursors
+    SDL.CursorArrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    SDL.CursorHand = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+    // End of settign up SDL Cursors
     
 #if QLIB_OPENGL
     SDL_GL_LoadLibrary(NULL);
@@ -221,21 +232,6 @@ bool MainLoop()
     // Also request a depth buffer
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    
-    SDL.Window = SDL_CreateWindow(WindowName, 
-                                  SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
-                                  SDLClientWidth, SDLClientHeight, 
-                                  SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-    
-    loaded_bitmap IconBitmap = LoadBitmap2(IconFileName);
-    ResizeBitmap(&IconBitmap, v2(72, 72));
-    SDL_Surface* Icon = SDL_CreateRGBSurfaceWithFormatFrom(IconBitmap.Memory,
-                                                           IconBitmap.Width, 
-                                                           IconBitmap.Height,
-                                                           32, 
-                                                           4 * IconBitmap.Width,
-                                                           SDL_PIXELFORMAT_RGBA32);
-    SDL_SetWindowIcon(SDL.Window, Icon);
     
     SDL.Context = SDL_GL_CreateContext(SDL.Window);
     SDL_GL_SetSwapInterval(0);
@@ -251,12 +247,12 @@ bool MainLoop()
     glBindVertexArray(gVertexArrayObject);
     
 #else // QLIB_OPENGL
-    SDL.Renderer = SDL_CreateRenderer(SDL.Window, -1,
-                                      SDL_RENDERER_PRESENTVSYNC);
+    SDL.Renderer = SDL_CreateRenderer(SDL.Window, -1, SDL_RENDERER_PRESENTVSYNC);
 #endif // QLIB_OPENGL
     
     platform p = {};
     
+    // Setting up platform memory
     p.Memory.PermanentStorageSize = Permanent_Storage_Size;
     p.Memory.TransientStorageSize = Transient_Storage_Size;
     uint64 TotalSize = p.Memory.PermanentStorageSize + p.Memory.TransientStorageSize;
@@ -267,12 +263,29 @@ bool MainLoop()
     Manager.Next = (char*)p.Memory.PermanentStorage;
     ArrInit(&p.Input.ButtonsToClear, 10, sizeof(platform_button_state*));
     Manager.Start = Manager.Next;
+    // End of setting up platform memory
     
     uint32 LastFrameTicks = 0;
     uint32 LastFrameTicksMilli = 0;
     uint32 LastAudioTicks = 0;
     
+    // Setting up input
+    // Binding sdl buttons to platform buttons
     SDL_Log("NumJoysticks %d: %s\n", SDL_NumJoysticks(), SDL_GetError());
+    
+    platform_controller_input PtfmCtrl;
+    sdl_controller_button ControllerButtons[6] =
+    {
+        {ButtonIndex(PtfmCtrl, DPadUp), SDL_CONTROLLER_BUTTON_DPAD_UP},
+        {ButtonIndex(PtfmCtrl, DPadDown), SDL_CONTROLLER_BUTTON_DPAD_DOWN},
+        {ButtonIndex(PtfmCtrl, DPadLeft), SDL_CONTROLLER_BUTTON_DPAD_LEFT},
+        {ButtonIndex(PtfmCtrl, DPadRight), SDL_CONTROLLER_BUTTON_DPAD_RIGHT},
+        {ButtonIndex(PtfmCtrl, Start), SDL_CONTROLLER_BUTTON_START},
+        {ButtonIndex(PtfmCtrl, A), SDL_CONTROLLER_BUTTON_A},
+    };
+    
+    p.Input.ActiveInput = platform_input_index::keyboard;
+    // End of setting up input
     
     GlobalRunning = true;
     while (GlobalRunning)
@@ -286,17 +299,27 @@ bool MainLoop()
                 SDL_GameController *SDLController = SDL_GameControllerOpen(i);
                 if (SDLController) {
                     platform_controller_input *Controller = GetController(&p.Input, i);
-                    if (SDLProcessControllerMessage(&Controller->DPadUp, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_UP), &p.Input.ButtonsToClear) ||
-                        SDLProcessControllerMessage(&Controller->DPadDown, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_DOWN), &p.Input.ButtonsToClear) ||
-                        SDLProcessControllerMessage(&Controller->DPadLeft, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_LEFT), &p.Input.ButtonsToClear) || 
-                        SDLProcessControllerMessage(&Controller->DPadRight, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_DPAD_RIGHT), &p.Input.ButtonsToClear) ||
-                        SDLProcessControllerMessage(&Controller->Start, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_START), &p.Input.ButtonsToClear) ||
-                        SDLProcessControllerMessage(&Controller->A, SDL_GameControllerGetButton(SDLController, SDL_CONTROLLER_BUTTON_A), &p.Input.ButtonsToClear))
-                        p.Input.ActiveInput = platform_input_index::controller1;
+                    
+                    for (int Btn = 0; Btn < ArrayCount(ControllerButtons); Btn++) {
+                        
+                        platform_button_state *PlatformButton = &Controller->Buttons[ControllerButtons[Btn].PlatformControllerButton];
+                        
+                        platform_button_message Msg =
+                        {
+                            SDL_GameControllerGetButton(SDLController, ControllerButtons[Btn].SDLControllerButton),
+                            PlatformButton->EndedDown,
+                            &p.Input.ButtonsToClear,
+                        };
+                        
+                        PlatformProcessKeyboardMessage(PlatformButton, Msg);
+                        
+                        if (PlatformButton->EndedDown)
+                            p.Input.ActiveInput = platform_input_index::controller1;
+                    }
                 }
-                else
-                    SDL_Log("Could not open GameController %i: %s\n", i, SDL_GetError());
             }
+            else
+                SDL_Log("Could not open GameController %i: %s\n", i, SDL_GetError());
         }
         // End of Controller Input
         
@@ -314,15 +337,9 @@ bool MainLoop()
         if (p.Input.Mouse.NewCursor)
         {
             if (p.Input.Mouse.Cursor == platform_cursor_mode::Arrow)
-            {
-                SDL_Cursor *Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-                SDL_SetCursor(Cursor);
-            }
+                SDL_SetCursor(SDL.CursorArrow);
             else if (p.Input.Mouse.Cursor == platform_cursor_mode::Hand)
-            {
-                SDL_Cursor *Cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
-                SDL_SetCursor(Cursor);
-            }
+                SDL_SetCursor(SDL.CursorHand);
         }
         // End of Cursor
         
