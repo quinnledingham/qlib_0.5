@@ -2,7 +2,7 @@ internal void
 PlaySound(audio_state *AudioState, sound_id LoadedSound)
 {
     if (AudioState->NumOfSounds > ArrayCount(AudioState->PlayingSounds)) {
-        Log("Error: Too Many Sounds");
+        SDL_Log("Error: Too Many Sounds");
         return;
     }
     
@@ -71,6 +71,8 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
     v2 dVolume = SecondsPerSample * v2(0.0f, 0.0f);
     
+    SDL_Log("Sounds %d %d\n", AudioState->NumOfSounds, AudioState->PlayingSounds[0].SamplesPlayed);
+    
     // Filling in mixing channels
     for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
         int16 *Dest0 = AudioState->Channel0;
@@ -96,8 +98,6 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
             }
             
             PlayingSound->SamplesPlayed += (uint32)SoundBuffer->SampleCount;
-            
-            //Log("Sounds: %d\n", AudioState->NumOfSounds);
             
             if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount)
                 PlayingSound->Playing = false;

@@ -82,7 +82,7 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
                     Msg.Repeat = true;
                 
                 if (Event.key.state == SDL_PRESSED) {
-                    Input->ActiveInput = platform_input_index::keyboard;
+                    Input->ActiveInput = active_input_type::Keyboard;
                     Msg.IsDown = true;
                 }
                 else
@@ -125,7 +125,7 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
                 uint32 Type = Event.button.button;
                 
                 if (Event.button.state == SDL_PRESSED) {
-                    Input->ActiveInput = platform_input_index::mouse;
+                    Input->ActiveInput = active_input_type::Mouse;
                     Msg.IsDown = true;
                 }
                 else
@@ -139,7 +139,7 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
             {
                 Mouse->X = Event.motion.x;
                 Mouse->Y = Event.motion.y;
-                Input->ActiveInput = platform_input_index::mouse;
+                Input->ActiveInput = active_input_type::Mouse;
             } break;
             
             case SDL_QUIT:
@@ -284,7 +284,7 @@ bool MainLoop()
         {ButtonIndex(PtfmCtrl, A), SDL_CONTROLLER_BUTTON_A},
     };
     
-    p.Input.ActiveInput = platform_input_index::keyboard;
+    p.Input.ActiveInput = active_input_type::Keyboard;
     // End of setting up input
     
     GlobalRunning = true;
@@ -314,7 +314,7 @@ bool MainLoop()
                         PlatformProcessKeyboardMessage(PlatformButton, Msg);
                         
                         if (PlatformButton->EndedDown)
-                            p.Input.ActiveInput = platform_input_index::controller1;
+                            p.Input.ActiveInput = active_input_type::Controller;
                     }
                 }
             }

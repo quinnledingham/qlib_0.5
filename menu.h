@@ -56,7 +56,7 @@ struct menu_component_textbox
 struct menu_component_checkbox
 {
     bool32 Clicked;
-    int8 ControllerIndex;
+    uint32 ControllerIndex;
     
     uint32 CurrentColor;
     uint32 DefaultColor;
@@ -116,6 +116,32 @@ struct menu_events
     platform_cursor_mode CursorMode;
 };
 
+struct menu_controller
+{
+    uint32 Index;
+    bool32 IgnoreInputs;
+    
+    bool32 MouseControls;
+    platform_button_state *Enter;
+    platform_button_state *Edit;
+    
+    // Controller Controls
+    platform_button_state *ForwardActive[2];
+    platform_button_state *BackwardActive;
+    
+    // Textbox Inputting
+    platform_button_state *Left;
+    platform_button_state *Right;
+    platform_button_state *Backspace;
+    platform_button_state *Period;
+    platform_button_state *Numbers[10];
+    platform_button_state *Paste;
+    char *Clipboard;
+    
+    // Mouse Controls
+    v2 MouseCoords;
+};
+
 struct menu_grid_row
 {
     v2 Dim;
@@ -166,6 +192,8 @@ struct menu
     
     uint32 BackgroundColor;
     bitmap_id BackgroundBitmap;
+    
+    menu_controller Controller;
 };
 inline void IncrActive(menu *Menu)
 {
@@ -189,31 +217,6 @@ inline void UpdateActiveIndex(menu *Menu)
             Menu->ActiveIndex = i;
     }
 }
-
-struct menu_controller
-{
-    int8 Index;
-    bool32 IgnoreInputs;
-    bool32 MouseControls;
-    platform_button_state *Enter;
-    platform_button_state *Edit;
-    
-    // Controller Controls
-    platform_button_state *ForwardActive[2];
-    platform_button_state *BackwardActive;
-    
-    // Textbox Inputting
-    platform_button_state *Left;
-    platform_button_state *Right;
-    platform_button_state *Backspace;
-    platform_button_state *Period;
-    platform_button_state *Numbers[10];
-    platform_button_state *Paste;
-    char *Clipboard;
-    
-    // Mouse Controls
-    v2 MouseCoords;
-};
 
 struct menu_token
 {
@@ -783,6 +786,50 @@ MenuReset(menu *Menu)
     Menu->Reset = false;
 }
 
+internal void
+PlatformKeyboardToMenuController(platform_keyboard_input *Keyboard, menu_controller *Controller)
+{
+    Controller->ForwardActive[0] = &Keyboard->S;
+    Controller->ForwardActive[1] = &Keyboard->Tab;
+    Controller->BackwardActive = &Keyboard->W;
+    Controller->Enter = &Keyboard->Enter;
+    
+    Controller->Left = &Keyboard->Left;
+    Controller->Right = &Keyboard->Right;
+    Controller->Backspace = &Keyboard->Backspace;
+    Controller->Period = &Keyboard->Period;
+    
+    for (int i = 0; i < 10; i++)
+        Controller->Numbers[i] = &Keyboard->Numbers[i];
+    
+    if (KeyDown(&Keyboard->Ctrl) && OnKeyDown(&Keyboard->V))
+        Controller->Paste = &Keyboard->V;
+    else
+        Controller->Paste = &Keyboard->Ctrl;
+    Controller->Clipboard = Keyboard->Clipboard;
+    
+    Controller->Edit = &Keyboard->F6;
+    
+    Controller->MouseControls = false;
+}
+
+internal void
+PlatformMouseToMenuController(platform_mouse_input *Mouse, menu_controller *Controller)
+{
+    Controller->MouseCoords = v2(Mouse->X, Mouse->Y);
+    Controller->Enter = &Mouse->Left;
+    Controller->MouseControls = true;
+}
+
+internal void
+PlatformControllerToMenuController(platform_controller_input *PlatformController, menu_controller *Controller)
+{
+    Controller->ForwardActive[0] = &PlatformController->DPadDown;
+    Controller->BackwardActive = &PlatformController->DPadUp;
+    Controller->Enter = &PlatformController->A;
+    Controller->MouseControls = false;
+}
+
 internal menu_events*
 HandleMenuEvents(menu *Menu, menu_controller *Controller)
 {
@@ -804,14 +851,27 @@ HandleMenuEvents(menu *Menu, menu_controller *Controller)
             else if (C->Type == menu_component_type::CheckBox) {
                 menu_component_checkbox *CheckBox = (menu_component_checkbox*)C->Data;
                 
-                if (CheckBox->Clicked && Controller->Index == CheckBox->ControllerIndex) {
-                    CheckBox->Clicked = false;
-                    Controller->IgnoreInputs = false;
+                bool32 IgnoreInputs = false;
+                menu_component *OtherC = Menu->CheckBoxes;
+                while(OtherC != 0)
+                {
+                    menu_component_checkbox *OtherCheckBox = (menu_component_checkbox*)OtherC->Data;
+                    if (OtherCheckBox->ControllerIndex == Controller->Index && 
+                        CheckBox != OtherCheckBox &&
+                        OtherCheckBox->Clicked)
+                        IgnoreInputs = true;
+                    OtherC = OtherC->NextSameType;
                 }
-                else if (!CheckBox->Clicked && !Controller->IgnoreInputs) {
-                    CheckBox->ControllerIndex = Controller->Index;
-                    Controller->IgnoreInputs = true;
-                    CheckBox->Clicked = true;
+                
+                if (!IgnoreInputs) {
+                    if (CheckBox->Clicked && Controller->Index == CheckBox->ControllerIndex) {
+                        CheckBox->ControllerIndex = 0;
+                        CheckBox->Clicked = false;
+                    }
+                    else if (!CheckBox->Clicked) {
+                        CheckBox->ControllerIndex = Controller->Index;
+                        CheckBox->Clicked = true;
+                    }
                 }
                 Menu->Events.CheckBoxClicked = C->ID;
             }
@@ -1486,10 +1546,23 @@ ReadMenuFromFile(menu *Menu, const char* FileName, assets *Assets, pair_int_stri
 internal bool
 DoMenu(menu *Menu, const char *FileName, 
        platform *p, assets *Assets, 
-       pair_int_string *IDs, int NumOfIDs,
-       menu_controller *Controller)
+       pair_int_string *IDs, int NumOfIDs)
 {
-    if (!Controller->MouseControls && OnKeyDown(Controller->Edit))
+    switch (ActiveInputType(p->Input.ActiveInput))
+    {
+        case Keyboard: {
+            PlatformKeyboardToMenuController(&p->Input.Keyboard, &Menu->Controller);
+        } break;
+        case Mouse: {
+            PlatformMouseToMenuController(&p->Input.Mouse, &Menu->Controller);
+        } break;
+        case Controller: {
+            PlatformControllerToMenuController(GetActiveController(&p->Input), &Menu->Controller);
+        } break;
+    }
+    Menu->Controller.Index = p->Input.ActiveInput;
+    
+    if (!Menu->Controller.MouseControls && OnKeyDown(Menu->Controller.Edit))
         Toggle(&Menu->Edit);
     
     if (!Menu->Initialized)
@@ -1523,7 +1596,7 @@ DoMenu(menu *Menu, const char *FileName,
     }
     else
     {
-        HandleMenuEvents(Menu, Controller);
+        HandleMenuEvents(Menu, &Menu->Controller);
         
         PlatformSetCursorMode(&p->Input.Mouse, Menu->Events.CursorMode);
         

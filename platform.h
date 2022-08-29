@@ -182,27 +182,23 @@ struct platform_keyboard_input
         };
     };
 };
-enum struct platform_input_mode
+
+enum active_input_type
 {
+    Keyboard,
     Mouse,
     Controller,
-    Keyboard,
 };
-struct platform_input_info
+inline uint32 ActiveInputType(uint32 ActInput)
 {
-    platform_input_mode InputMode;
-    platform_controller_input *Controller;
-};
-
-enum struct platform_input_index
-{
-    keyboard,
-    mouse,
-    controller1,
-    controller2,
-    controller3,
-    controller4,
-};
+    if (ActInput == 0)
+        return Keyboard;
+    else if (ActInput == 1)
+        return Mouse;
+    else if (ActInput > 1)
+        return Controller;
+    return 0;
+}
 
 struct
 platform_input
@@ -210,19 +206,21 @@ platform_input
     real32 WorkSecondsElapsed;
     real32 MillisecondsElapsed;
     
-    platform_input_index ActiveInput;
+    uint32 ActiveInput;
     platform_keyboard_input Keyboard;
     platform_mouse_input Mouse;
     platform_controller_input Controllers[4];
     
     arr ButtonsToClear;
 };
-inline platform_controller_input *GetController(platform_input *Input, int unsigned ControllerIndex)
+inline platform_controller_input *GetController(platform_input *Input, uint32 ControllerIndex)
 {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
-    
-    platform_controller_input *Result = &Input->Controllers[ControllerIndex];
-    return(Result);
+    return &Input->Controllers[ControllerIndex];
+}
+inline platform_controller_input *GetActiveController(platform_input *Input)
+{
+    return GetController(Input, Input->ActiveInput - 2);
 }
 inline void PlatformSetCursorMode(platform_mouse_input *Mouse, platform_cursor_mode CursorMode)
 {
