@@ -36,6 +36,8 @@ BuilderAddSound(debug_builder_assets *Assets, const char *FileName, asset_type_i
 {
     debug_builder_asset *BuilderAsset = Qalloc(debug_builder_asset);
     BuilderAsset->Type = Type;
+    
+    
     BuilderAsset->Asset.Sound = LoadWAV(FileName);
     BuilderAsset->Asset.MemoryType = asset_memory_type::Sound;
     LinkedListAddNode(&Assets->Assets, (void*)BuilderAsset);
@@ -116,7 +118,11 @@ BuilderMakeFile(debug_builder_assets *Assets)
         else if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Sound)
         {
             loaded_sound *Sound = (loaded_sound*)&FinalAssets.Assets[i].Sound;
-            fwrite(Sound->Samples[0], Sound->SampleCount, 1, AssetFile);
+            
+            uint32 TestSoundSampleIndex = 4710655  % Sound->SampleCount;
+            int16 SampleValue = Sound->Samples[0][TestSoundSampleIndex];
+            
+            fwrite(Sound->Samples[0], AUDIO_S16_BYTES, Sound->SampleCount, AssetFile);
         }
         else if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Font)
         {
@@ -151,9 +157,9 @@ BuilderLoadFile(assets *Assets)
         }
         else if (Assets->Assets[i].MemoryType == asset_memory_type::Sound) {
             loaded_sound *Sound = (loaded_sound*)&Assets->Assets[i].Sound;
-            Sound->Samples[0] = (int16*)qalloc(Sound->SampleCount * 2);
+            Sound->Samples[0] = (int16*)qalloc(Sound->SampleCount * AUDIO_S16_BYTES);
             Sound->Samples[1] = Sound->Samples[0] + Sound->SampleCount;
-            fread(Sound->Samples[0], Sound->SampleCount, 1, AssetFile);
+            fread(Sound->Samples[0], AUDIO_S16_BYTES, Sound->SampleCount, AssetFile);
         }
         else if (Assets->Assets[i].MemoryType == asset_memory_type::Font)
         {

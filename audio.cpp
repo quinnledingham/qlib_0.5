@@ -71,7 +71,6 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
     v2 dVolume = SecondsPerSample * v2(0.0f, 0.0f);
     
-    SDL_Log("Sounds %d %d\n", AudioState->NumOfSounds, AudioState->PlayingSounds[0].SamplesPlayed);
     
     // Filling in mixing channels
     for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
@@ -81,7 +80,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
         playing_sound *PlayingSound = &AudioState->PlayingSounds[i];
         if (PlayingSound != 0 && PlayingSound->Playing)
         {
-            loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound); 
+            loaded_sound *LoadedSound = GetSound((assets*)AudioState->Assets, PlayingSound->LoadedSound);
             u32 SamplesRemainingInSound = LoadedSound->SampleCount - PlayingSound->SamplesPlayed;
             if (SamplesRemainingInSound > (uint32)SoundBuffer->SampleCount)
                 SamplesRemainingInSound = (uint32)SoundBuffer->SampleCount;
@@ -97,6 +96,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
                 Volume = Volume + dVolume;
             }
             
+            SDL_Log("Sounds %d, %d/%d\n", AudioState->NumOfSounds, AudioState->PlayingSounds[0].SamplesPlayed, LoadedSound->SampleCount);
             PlayingSound->SamplesPlayed += (uint32)SoundBuffer->SampleCount;
             
             if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount)
@@ -120,9 +120,11 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     }
     
     // Adjusting NumOfSounds
-    playing_sound *Sound = &AudioState->PlayingSounds[AudioState->NumOfSounds - 1];
-    if (!Sound->Playing)
-        AudioState->NumOfSounds--;
+    if (AudioState->NumOfSounds > 0) {
+        playing_sound *Sound = &AudioState->PlayingSounds[AudioState->NumOfSounds - 1];
+        if (!Sound->Playing)
+            AudioState->NumOfSounds--;
+    }
 }
 
 internal void
@@ -232,6 +234,24 @@ GetChunkDataSize(riff_iterator Iter)
 }
 
 internal loaded_sound
+LoadWAV2(const char *FileName)
+{
+    SDL_AudioSpec Wav_Spec;
+    uint32 Wav_Length;
+    uint8 *Wav_Buffer;
+    
+    SDL_LoadWAV(FileName, &Wav_Spec, &Wav_Buffer, &Wav_Length);
+    
+    loaded_sound Result = {};
+    Result.SampleCount = Wav_Length / 4;
+    Result.Samples[0] = (int16*)Wav_Buffer;
+    Result.Samples[1] = (int16*)Wav_Buffer;
+    Result.ChannelCount = Wav_Spec.channels;
+    
+    return(Result);
+}
+
+internal loaded_sound
 LoadWAV(const char *FileName)
 {
     loaded_sound Result = {};
@@ -271,7 +291,7 @@ LoadWAV(const char *FileName)
         Assert(ChannelCount && SampleData);
         
         Result.ChannelCount = ChannelCount;
-        Result.SampleCount = SampleDataSize / (ChannelCount*sizeof(int16));
+        u32 SampleCount = SampleDataSize / (ChannelCount*sizeof(int16));
         if(ChannelCount == 1)
         {
             Result.Samples[0] = SampleData;
@@ -282,7 +302,7 @@ LoadWAV(const char *FileName)
             Result.Samples[0] = SampleData;
             Result.Samples[1] = SampleData + Result.SampleCount;
             
-            for(uint32 SampleIndex = 0; SampleIndex < Result.SampleCount; ++SampleIndex)
+            for(uint32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
             {
                 int16 Source = SampleData[2*SampleIndex];
                 SampleData[2*SampleIndex] = SampleData[SampleIndex];
@@ -294,18 +314,31 @@ LoadWAV(const char *FileName)
             Assert(!"Invalid channel count in WAV file");
         }
         
-        /*
         // TODO(casey): Load right channels!
+        b32 AtEnd = true;
         Result.ChannelCount = 1;
-        if (SectionSampleCount)
+        /*
+        if(SectionSampleCount)
         {
-            Result.SampleCount = SectionSampleCount;
-            for (uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex)
+            Assert((SectionFirstSampleIndex + SectionSampleCount) <= SampleCount);
+            AtEnd = ((SectionFirstSampleIndex + SectionSampleCount) == SampleCount);
+            SampleCount = SectionSampleCount;
+            for(uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex)
             {
                 Result.Samples[ChannelIndex] += SectionFirstSampleIndex;
             }
         }
         */
+        
+        if(AtEnd) {
+            for(uint32 ChannelIndex = 0; ChannelIndex < Result.ChannelCount; ++ChannelIndex) {
+                for(u32 SampleIndex = SampleCount; SampleIndex < (SampleCount + 8); ++SampleIndex) {
+                    Result.Samples[ChannelIndex][SampleIndex] = 0;
+                }
+            }
+        }
+        
+        Result.SampleCount = SampleCount;
     }
     
     return(Result);

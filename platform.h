@@ -280,7 +280,7 @@ inline v2 GetDim(platform *p)
 }
 inline v2 GetTopLeftCornerCoords(platform *p)
 {
-    return v2(-p->Dimension.Width/2, -p->Dimension.Height/2);
+    return v2(-p->Dimension.Width/2, p->Dimension.Height/2);
 }
 
 // PrintqDebug

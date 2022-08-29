@@ -302,6 +302,11 @@ inline void SetTrue(qlib_bool *Bool)
     Bool->Value = true;
     Bool->New = true;
 }
+inline void SetFalse(qlib_bool *Bool)
+{
+    Bool->Value = false;
+    Bool->New = true;
+}
 inline bool32 QlibBoolTrue(qlib_bool *Bool)
 {
     return Bool->Value;

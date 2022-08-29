@@ -133,6 +133,8 @@ SDLProcessPendingEvents(iv2 PlatformDim, platform_input *Input)
                 
                 if (Type == SDL_BUTTON_LEFT)
                     PlatformProcessKeyboardMessage(&Mouse->Left, Msg);
+                
+                SDL_GetMouseState(&Mouse->X, &Mouse->Y);
             } break;
             
             case SDL_MOUSEMOTION:
@@ -238,7 +240,8 @@ bool MainLoop()
     
     // Check OpenGL properties
     printf("\nOpenGL loaded\n");
-    gladLoadGLLoader(SDL_GL_GetProcAddress);
+    if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress))
+        SDL_Log("gladLoadGLLoader Failed\n");
     printf("Vendor:   %s\n", glGetString(GL_VENDOR));
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
     printf("Version:  %s\n", glGetString(GL_VERSION));
@@ -355,9 +358,11 @@ bool MainLoop()
         
         real32 Seconds = SDLGetSeconds(&LastAudioTicks);
         if (Seconds < 1)
-            SoundBuffer.SampleCount = (int)ceil(Seconds * SoundBuffer.SamplesPerSecond);
+            SoundBuffer.SampleCount = (int)floor(Seconds * SoundBuffer.SamplesPerSecond);
         else
             SoundBuffer.SampleCount = 0;
+        
+        SDL_Log("%d\n", SoundBuffer.SampleCount);
         
         SoundBuffer.Samples = Samples;
         SoundBuffer.MaxSampleCount = SDL.AudioSpec.samples;

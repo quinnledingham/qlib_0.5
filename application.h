@@ -80,7 +80,7 @@ inline void PlatformSetCD(const char* Dir) {}
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-#include <stdio.h>
+//#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>                      
 

@@ -34,6 +34,7 @@ struct audio_state
 };
 
 internal loaded_sound LoadWAV(const char *FileName);
+internal loaded_sound LoadWAV2(const char *FileName);
 
 #define AUDIO_S16_BYTES 4
 
