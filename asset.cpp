@@ -113,21 +113,20 @@ BuilderMakeFile(debug_builder_assets *Assets)
         if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Bitmap)
         {
             loaded_bitmap *Bitmap = (loaded_bitmap*)&FinalAssets.Assets[i].Bitmap;
-            fwrite(Bitmap->Memory, Bitmap->Width * Bitmap->Height * Bitmap->Channels, 1, AssetFile);
+            fwrite(Bitmap->Memory, Bitmap->Channels, Bitmap->Width * Bitmap->Height, AssetFile);
         }
         else if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Sound)
         {
             loaded_sound *Sound = (loaded_sound*)&FinalAssets.Assets[i].Sound;
-            
-            uint32 TestSoundSampleIndex = 4710655  % Sound->SampleCount;
-            int16 SampleValue = Sound->Samples[0][TestSoundSampleIndex];
-            
             fwrite(Sound->Samples[0], AUDIO_S16_BYTES, Sound->SampleCount, AssetFile);
         }
         else if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Font)
         {
             loaded_font *Font = (loaded_font*)&FinalAssets.Assets[i].Font;
-            fwrite(Font->TTFFile.Contents, Font->TTFFile.ContentsSize, 1, AssetFile);
+            //for (u32 i = 0; i < Font->TTFFile.ContentsSize; i++) {
+            //fputc(Font->TTFFile.Contents[i], AssetFile);
+            //}
+            fwrite(Font->TTFFile.Contents, 1, Font->TTFFile.ContentsSize, AssetFile);
         }
     }
     fclose(AssetFile);
@@ -152,7 +151,7 @@ BuilderLoadFile(assets *Assets)
         if (Assets->Assets[i].MemoryType == asset_memory_type::Bitmap) {
             loaded_bitmap *Bitmap = (loaded_bitmap*)&Assets->Assets[i].Bitmap;
             Bitmap->Memory = qalloc(Bitmap->Width * Bitmap->Height * Bitmap->Channels);
-            fread(Bitmap->Memory, Bitmap->Width * Bitmap->Height * Bitmap->Channels, 1, AssetFile);
+            fread(Bitmap->Memory, Bitmap->Channels, Bitmap->Width * Bitmap->Height, AssetFile);
             TextureInit(Bitmap);
         }
         else if (Assets->Assets[i].MemoryType == asset_memory_type::Sound) {
@@ -165,7 +164,10 @@ BuilderLoadFile(assets *Assets)
         {
             loaded_font *Font = (loaded_font*)&Assets->Assets[i].Font;
             Font->TTFFile.Contents = qalloc(Font->TTFFile.ContentsSize);
-            fread(Font->TTFFile.Contents, Font->TTFFile.ContentsSize, 1, AssetFile);
+            //for (u32 i = 0; i < Font->TTFFile.ContentsSize; i++) {
+            //Font->TTFFile.Contents[i] = fgetc(AssetFile);
+            //}
+            fread(Font->TTFFile.Contents, 1, Font->TTFFile.ContentsSize, AssetFile);
             stbtt_InitFont(&Font->Info, (u8 *)Font->TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)Font->TTFFile.Contents, 0));
         }
     }
