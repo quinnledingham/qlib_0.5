@@ -290,6 +290,16 @@ bool MainLoop()
     p.Input.ActiveInput = active_input_type::Keyboard;
     // End of setting up input
     
+    // Check out wav file
+    /*
+    SDL_AudioSpec WavFile;
+    uint8 *TempBuf = 0;
+    uint32 TempLen = 0;
+    SDL_LoadWAV("sounds/gulp.wav", &WavFile, &TempBuf, &TempLen);
+    SDLPrintAudioSpec(&WavFile);
+    */
+    // End of messing around
+    
     GlobalRunning = true;
     while (GlobalRunning)
     {
@@ -358,11 +368,11 @@ bool MainLoop()
         
         real32 Seconds = SDLGetSeconds(&LastAudioTicks);
         if (Seconds < 1)
-            SoundBuffer.SampleCount = (int)floor(Seconds * SoundBuffer.SamplesPerSecond);
+            SoundBuffer.SampleCount = (int)ceil(Seconds * SoundBuffer.SamplesPerSecond);
         else
             SoundBuffer.SampleCount = 0;
         
-        SDL_Log("%d\n", SoundBuffer.SampleCount);
+        //SDL_Log("%d\n", SoundBuffer.SampleCount);
         
         SoundBuffer.Samples = Samples;
         SoundBuffer.MaxSampleCount = SDL.AudioSpec.samples;

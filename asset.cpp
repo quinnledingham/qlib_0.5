@@ -36,8 +36,6 @@ BuilderAddSound(debug_builder_assets *Assets, const char *FileName, asset_type_i
 {
     debug_builder_asset *BuilderAsset = Qalloc(debug_builder_asset);
     BuilderAsset->Type = Type;
-    
-    
     BuilderAsset->Asset.Sound = LoadWAV(FileName);
     BuilderAsset->Asset.MemoryType = asset_memory_type::Sound;
     LinkedListAddNode(&Assets->Assets, (void*)BuilderAsset);
@@ -123,9 +121,6 @@ BuilderMakeFile(debug_builder_assets *Assets)
         else if (FinalAssets.Assets[i].MemoryType == asset_memory_type::Font)
         {
             loaded_font *Font = (loaded_font*)&FinalAssets.Assets[i].Font;
-            //for (u32 i = 0; i < Font->TTFFile.ContentsSize; i++) {
-            //fputc(Font->TTFFile.Contents[i], AssetFile);
-            //}
             fwrite(Font->TTFFile.Contents, 1, Font->TTFFile.ContentsSize, AssetFile);
         }
     }
@@ -164,9 +159,6 @@ BuilderLoadFile(assets *Assets)
         {
             loaded_font *Font = (loaded_font*)&Assets->Assets[i].Font;
             Font->TTFFile.Contents = qalloc(Font->TTFFile.ContentsSize);
-            //for (u32 i = 0; i < Font->TTFFile.ContentsSize; i++) {
-            //Font->TTFFile.Contents[i] = fgetc(AssetFile);
-            //}
             fread(Font->TTFFile.Contents, 1, Font->TTFFile.ContentsSize, AssetFile);
             stbtt_InitFont(&Font->Info, (u8 *)Font->TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)Font->TTFFile.Contents, 0));
         }

@@ -71,7 +71,6 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
     real32 SecondsPerSample = 1.0f / (real32)SoundBuffer->SamplesPerSecond;
     v2 dVolume = SecondsPerSample * v2(0.0f, 0.0f);
     
-    
     // Filling in mixing channels
     for (uint32 i = 0; i < AudioState->NumOfSounds; i++) {
         int16 *Dest0 = AudioState->Channel0;
@@ -96,7 +95,7 @@ PlayLoadedSound(audio_state *AudioState, platform_sound_output_buffer *SoundBuff
                 Volume = Volume + dVolume;
             }
             
-            SDL_Log("Sounds %d, %d/%d\n", AudioState->NumOfSounds, AudioState->PlayingSounds[0].SamplesPlayed, LoadedSound->SampleCount);
+            //SDL_Log("Sounds %d, %d/%d\n", AudioState->NumOfSounds, AudioState->PlayingSounds[0].SamplesPlayed, LoadedSound->SampleCount);
             PlayingSound->SamplesPlayed += (uint32)SoundBuffer->SampleCount;
             
             if ((uint32)PlayingSound->SamplesPlayed >= LoadedSound->SampleCount)
@@ -276,6 +275,7 @@ LoadWAV(const char *FileName)
                     Assert(fmt->wFormatTag == 1); // NOTE(casey): Only support PCM
                     Assert(fmt->nSamplesPerSec == 48000);
                     Assert(fmt->wBitsPerSample == 16);
+                    Assert(fmt->nChannels == 2); // Not here in Casey's. He must support 1 channel.
                     Assert(fmt->nBlockAlign == (sizeof(int16)*fmt->nChannels));
                     ChannelCount = fmt->nChannels;
                 } break;
