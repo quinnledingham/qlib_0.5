@@ -1,5 +1,5 @@
-#ifndef TEXT_H
-#define TEXT_H
+#ifndef FONT_H
+#define FONT_H
 
 #ifndef MEMORYMANAGER_H
 //#pragma message ("text.h requires memorymanager.h")
@@ -11,6 +11,7 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb/stb_truetype.h"
 
+// Info about font at PixelHeight
 struct font_scale
 {
     real32 PixelHeight;
@@ -22,7 +23,6 @@ struct font_scale
     real32 ScaledAscent;
     real32 ScaledDescent;
 };
-
 
 struct font_char
 {
@@ -75,6 +75,26 @@ struct font_string
     uint32 Color;
 };
 
-internal font LoadFont2(const char *FileName);
+internal loaded_font LoadFont(const char *FileName);
 
-#endif //TEXT_H
+struct string_draw
+{
+    string Text;
+    font_char *FontChars[MAX_STRING_LENGTH];
+    real32 Advances[MAX_STRING_LENGTH];
+    
+    // Draw Settings
+    font_id FontID;
+    u32 Color;
+    real32 PixelHeight;
+    
+    real32 LastPixelHeight; // The pixel height last time it got the dim
+    real32 Scale;
+    v2 Dim;
+    
+    string_draw();
+    string_draw(string String);
+    string_draw(char *Text);
+};
+
+#endif //FONT_H

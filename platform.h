@@ -297,6 +297,7 @@ struct platform_debug_buffer
 };
 global_variable platform_debug_buffer GlobalDebugBuffer = {};
 
-void Log(char * fmt, ...);
+void Log(char *Text);
+//void Log(char * fmt, ...);
 
 #endif //PLATFORM_H

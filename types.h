@@ -27,11 +27,6 @@
 #define Pi32 3.14159265359f
 #define Tau32 6.28318530717958647692f
 
-// Can only use when all of the types in the union are the same.
-// t is the type that is used for all elements of the union.
-// n is the name of the struct.
-#define UnionArray(t, n, s) t n[sizeof(s) / sizeof(t)]
-
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
@@ -72,7 +67,7 @@ typedef size_t memory_index;
 #define U32FromPointer(Pointer) ((u32)(memory_index)(Pointer))
 #define PointerFromU32(type, Value) (type *)((memory_index)Value)
 
-typedef struct v2
+struct v2
 {
     union
     {
@@ -95,9 +90,8 @@ typedef struct v2
     inline v2(real32 *fv) : x(fv[0]), y(fv[1]) {}
     inline v2(int32 _x, int32 _y) : x((real32)_x), y((real32)_y) {}
     inline v2(unsigned int _x, unsigned int _y) : x((real32)_x), y((real32)_y) {}
-    
-    //v2& operator+=(const v2& r);
-} Dim;
+};
+typedef v2 dim;
 
 struct iv2
 {
@@ -312,18 +306,15 @@ inline bool32 QlibBoolTrue(qlib_bool *Bool)
     return Bool->Value;
 }
 
-inline unsigned long createRGBA(int r, int g, int b, int a) { return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));}
-inline unsigned long createRGB(int r, int g, int b) { return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); }
-
-struct ID
+struct asset_id
 { 
     u32 id;
     
-    inline ID() {}
-    inline ID(u32 _id) : id(_id) {}
+    inline asset_id() {}
+    inline asset_id(u32 _id) : id(_id) {}
 };
-typedef ID bitmap_id;
-typedef ID sound_id;
-typedef ID font_id;
+typedef asset_id bitmap_id;
+typedef asset_id sound_id;
+typedef asset_id font_id;
 
 #endif //TYPES_H

@@ -1045,7 +1045,7 @@ mat4 Rotate(mat4& m, float degs)
     return (m * QuatToMat4(AngleAxis(degs * DEG2RAD, v3(0, 0, 1))));
 }
 
-// MISC
+// Misc
 typedef real32 resize_factor;
 inline resize_factor  GetResizeFactor(real32 OldNum, real32 ResizedNum) { return (ResizedNum / OldNum); }
 inline v2 GetResizeFactor(v2 OldDim, v2 NewDim)
@@ -1086,6 +1086,18 @@ int Hex2Int(char Char)
     return -1;
 }
 
+inline unsigned long
+createRGBA(int r, int g, int b, int a) 
+{ 
+    return ((a & 0xff) << 24) + ((r & 0xff) << 16) + ((g & 0xff) << 8) + ((b & 0xff));
+}
+
+inline unsigned long
+createRGB(int r, int g, int b) 
+{ 
+    return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff); 
+}
+
 uint32 Pow(int a, int n)
 {
     if (n == 0)
@@ -1108,5 +1120,13 @@ int StringHex2Int(char *Hex)
     }
     return Result;
 }
+
+inline int
+Random(int Low, int High)
+{
+    return (rand() % (High - Low + 1) + Low);
+}
+
+// End of Misc
 
 #endif //MATH_H

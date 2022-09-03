@@ -15,7 +15,7 @@ BuilderAddBitmap(debug_builder_assets *Assets, const char *FileName, asset_type_
 {
     debug_builder_asset *BuilderAsset = Qalloc(debug_builder_asset);
     BuilderAsset->Type = Type;
-    BuilderAsset->Asset.Bitmap = LoadBitmap2(FileName);
+    BuilderAsset->Asset.Bitmap = LoadBitmap(FileName);
     BuilderAsset->Asset.MemoryType = asset_memory_type::Bitmap;
     LinkedListAddNode(&Assets->Assets, (void*)BuilderAsset);
     return BuilderAsset;
@@ -47,7 +47,7 @@ BuilderAddFont(debug_builder_assets *Assets, const char *FileName, asset_type_id
 {
     debug_builder_asset *BuilderAsset = Qalloc(debug_builder_asset);
     BuilderAsset->Type = Type;
-    BuilderAsset->Asset.Font = LoadFont2(FileName);
+    BuilderAsset->Asset.Font = LoadFont(FileName);
     BuilderAsset->Asset.MemoryType = asset_memory_type::Font;
     LinkedListAddNode(&Assets->Assets, (void*)BuilderAsset);
     return BuilderAsset;

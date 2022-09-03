@@ -5,6 +5,10 @@
 #define xstr(x) str(x)
 #define pairintstring(x) {x, xstr(x)}
 
+// Asset Types
+
+// End of Asset Types
+
 struct asset_vector
 {
     real32 E[Tag_Count];

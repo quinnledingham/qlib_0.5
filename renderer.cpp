@@ -1,4 +1,3 @@
-
 #if QLIB_OPENGL
 
 //
@@ -142,8 +141,8 @@ ShaderInit(render_shader *Shader, const char *VertexFileName, const char *Fragme
             {
                 char infoLog[512];
                 glGetProgramInfoLog(Shader->Handle, 512, NULL, infoLog);
-                PrintqDebug("ERROR: Shader linking failed.\n");
-                PrintqDebug(S() + "\t" + infoLog + "\n");
+                Log("ERROR: Shader linking failed.\n");
+                Log(string() + "\t" + infoLog + "\n");
                 glDeleteShader(Vert);
                 glDeleteShader(Frag);
             }
@@ -152,8 +151,8 @@ ShaderInit(render_shader *Shader, const char *VertexFileName, const char *Fragme
         {
             char infoLog[512];
             glGetShaderInfoLog(F_Shader, 512, NULL, infoLog);
-            PrintqDebug("Fragment compilation failed.\n");
-            PrintqDebug(S() + "\t" + infoLog + "\n");
+            Log("Fragment compilation failed.\n");
+            Log(string() + "\t" + infoLog + "\n");
             glDeleteShader(F_Shader);
             return;
         }
@@ -162,8 +161,8 @@ ShaderInit(render_shader *Shader, const char *VertexFileName, const char *Fragme
     {
         char infoLog[512];
         glGetShaderInfoLog(V_Shader, 512, NULL, infoLog);
-        PrintqDebug("Vertex compilation failed.\n");
-        PrintqDebug(S() + "\t" + infoLog + "\n");
+        Log("Vertex compilation failed.\n");
+        Log(string() + "\t" + infoLog + "\n");
         
         glDeleteShader(V_Shader);
     }
@@ -892,22 +891,21 @@ TrackGetSize(track<T, N> *Track)
 //
 
 internal void
-DrawFPS(real32 Milliseconds, v2 ScreenDim, font *Font)
+DrawFPS(real32 Milliseconds, v2 ScreenDim, assets *Assets)
 {
     qlibCoordSystem(QLIB_TOP_RIGHT);
-    real32 fps = 0;
     if (Milliseconds != 0) {
-        fps = (1 / Milliseconds) * 1000;
-        strinq FPS = S() + (int)fps;
+        real32 fps = (1 / Milliseconds) * 1000;
         
-        font_string FontString = {};
-        FontStringInit(&FontString, Font, FPS.Data, 60, 0xFFFFFFFF);
-        v2 SDim = FontStringGetDim(&FontString);
-        FontStringPrint(&FontString, v2(ScreenDim.x- SDim.x - 10.0f, 10.0f));
+        string Test = "Test\n";
         
-        Push(v3(ScreenDim.x - SDim.x - 15.0f, 5.0f, 99.0f), 
-             v2(SDim.x + 10.0f, SDim.y + 10.0f),
-             0xFF000000);
+        string_draw FPS2 = string() + (u32)fps;
+        StringDrawSetup(&FPS2, GetFirstFont(Assets, Asset_Font), 0xFFFFFFFF, ScreenDim.y/10);
+        dim Dim = StringDrawGetDim(&FPS2, Assets);
+        StringDraw(&FPS2, Assets, v2(ScreenDim.x- Dim.x - 10.0f, 10.0f));
+        
+        Push(v3(ScreenDim.x - Dim.x - 15.0f, 5.0f, 99.0f), 
+             v2(Dim.x + 10.0f, Dim.y + 10.0f), 0xFF000000);
     }
     qlibCoordSystem(QLIB_CENTER);
 }

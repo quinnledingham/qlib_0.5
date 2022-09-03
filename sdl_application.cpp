@@ -20,6 +20,11 @@ struct sdl_controller_button
     SDL_GameControllerButton SDLControllerButton;
 };
 
+void Log(char* Text)
+{
+    SDL_Log("%s", Text);
+}
+
 void
 SDLPrintAudioSpec(SDL_AudioSpec *AudioSpec)
 {
@@ -45,7 +50,7 @@ internal real32
 SDLGetSeconds(uint32 *LastTicksCount)
 {
     uint32 CurrentTicksCount = SDL_GetTicks();
-    real32 ret = (real32)(CurrentTicksCount - *LastTicksCount) / 1000;
+    real32 ret = (real32)(CurrentTicksCount - *LastTicksCount) / 1000.0f;
     *LastTicksCount = CurrentTicksCount;
     return ret; 
 }
@@ -57,6 +62,39 @@ SDLGetMilliseconds(uint32 *LastTicksCount)
     real32 ret = (real32)(CurrentTicksCount - *LastTicksCount);
     *LastTicksCount = CurrentTicksCount;
     return ret; 
+}
+
+struct sdl_thread_info
+{
+    platform_work_queue *Queue;
+    u32 LogicalThreadIndex;
+};
+
+static int ThreadProc2(void *Data)
+{
+    sdl_thread_info *ThreadInfo = (sdl_thread_info*)Data;
+    
+    while (1) {
+        
+    }
+    
+    return 0;
+}
+
+internal void
+SDLInitThreads(sdl_thread_info *ThreadInfo, int InfoArrayCount, platform_work_queue *Queue)
+{
+    u32 InitialCount = 0;
+    u32 ThreadCount = InfoArrayCount;
+    Queue->SemaphoreHandle = SDL_CreateSemaphore(InitialCount);
+    for (u32 ThreadIndex = 0; ThreadIndex < ThreadCount; ThreadIndex++) {
+        sdl_thread_info *Info = ThreadInfo + ThreadIndex;
+        Info->Queue;
+        Info->LogicalThreadIndex = ThreadIndex;
+        
+        strinq Name = S() + "Thread" + ThreadIndex;
+        SDL_CreateThread(ThreadProc2, Name.Data, Info);
+    }
 }
 
 internal void
@@ -198,7 +236,7 @@ bool MainLoop()
                                   SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
                                   SDLClientWidth, SDLClientHeight, 
                                   SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
-    loaded_bitmap IconBitmap = LoadBitmap2(IconFileName);
+    loaded_bitmap IconBitmap = LoadBitmap(IconFileName);
     ResizeBitmap(&IconBitmap, v2(72, 72));
     SDL_Surface* Icon = SDL_CreateRGBSurfaceWithFormatFrom(IconBitmap.Memory, IconBitmap.Width,  IconBitmap.Height, 
                                                            32,  4 * IconBitmap.Width, SDL_PIXELFORMAT_RGBA32);
@@ -239,12 +277,12 @@ bool MainLoop()
     SDL_GL_SetSwapInterval(0);
     
     // Check OpenGL properties
-    printf("\nOpenGL loaded\n");
+    Log("OpenGL loaded\n");
     if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress))
-        SDL_Log("gladLoadGLLoader Failed\n");
-    printf("Vendor:   %s\n", glGetString(GL_VENDOR));
-    printf("Renderer: %s\n", glGetString(GL_RENDERER));
-    printf("Version:  %s\n", glGetString(GL_VERSION));
+        Log("gladLoadGLLoader Failed\n");
+    Log(string() + "Vendor:   " + glGetString(GL_VENDOR) + "\n");
+    Log(string() + "Renderer: " + glGetString(GL_RENDERER) + "\n");
+    Log(string() + "Version:  " + glGetString(GL_VERSION) + "\n");
     
     glGenVertexArrays(1, &gVertexArrayObject);
     glBindVertexArray(gVertexArrayObject);
@@ -299,6 +337,19 @@ bool MainLoop()
     SDLPrintAudioSpec(&WavFile);
     */
     // End of messing around
+    
+    // MultiThreading
+    sdl_thread_info ThreadInfo[7];
+    SDLInitThreads(ThreadInfo, ArrayCount(ThreadInfo), &p.Queue);
+    // End of Multithreading
+    
+    // Random
+    srand((unsigned int)time(NULL));
+    // End of Random
+    
+    memset(GlobalDebugBuffer.Data, 0, GlobalDebugBuffer.Size);
+    GlobalDebugBuffer.Size = 0;
+    GlobalDebugBuffer.Next = GlobalDebugBuffer.Data;
     
     GlobalRunning = true;
     while (GlobalRunning)
@@ -368,10 +419,11 @@ bool MainLoop()
         
         real32 Seconds = SDLGetSeconds(&LastAudioTicks);
         if (Seconds < 1)
-            SoundBuffer.SampleCount = (int)ceil(Seconds * SoundBuffer.SamplesPerSecond);
+            SoundBuffer.SampleCount = (int)floor(Seconds * SoundBuffer.SamplesPerSecond);
         else
             SoundBuffer.SampleCount = 0;
         
+        //SDL_Log("SecondsElapsed: %f, SampleCount: %d", Seconds, SoundBuffer.SampleCount );
         //SDL_Log("%d\n", SoundBuffer.SampleCount);
         
         SoundBuffer.Samples = Samples;

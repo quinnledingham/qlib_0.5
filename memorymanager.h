@@ -1,12 +1,6 @@
 #ifndef MEMORYMANAGER_H
 #define MEMORYMANAGER_H
 
-struct FreeMemory
-{
-    void *Data;
-    int Size;
-};
-
 struct MemoryManager
 {
     bool32 StartInitialized;
@@ -14,18 +8,8 @@ struct MemoryManager
     uint32 BytesUsed; // bytes from start
     
     char* Next;
-    
-    FreeMemory Free[100];
-    int FreeIndex = 0;
-    
-    HANDLE Mutex;
-    //u32 Mutex;
 };
-
 global_variable MemoryManager Manager;
-
-internal void* qalloc(void* newM, int size);
-internal void* qalloc(int size);
 
 internal void
 MemoryCopy(void* Dest, void* Source, int Size)
@@ -36,6 +20,38 @@ MemoryCopy(void* Dest, void* Source, int Size)
     {
         CharDest[i] = CharSource[i];
     }
+}
+
+internal void*
+qalloc(void* newM, int size)
+{
+    void *r = 0;
+    
+    MemoryCopy(Manager.Next, newM, size);
+    r = (void*)Manager.Next;
+    Manager.Next += size;
+    
+    
+    Manager.BytesUsed += size;
+    Assert(Manager.BytesUsed < Permanent_Storage_Size);
+    
+    return r;
+}
+
+internal void*
+qalloc(int size)
+{
+    void* r = 0;
+    
+    r = Manager.Next;
+    Manager.Next += size;
+    
+    memset(r, 0, size);
+    
+    Manager.BytesUsed += size;
+    Assert(Manager.BytesUsed < Permanent_Storage_Size);
+    
+    return r;
 }
 
 // Function that allocates state at beginning of memory
@@ -52,76 +68,12 @@ GetMemoryStart(int Size)
 }
 #define MemStart(t) ((t*)GetMemoryStart(sizeof(t)))
 
-internal void*
-qalloc(void* newM, int size)
-{
-    //MemoryCopy(Manager.Next, &size, sizeof(int));
-    //Manager.Next += sizeof(int);
-    void *r = 0;
-    //switch(WaitForSingleObject(Manager.Mutex, INFINITE))
-    //{
-    //case WAIT_OBJECT_0: _try 
-    //{
-    MemoryCopy(Manager.Next, newM, size);
-    r = (void*)Manager.Next;
-    Manager.Next += size;
-    //}
-    //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
-    //}
-    
-    Manager.BytesUsed += size;
-    Assert(Manager.BytesUsed < Permanent_Storage_Size);
-    
-    return r;
-}
-
-internal void*
-qalloc(int size)
-{
-    //MemoryCopy(Manager.Next, &size, sizeof(int));
-    //Manager.Next += sizeof(int);
-    
-    void* r = 0;
-    //switch(WaitForSingleObject(Manager.Mutex, INFINITE))
-    //{
-    //case WAIT_OBJECT_0: _try 
-    //{
-    r = Manager.Next;
-    Manager.Next += size;
-    //}
-    //_finally{if(!ReleaseMutex(Manager.Mutex)){}}break;case WAIT_ABANDONED:return false;
-    //}
-    memset(r, 0, size);
-    
-    Manager.BytesUsed += size;
-    Assert(Manager.BytesUsed < Permanent_Storage_Size);
-    
-    return r;
-}
-
 internal void
 dalloc(void* Storage)
 {
-    //void* i = (char*)Storage - sizeof(int);
-    //int Size = *(int*)i;
     
-    //Manager.Next -= Size;
-    //memset(i, 0, sizeof(int));
-    //memset(Storage, 0, Size);
-    
-    /*
-    Manager.Free[Manager.FreeIndex].Data = i;
-    Manager.Free[Manager.FreeIndex].Size = Size;
-    Manager.FreeIndex++;
-    
-    if (Manager.FreeIndex > 99) {
-        for (int i = 0; i < Manager.FreeIndex; i++) {
-            void* NextMemory = Manager.Free[i].Data + Manager.Free[i].Size;
-            
-        }
-    }
-*/
 }
+
 inline void* MallocClear(int Size)
 {
     void* Data = malloc(Size);
@@ -147,8 +99,6 @@ inline char* BufferCC(char* Buffer, int BufferSize, void* DataToCopy, int DataTo
     memcpy(Buffer, DataToCopy, DataToCopySize); 
     return Buffer;
 }
-
-#define MallocCopy(t, d) ((t*)MallocCpy((void*)&d, sizeof t))
 
 #define Qalloc(t) ((t*)qalloc(sizeof(t)))
 

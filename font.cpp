@@ -46,14 +46,6 @@ LoadGlyphBitmap(font *Font, u32 Codepoint, real32 Scale, uint32 Color)
             u32 *Dest = (u32 *)DestRow;
             for(s32 X = 0; X < Width; ++X)
             {
-                /*
-                u8 Gray = *Source++;
-                u32 Alpha = ((Gray << 24) | (Gray << 16) | (Gray <<  8) | (Gray << 0));
-                Color &= 0x00FFFFFF;
-                Alpha &= 0xFF000000;
-                Color += Alpha;
-                *Dest++ = Color;
-                */
                 u8 Alpha = *Source++;
                 *Dest++ = ((Alpha << 24) |
                            (Alpha << 16) |
@@ -97,20 +89,10 @@ LoadFontScale(font *Font, real32 PixelHeight)
     return FontScale;
 }
 
-internal font*
+internal loaded_font
 LoadFont(const char *FileName)
 {
-    font *F = (font*)qalloc(sizeof(font));
-    F->TTFFile = ReadEntireFile(FileName);
-    stbtt_InitFont(&F->Info, (u8 *)F->TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)F->TTFFile.Contents, 0));
-    //DestroyEntireFile();
-    return F;
-}
-
-internal font
-LoadFont2(const char *FileName)
-{
-    font F = {};
+    loaded_font F = {};
     F.TTFFile = ReadEntireFile(FileName);
     stbtt_InitFont(&F.Info, (u8 *)F.TTFFile.Contents, stbtt_GetFontOffsetForIndex((u8 *)F.TTFFile.Contents, 0));
     return F;
@@ -208,7 +190,8 @@ FontStringSetText(font_string *FontString, const char *NewText)
         memcpy(FontString->Text, NewText, NewTextLength);
         FontString->Length = NewTextLength;
     }
-    else {
+    else 
+    {
         PrintqDebug(S() + "FontStringSetText: NewText is too long\n");
     }
     FontString->NewText = true;
@@ -284,3 +267,104 @@ inline void FontStringPrint(font_string *FontString, v2 Coords)
     FontStringPrint(FontString, Coords, 0, 0);
 }
 
+
+
+string_draw::string_draw()
+{
+    string_draw *Draw = this;
+    memset(Draw, 0, sizeof(string_draw));
+}
+
+
+string_draw::string_draw(string String)
+{
+    string_draw *Draw = this;
+    *Draw = {};
+    Draw->Text = String;
+}
+
+string_draw::string_draw(char *Text)
+{
+    string_draw *Draw = this;
+    *Draw = {};
+    Draw->Text = string() + Text;
+}
+
+inline void
+StringDrawSetup(string_draw *Draw, font_id FontID, u32 Color, real32 PixelHeight)
+{
+    Draw->FontID = FontID;
+    Draw->Color = Color;
+    Draw->PixelHeight = PixelHeight;
+}
+
+inline u32
+GetLength(string_draw *Draw)
+{
+    return (Draw->Text.Length);
+}
+
+internal dim
+StringDrawGetDim(string_draw *Draw, assets *Assets)
+{
+    if (Draw->PixelHeight != Draw->LastPixelHeight)
+    {
+        Draw->LastPixelHeight = Draw->PixelHeight;
+        font *Font = GetFont(Assets, Draw->FontID);
+        
+        // Get Scale
+        font_scale *FontScale = LoadFontScale(Font, Draw->PixelHeight);
+        Draw->Scale = FontScale->Scale;
+        
+        // Load Font Chars
+        for (u32 i = 0; i < GetLength(Draw); i++)
+            Draw->FontChars[i] = LoadFontChar(Font, Draw->Text[i], Draw->Scale, Draw->Color);
+        
+        real32 StringWidth = 0;
+        real32 StringHeight = 0;
+        for (u32 i = 0; i < GetLength(Draw); i++) 
+        {
+            font_char *FontChar = Draw->FontChars[i];
+            
+            real32 Y = -1.0f * FontChar->C_Y1;
+            if (StringHeight < Y)
+                StringHeight = Y;
+            
+            int kern = stbtt_GetCodepointKernAdvance(&Font->Info, Draw->Text[i], Draw->Text[i + 1]);
+            
+            real32 Advance = ((kern + FontChar->AX) * Draw->Scale);
+            Draw->Advances[i] = Advance;
+            StringWidth += Advance;
+        }
+        
+        Draw->Dim = v2(StringWidth, StringHeight);
+    }
+    return Draw->Dim;
+}
+
+internal void
+StringDraw(string_draw *Draw, assets *Assets, v2 Coords, v2 ScissorCoords, v2 ScissorDim)
+{
+    StringDrawGetDim(Draw, Assets); // Makes sure this is called before trying to draw
+    
+    real32 XCoord = Coords.x;
+    for (u32 i = 0; i < GetLength(Draw); i++)
+    {
+        font_char *FontChar = Draw->FontChars[i];
+        
+        real32 Y = Coords.y + FontChar->C_Y1 + Draw->Dim.y;
+        real32 X = XCoord + (FontChar->LSB * Draw->Scale);
+        
+        v2 Scissor = v2(ScissorCoords.x, ScissorCoords.y + ScissorDim.y);
+        
+        Push(v3(X, Y, 100.0f), v2((real32)FontChar->Bitmap.Width, (real32)FontChar->Bitmap.Height),
+             Scissor, ScissorDim, &FontChar->Bitmap, 0, blend_mode::gl_src_alpha);
+        
+        XCoord += Draw->Advances[i];
+    }
+}
+inline void
+StringDraw(string_draw *Draw, assets *Assets,  v2 Coords)
+{
+    StringDraw(Draw, Assets, Coords, 0, 0);
+}

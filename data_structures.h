@@ -168,9 +168,6 @@ struct strinq
 {
     char *Data;
     int Length;
-    
-    real32 DimScale;
-    v2 Dim;
 };
 inline void DestroyStrinq(strinq *ToBeDestroyed) { free(ToBeDestroyed->Data); }
 

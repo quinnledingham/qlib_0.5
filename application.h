@@ -69,8 +69,6 @@ inline void PlatformSetCD(const char* Dir) {}
 //#include "sdl-vc/include/SDL_video.h"
 //#include "sdl-vc/include/SDL_opengl.h"
 
-
-
 #pragma comment(linker, "/subsystem:console")
 #define main SDL_main
 
@@ -82,7 +80,8 @@ inline void PlatformSetCD(const char* Dir) {}
 #include <time.h>
 //#include <stdio.h>
 #include <string.h>
-#include <stdarg.h>                      
+#include <stdarg.h>
+#include <ctime>
 
 // Load OpenGL
 #ifdef QLIB_OPENGL
@@ -114,25 +113,26 @@ static GLuint gVertexArrayObject = 0;
 //#pragma comment(linker, "/subsystem:windows")
 
 #include "types.h"
-#include "audio.h"
 #include "memorymanager.h"
 #include "arr.h"
+#include "audio.h"
 #include "platform.h"
 #include "data_structures.h"
 #include "image.h"
 #include "math.h"
 internal void TextureInit(loaded_bitmap *Bitmap);
-#include "text.h"
+#include "string.h"
+#include "font.h"
 #include "asset.h"
 #include "renderer.h"
-#include "random.h"
 #include "socketq.h"
 
 #include "asset.cpp"
-#include "text.cpp"
+#include "font.cpp"
 #include "audio.cpp"
 #include "renderer.cpp"
 #include "platform.cpp"
+
 #include "menu.h"
 #include "gui.h"
 void UpdateRender(platform* p);

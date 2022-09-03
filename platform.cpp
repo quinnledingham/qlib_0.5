@@ -43,6 +43,7 @@ PlatformClearButtons(platform_input *Input, arr *ButtonsToClear)
 }
 
 // https://stackoverflow.com/questions/1735236/how-to-write-my-own-printf-in-c
+/*
 void Log(char * fmt, ...)
 {
     va_list arg;
@@ -60,3 +61,4 @@ void Log(char * fmt, ...)
     
     va_end(arg);
 }
+*/
